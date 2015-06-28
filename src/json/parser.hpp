@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <iosfwd>
-#include <iostream>
 
 namespace json
 {
