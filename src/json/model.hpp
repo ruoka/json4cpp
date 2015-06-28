@@ -11,15 +11,16 @@ struct element
     template <typename V>
     element(const std::string& key, const V& value)
     {
-        serial << "\"" << key << "\":";
-        if (std::is_same<V,std::string>::value) serial << "\"";
+        serial << '\"' << key << '\"' << ":";
+        if (std::is_same<V,std::string>::value) serial << '\"';
         serial << value;
-        if (std::is_same<V,std::string>::value) serial << "\"";
+        if (std::is_same<V,std::string>::value) serial << '\"';
     }
     friend std::ostream& operator << (std::ostream& os, const element& e)
     {
         return os << e.serial.str();
     }
+private:
     std::ostringstream serial;
 };
 
@@ -44,6 +45,7 @@ struct array
     {
         return os << a.serial.str();
     }
+private:
     std::ostringstream serial;
 };
 
@@ -72,6 +74,7 @@ struct document
     {
         return os << d.serial.str();
     }
+private:
     std::ostringstream serial;
 };
 
