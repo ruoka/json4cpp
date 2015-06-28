@@ -167,6 +167,7 @@ void object::parse_array(std::istream& is, object& result)
     {
         std::string name{std::to_string(idx++)};
 
+        is >> std::ws;
         next = is.peek();
 
         if (next == '{')
@@ -201,10 +202,11 @@ void object::parse_document(std::istream& is, object& result)
     while(next != '}' && is)
     {
         std::string name, value;
-        is >> next; // "
+        is >> std::ws >> next; // "
         getline(is, name, '\"'); // name"
         is >> next; // :
 
+        is >> std::ws;
         next = is.peek();
 
         if (next == '{')

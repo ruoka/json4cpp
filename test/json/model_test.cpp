@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include "json/model.hpp"
 
+using namespace std;
 using namespace std::literals::string_literals;
 
 TEST(JsonModelTest,Mockup)
@@ -29,7 +30,7 @@ TEST(JsonModelTest,Mockup)
         {"LuckyNumbers", json::array{2u,22u,2112u}}
     };
 
-    std::clog << papa << std::endl;
+    clog << papa << endl;
 
-    std::clog << json::document{{"_id", 2,},{"Name","Dodo"s}} << std::endl;
+    clog << json::document{{"_id", 2,},{"Name","Dodo"s}} << endl;
 }

@@ -52,7 +52,7 @@ TEST(BsonModelTest,Mockup)
       {"LuckyNumbers", json::array{2u,22u,2112u}}
     };
 
-    std::clog << papa << std::flush;
+    clog << papa << endl;
 
-    std::clog << bson::document{{"_id", 2,},{"Name","Ruoka"}} << std::flush;
+    clog << bson::document{{"_id", 2,},{"Name","Ruoka"}} << endl;
 }
