@@ -30,20 +30,20 @@ TEST(BsonModelTest,Mockup)
               << bson::type(b16) << "\n"
               << bson::type(b18) << "\n";
 
-    json::document sons
+    bson::document sons
     {
       {"Name","Tulppu"s},
       {"Name","Elppu"s},
       {"Name","Jalppu"s}
     };
 
-    json::array sizes
+    bson::array sizes
     {
       json::document {"ShoeSize",47.50},
       json::document {"WaistSize",120.50}
     };
 
-    json::document papa
+    bson::document papa
     {
       {"Name","Papa Cool"s},
       {"Age",39u},
