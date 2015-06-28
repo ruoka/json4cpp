@@ -46,10 +46,11 @@ JSON Library for C++14
     std::clog << result << std::endl;
 
     std::clog << "_id = "  << result["_id"s]  << "\n"
-              << "name = " << result["Name"s] << "\n"
-              << "name = " << result["Embedded"s]["Name"s]  << "\n"
-              << "number 1 = " << result["Lucky Numbers"s][0]  << "\n"
-              << "number 2 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
+              << "Name = " << result["Name"s] << "\n"
+              << "Embeded.Name = " << result["Embedded"s]["Name"s]  << "\n"
+              << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
+              << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
+              << "Lucky Number 3 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
 
     int id = result["_id"s];
     std::string name = result["Name"s];
