@@ -46,4 +46,8 @@ Jason Library for C++14
               << "name = " << result["Embeded"s]["Name"s]  << "\n"
               << "number 1 = " << result["Lucky Numbers"s][0]  << "\n"
               << "number 2 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
+
+    int id = result["_id"s];
+    std::string name = result["Name"s];
+    double number = result["Lucky Numbers"s][1];              
 ```
