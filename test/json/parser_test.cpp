@@ -9,7 +9,7 @@ using namespace std::literals::string_literals;
 TEST(JsonParserTest,Mockup)
 {
     std::stringstream ios;
-    ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embeded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << std::endl;
+    ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << std::endl;
 
     std::clog << ios.str() << std::endl;
 
@@ -19,7 +19,7 @@ TEST(JsonParserTest,Mockup)
 
     std::clog << "_id = "  << result["_id"s]  << "\n"
               << "Name = " << result["Name"s] << "\n"
-              << "Embeded.Name = " << result["Embeded"s]["Name"s]  << "\n"
+              << "Embeded.Name = " << result["Embedded"s]["Name"s]  << "\n"
               << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
               << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
               << "Lucky Number 3 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
