@@ -13,7 +13,7 @@ struct element
     {
         serial << '\"' << key << '\"' << ":";
         if (std::is_same<V,std::string>::value) serial << '\"';
-        serial << value;
+        serial << std::boolalpha << value;
         if (std::is_same<V,std::string>::value) serial << '\"';
     }
     friend std::ostream& operator << (std::ostream& os, const element& e)
