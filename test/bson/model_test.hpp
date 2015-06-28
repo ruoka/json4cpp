@@ -30,29 +30,29 @@ TEST(BsonModelTest,Mockup)
               << bson::type(b16) << "\n"
               << bson::type(b18) << "\n";
 
-    bson::document sons
+    json::document sons
     {
-        {"Name","Tulus"s},
-        {"Name","Elo"s},
-        {"Name","Jalo"s},
+      {"Name","Tulppu"s},
+      {"Name","Elppu"s},
+      {"Name","Jalppu"s}
     };
-    bson::array sizes
+
+    json::array sizes
     {
-        bson::document
-        {
-            {"ShoeSize",47.5}
-        }
+      json::document {"ShoeSize",47.50},
+      json::document {"WaistSize",120.50}
     };
-    bson::document papa
+
+    json::document papa
     {
-        {"Name","Kaius Ruokonen"s},
-        {"Age",39u},
-        {"Sons",sons},
-        {"Sizes",sizes},
-        {"LucyNumbers", bson::array{2,22,2112}}
+      {"Name","Papa Cool"s},
+      {"Age",39u},
+      {"Sons",sons},
+      {"Sizes",sizes},
+      {"LuckyNumbers", json::array{2u,22u,2112u}}
     };
 
     std::clog << papa << std::flush;
 
-    std::clog << bson::document{{"_id", 2,},{"name","ruoka"}} << std::flush;
+    std::clog << bson::document{{"_id", 2,},{"Name","Ruoka"}} << std::flush;
 }
