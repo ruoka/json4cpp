@@ -3,7 +3,7 @@ Jason Library for C++14
 
 ## Model ##
 ```cpp
-    #include "json/parser.hpp"
+    #include "json/model.hpp"
 
     json::document sons
     {
@@ -34,7 +34,7 @@ Jason Library for C++14
     
 ## Parser ##
 ```cpp
-    #include "json/model.hpp"
+    #include "json/parser.hpp"
 
     std::stringstream ios;
     ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << std::endl;
