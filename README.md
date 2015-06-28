@@ -1,8 +1,10 @@
 # json4cpp
-Jason Library for C++14
+JSON Library for C++14
 
 ## Model ##
 ```cpp
+    #include "json/model.hpp"
+
     json::document sons
     {
         {"Name","Tulppu"s},
@@ -32,8 +34,10 @@ Jason Library for C++14
     
 ## Parser ##
 ```cpp
+    #include "json/parser.hpp"
+
     std::stringstream ios;
-    ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embeded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << std::endl;
+    ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << std::endl;
 
     std::clog << ios.str() << std::endl;
 
@@ -41,11 +45,12 @@ Jason Library for C++14
 
     std::clog << result << std::endl;
 
-    std::clog << "_id = "  << result["_id"s]  << "\n"
-              << "name = " << result["Name"s] << "\n"
-              << "name = " << result["Embeded"s]["Name"s]  << "\n"
-              << "number 1 = " << result["Lucky Numbers"s][0]  << "\n"
-              << "number 2 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
+    std::clog << "_id = "  << result["_id"s]                            << "\n"
+              << "Name = " << result["Name"s]                           << "\n"
+              << "Embeded.Name = "   << result["Embedded"s]["Name"s]    << "\n"
+              << "Lucky Number 1 = " << result["Lucky Numbers"s][0]     << "\n"
+              << "Lucky Number 2 = " << result["Lucky Numbers"s][1]     << "\n"
+              << "Lucky Number 3 = " << result["Lucky Numbers"s]["2"s]  << std::endl;
 
     int id = result["_id"s];
     std::string name = result["Name"s];
