@@ -1,5 +1,5 @@
 # json4cpp
-Jason Library for C++14
+JSON Library for C++14
 
 ## Model ##
 ```cpp
