@@ -22,4 +22,13 @@ TEST(JsonParserTest,Mockup)
               << "name = " << result["Embeded"s]["Name"s]  << "\n"
               << "number 1 = " << result["Lucky Numbers"s][0]  << "\n"
               << "number 2 = " << result["Lucky Numbers"s]["2"s]  << "\n" << std::endl;
+
+    long id = result["_id"s];
+    ASSERT_EQ(id,2);
+
+    std::string name = result["Name"s];
+    ASSERT_EQ(name,"Ruoka"s);
+
+    double number = result["Lucky Numbers"s][1];
+    ASSERT_EQ(number,double{22});
 }

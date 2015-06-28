@@ -8,70 +8,157 @@
 namespace json
 {
 
-enum class type
+class object
 {
-    string,
-    number,
-    object,
-    array,
-    boolean,
-    null
-};
+public:
 
-struct collection
-{
-    collection& operator [] (const std::string& name)
+    object() :
+    value{}, value_type{type::object}, objects{}
+    {}
+
+    object(std::istream& is) : object()
     {
-        return object[name];
+        is >> std::skipws;
+        parse_document(is,*this);
     }
 
-    collection& operator [] (std::size_t idx)
+    object(object&& c) :
+    value{std::move(c.value)}, value_type{c.value_type}, objects{std::move(c.objects)}
+    {}
+
+    object& operator [] (const std::string& name)
     {
-        return object[std::to_string(idx)];
+        return objects[name];
     }
 
-    friend std::ostream& operator << (std::ostream& os, const collection& c)
+    object& operator [] (std::size_t idx)
     {
-        if(!c.object.empty() && c.type == type::object)
+        return objects[std::to_string(idx)];
+    }
+
+    operator std::string ()
+    {
+        std::ostringstream os;
+        os << value;
+        return os.str();
+    }
+
+    operator int ()
+    {
+        int i;
+        std::stringstream ss;
+        ss << value;
+        ss >> i;
+        return i;
+    }
+
+    operator long ()
+    {
+        long l;
+        std::stringstream ss;
+        ss << value;
+        ss >> l;
+        return l;
+    }
+
+    operator double ()
+    {
+        double d;
+        std::stringstream ss;
+        ss << value;
+        ss >> d;
+        return d;
+    }
+
+    friend std::ostream& operator << (std::ostream& os, const object& c)
+    {
+        if(!c.objects.empty() && c.value_type == type::object)
         {
             os << '{';
-            for(auto it = c.object.begin(); it != c.object.end(); ++it)
+            for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
             {
-                if (it != c.object.begin()) os << ',';
+                if (it != c.objects.cbegin()) os << ',';
                 os << '\"' << it->first << '\"' << ':' << it->second;
             }
             os << '}';
         }
-        else if(!c.object.empty() && c.type == type::array)
+        else if(!c.objects.empty() && c.value_type == type::array)
         {
             os << '[';
-            for(auto it = c.object.begin(); it != c.object.end(); ++it)
+            for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
             {
-                if (it != c.object.begin()) os << ',';
+                if (it != c.objects.cbegin()) os << ',';
                 os << it->second;
             }
             os << ']';
          }
-        else if(!c.value.empty() && c.type == type::string)
-            os << "\"" << c.value << "\"";
+        else if(!c.value.empty() && c.value_type == type::string)
+            os << '\"' << c.value << '\"';
         else if(!c.value.empty())
             os << c.value;
-        else
+        else if (c.value_type == type::object || c.value_type == type::array)
             os << "{}";
+        else
+            os << "null";
 
         return os;
     }
 
+private:
+
+    void parse_string(std::istream& is, object& result);
+
+    void parse_number(std::istream& is, object& result);
+
+    void parse_array(std::istream& is, object& result);
+
+    void parse_document(std::istream& is, object& result);
+
+    enum class type
+    {
+        string,
+        number,
+        object,
+        array,
+        boolean,
+        null
+    };
+
     std::string value;
 
-    std::map<std::string,collection> object;
+    type value_type;
 
-    json::type type = json::type::object;
+    std::map<std::string,object> objects;
+
+    object(const object&) = delete;
 };
 
-void parse_document(std::istream& is, collection& result);
+void object::parse_string(std::istream& is, object& result)
+{
+    char next;
+    std::string value;
+    is >> next; // "
+    getline(is, value, '\"'); // value"
+    result.value = value;
+    result.value_type = type::string;
+}
 
-void parse_array(std::istream& is, collection& result)
+void object::parse_number(std::istream& is, object& result)
+{
+    char next;
+    std::string value;
+    is >> next;
+    while (next != ',' && next != '}' && next != ']')
+    {
+        value += next;
+        is >> next;
+    }
+    is.putback(next); // , }, or ] do not belong to the number
+    result.value = value;
+    result.value_type = type::number;
+}
+
+void object::parse_array(std::istream& is, object& result)
 {
     std::size_t idx{0};
     char next;
@@ -80,48 +167,34 @@ void parse_array(std::istream& is, collection& result)
     while(next != ']' && is)
     {
         std::string name{std::to_string(idx++)};
-        std::string value;
 
         next = is.peek();
 
         if (next == '{')
         {
-            parse_document(is, result.object[name]);
+            parse_document(is, result.objects[name]);
             is >> next; // , or ]
         }
         else if (next == '[')
         {
-            parse_array(is, result.object[name]);
+            parse_array(is, result.objects[name]);
             is >> next; // , or ]
         }
         else if (next == '\"')
         {
-            is >> next;
-            getline(is, value, '\"'); // value"
+            parse_string(is, result.objects[name]);
             is >> next; // , or ]
-            auto& o = result.object[name];
-            o.type = type::string;
-            o.value = value;
         }
         else
         {
-            is >> next;
-            while (next != ',' && next != ']')
-            {
-                value += next;
-                is >> next;
-            }
-            auto& o = result.object[name];
-            o.type = type::number;
-            o.value = value;
+            parse_number(is, result.objects[name]);
+            is >> next; // , }, or ]
         }
-
-        result.type = type::array;
-        std::clog << name << ":" << result.object[name] << std::endl;
     }
+    result.value_type = type::array;
 }
 
-void parse_document(std::istream& is, collection& result)
+void object::parse_document(std::istream& is, object& result)
 {
     char next;
     is >> next; // {
@@ -129,7 +202,6 @@ void parse_document(std::istream& is, collection& result)
     while(next != '}' && is)
     {
         std::string name, value;
-
         is >> next; // "
         getline(is, name, '\"'); // name"
         is >> next; // :
@@ -138,48 +210,31 @@ void parse_document(std::istream& is, collection& result)
 
         if (next == '{')
         {
-            parse_document(is, result.object[name]);
+            parse_document(is, result.objects[name]);
             is >> next; // , or }
         }
         else if (next == '[')
         {
-            parse_array(is, result.object[name]);
+            parse_array(is, result.objects[name]);
             is >> next; // , or }
         }
         else if (next == '\"')
         {
-            result.type = type::string;
-            is >> next; // "
-            getline(is, value, '\"'); // value"
-            is >> next; // , or }
-            auto& o = result.object[name];
-            o.type = type::string;
-            o.value = value;
+            parse_string(is, result.objects[name]);
+            is >> next; // , or ]
         }
         else
         {
-            is >> next;
-            while (next != ',' && next != '}')
-            {
-                value += next;
-                is >> next;
-            }
-            auto& o = result.object[name];
-            o.type = type::number;
-            o.value = value;
+            parse_number(is, result.objects[name]);
+            is >> next; // , }, or ]
         }
-
-        result.type = type::object;
-        std::clog << name << ":" << result.object[name] << std::endl;
     }
+    result.value_type = type::object;
 }
 
-collection parse(std::istream& is)
+object parse(std::istream& is)
 {
-    collection result;
-    is >> std::skipws;
-    parse_document(is, result);
-    return result;
+    return object{is};
 }
 
 } // namespace json
