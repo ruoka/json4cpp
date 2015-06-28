@@ -1,11 +1,11 @@
 #include <string>
 #include <iostream>
 #include <gtest/gtest.h>
-#include "bson.hpp"
+#include "bson/model.hpp"
 
 using namespace std::literals::string_literals;
 
-TEST(BSON,MockupTest)
+TEST(BsonModelTest,Mockup)
 {
     bson::double_type b1;
     bson::string_type b2;
