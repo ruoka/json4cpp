@@ -48,4 +48,10 @@ TEST(JsonParserTest,ParseTest2)
     ifstream ifs{"./test/json/test2.json"};
     auto result = json::parse(ifs);
     clog << "test2.json: "s << result << endl;
+
+    bool alive = result["isAlive"s];
+    EXPECT_EQ(alive,true);
+
+    bool spouce = result["spouse"s];
+    EXPECT_EQ(spouce,false);
 }

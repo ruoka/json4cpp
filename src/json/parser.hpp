@@ -35,14 +35,14 @@ public:
         return objects[std::to_string(idx)];
     }
 
-    operator std::string ()
+    operator std::string () const
     {
         std::ostringstream os;
         os << value;
         return os.str();
     }
 
-    operator int ()
+    operator int () const
     {
         int i;
         std::stringstream ss;
@@ -51,7 +51,7 @@ public:
         return i;
     }
 
-    operator long ()
+    operator long () const
     {
         long l;
         std::stringstream ss;
@@ -60,7 +60,7 @@ public:
         return l;
     }
 
-    operator double ()
+    operator double () const
     {
         double d;
         std::stringstream ss;
@@ -69,39 +69,21 @@ public:
         return d;
     }
 
-    friend std::ostream& operator << (std::ostream& os, const object& c)
+    operator bool () const
     {
-        if(!c.objects.empty() && c.value_type == type::object)
-        {
-            os << '{';
-            for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
-            {
-                if (it != c.objects.cbegin()) os << ',';
-                os << '\"' << it->first << '\"' << ':' << it->second;
-            }
-            os << '}';
-        }
-        else if(!c.objects.empty() && c.value_type == type::array)
-        {
-            os << '[';
-            for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
-            {
-                if (it != c.objects.cbegin()) os << ',';
-                os << it->second;
-            }
-            os << ']';
-         }
-        else if(!c.value.empty() && c.value_type == type::string)
-            os << '\"' << c.value << '\"';
-        else if(!c.value.empty())
-            os << c.value;
-        else if (c.value_type == type::object || c.value_type == type::array)
-            os << "{}";
-        else
-            os << "null";
-
-        return os;
+        bool b;
+        std::stringstream ss;
+        ss << value;
+        ss >> std::boolalpha >> b;
+        return b;
     }
+
+    bool empty () const
+    {
+        return objects.empty();
+    }
+
+    friend std::ostream& operator << (std::ostream&, const object&);
 
 private:
 
@@ -130,6 +112,8 @@ private:
     std::map<std::string,object> objects;
 
     object(const object&) = delete;
+    object& operator = (const object&) = delete;
+    object& operator = (object&&) = delete;
 };
 
 void object::parse_string(std::istream& is, object& result)
@@ -236,6 +220,40 @@ void object::parse_document(std::istream& is, object& result)
 object parse(std::istream& is)
 {
     return object{is};
+}
+
+std::ostream& operator << (std::ostream& os, const object& c)
+{
+    if(!c.objects.empty() && c.value_type == object::type::object)
+    {
+        os << '{';
+        for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
+        {
+            if (it != c.objects.cbegin()) os << ',';
+            os << '\"' << it->first << '\"' << ':' << it->second;
+        }
+        os << '}';
+    }
+    else if(!c.objects.empty() && c.value_type == object::type::array)
+    {
+        os << '[';
+        for(auto it = c.objects.cbegin(); it != c.objects.cend(); ++it)
+        {
+            if (it != c.objects.cbegin()) os << ',';
+            os << it->second;
+        }
+        os << ']';
+     }
+    else if(!c.value.empty() && c.value_type == object::type::string)
+        os << '\"' << c.value << '\"';
+    else if(!c.value.empty())
+        os << c.value;
+    else if (c.value_type == object::type::object || c.value_type == object::type::array)
+        os << "{}";
+    else
+        os << "null";
+
+    return os;
 }
 
 } // namespace json
