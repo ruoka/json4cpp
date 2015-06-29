@@ -18,7 +18,7 @@ namespace bson
     using int64_type = std::int64_t;
     using double_type = double;
     using string_type = std::string;
-    using cstring_type = char*;
+    using cstring_type = std::string;
     using document_type = document;
     using array_type = array;
     using binary_type = binary;
