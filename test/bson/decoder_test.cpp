@@ -12,28 +12,30 @@ TEST(DecoderTest,Mockup)
     ASSERT_EQ(0, (ii & 0xFF));
     ASSERT_NE(256, (ii & 0xFF));
 
+    bson::decoder d;
+
     char bytex1[1];
-    bson::buffer = bytex1;
-    bson::decode(bson::byte_type{'1'});
+    d.buffer = bytex1;
+    d.decode(bson::byte_type{'1'});
     EXPECT_EQ('1', static_cast<bson::byte_type>(*bytex1));
 
     char bytex4[4];
-    bson::buffer = bytex4;
-    bson::decode(bson::int32_type{2});
+    d.buffer = bytex4;
+    d.decode(bson::int32_type{2});
     EXPECT_EQ(2, *reinterpret_cast<bson::int32_type*>(bytex4));
 
     char bytex8v1[8];
-    bson::buffer = bytex8v1;
-    bson::decode(bson::int64_type{3});
+    d.buffer = bytex8v1;
+    d.decode(bson::int64_type{3});
     EXPECT_EQ(3, *reinterpret_cast<bson::int64_type*>(bytex8v1));
 
     char bytex8v2[8];
-    bson::buffer = bytex8v2;
-    bson::decode(bson::double_type{4.0});
+    d.buffer = bytex8v2;
+    d.decode(bson::double_type{4.0});
     EXPECT_EQ(4.0, *reinterpret_cast<bson::double_type*>(bytex8v2));
 
     char bytex10[10];
-    bson::buffer = bytex10;
-    bson::decode("Ruoka"s);
+    d.buffer = bytex10;
+    d.decode("Ruoka"s);
     EXPECT_STREQ("Ruoka",bytex10);
 }

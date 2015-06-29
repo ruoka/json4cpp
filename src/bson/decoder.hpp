@@ -1,11 +1,33 @@
 #pragma once
 
 #include <iostream>
-#include "bson/model.hpp"
 
 using namespace std;
 
 namespace bson
+{
+
+    struct document;
+    struct list;
+    struct element;
+    struct array;
+    struct binary;
+    struct objectid;
+
+    using byte_type = std::uint8_t;
+    using int32_type = std::int32_t;
+    using int64_type = std::int64_t;
+    using double_type = double;
+    using string_type = std::string;
+    using cstring_type = std::string;
+    using document_type = document;
+    using array_type = array;
+    using binary_type = binary;
+    using objectid_type = objectid;
+    using boolean_type = bool;
+    using null_type = std::nullptr_t;
+
+struct decoder
 {
 
 char* buffer;
@@ -57,5 +79,10 @@ void decode(const cstring_type& str)
         decode(b);
     decode('\x00');
 }
+
+template <typename T> void decode(const T&)
+{}
+
+};
 
 } // namespace bson

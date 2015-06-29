@@ -3,29 +3,10 @@
 #include <cstdint>
 #include <initializer_list>
 #include <iosfwd>
+#include "bson/decoder.hpp"
 
 namespace bson
 {
-    struct document;
-    struct list;
-    struct element;
-    struct array;
-    struct binary;
-    struct objectid;
-
-    using byte_type = std::uint8_t;
-    using int32_type = std::int32_t;
-    using int64_type = std::int64_t;
-    using double_type = double;
-    using string_type = std::string;
-    using cstring_type = std::string;
-    using document_type = document;
-    using array_type = array;
-    using binary_type = binary;
-    using objectid_type = objectid;
-    using boolean_type = bool;
-    using null_type = std::nullptr_t;
-
     template <typename T> constexpr int32_type type(const T&)
     {
         return 0x06;
@@ -96,45 +77,53 @@ namespace bson
         byte_type* bytes;
     };
 
-    struct element
+    struct element : public decoder
     {
         template <typename V>
-        element(const std::string& n, const V& v) :
-        type{bson::type(v)},
-        name{n}
-        {}
-        int32_type type;
-        string_type name;
-        union
+        element(const std::string& name, const V& value)
         {
-            double_type double_value;
-//            document_type document_value;
-//            array_type array_value;
-            binary_type binary_value;
-            null_type null_value;
-            objectid_type objectid_value;
-        };
+            decode(type(value));
+            decode(name);
+            decode(value);
+        }
     };
 
-    struct document
+    struct array : public decoder
+    {
+        array()
+        {
+            decode(int32_type{0x04});
+            decode(int32_type{0});
+        }
+        template <typename V>
+        array(std::initializer_list<V> il) : array()
+        {
+            for(auto& i : il)
+                decode(i);
+        }
+    };
+
+    struct document : public decoder
     {
         document()
-        {}
+        {
+            decode(int32_type{0x04});
+            decode(int32_type{0});
+        }
+        template <typename V>
+        document(const std::string& key, const V& value)
+        {
+            decode(element{key, value});
+        }
         document(std::initializer_list<element> il) : document()
-        {}
+        {
+            for(auto& i : il)
+                decode(i);
+        }
         friend std::ostream& operator << (std::ostream& os, const document&)
         {
             return os;
         }
-    };
-
-    struct array : public document
-    {
-        array() : document()
-        {}
-        template <typename V>
-        array(std::initializer_list<V> il) : array()
-        {}
     };
 
 } // namespace bson

@@ -39,8 +39,8 @@ TEST(BsonModelTest,Mockup)
 
     bson::array sizes
     {
-      json::document {"ShoeSize",47.50},
-      json::document {"WaistSize",120.50}
+      bson::document {"ShoeSize",47.50},
+      bson::document {"WaistSize",120.50}
     };
 
     bson::document papa
@@ -49,7 +49,7 @@ TEST(BsonModelTest,Mockup)
       {"Age",39u},
       {"Sons",sons},
       {"Sizes",sizes},
-      {"LuckyNumbers", json::array{2u,22u,2112u}}
+      {"LuckyNumbers", bson::array{2u,22u,2112u}}
     };
 
     clog << papa << endl;
