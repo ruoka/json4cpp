@@ -78,10 +78,4 @@ private:
     std::ostringstream serial;
 };
 
-// JSON model names
-
-using pair = element;
-using array = array;
-using object = document;
-
 } // namespace json
