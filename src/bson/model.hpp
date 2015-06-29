@@ -120,6 +120,9 @@ namespace bson
     {
         document()
         {}
+        template <typename V>
+        document(const std::string& key, const V& value)
+        {}
         document(std::initializer_list<element> il) : document()
         {}
         friend std::ostream& operator << (std::ostream& os, const document&)
