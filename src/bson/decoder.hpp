@@ -6,17 +6,16 @@ namespace bson
 {
 
 struct document;
-struct list;
 struct element;
 struct array;
 struct binary;
 struct objectid;
 
 using byte_type = std::int8_t;
-//using byte_type = char;
 using int32_type = std::int32_t;
 using int64_type = std::int64_t;
 using double_type = double;
+using element_type = element;
 using string_type = std::string;
 using cstring_type = std::string;
 using document_type = document;
@@ -84,63 +83,37 @@ template <> int32_type constexpr type(const int64_type&)
 struct decoder
 {
 
-std::unique_ptr<char> head;
+decoder();
 
-char* buffer = nullptr;
+void decode(int32_type i);
 
-int32_type bytes = 0;;
+void decode(int64_type i);
 
-decoder() : head{new char[1000]}
+void decode(boolean_type b);
+
+void decode(double_type d);
+
+void decode(const cstring_type& str);
+
+void decode(const element_type& e);
+
+void decode(const array_type& a);
+
+void decode(const document_type& d);
+
+char* cbegin() const
 {
-    buffer = head.get();
+    return head.get();
 }
 
-void decode(byte_type b)
+char* cend() const
 {
-    put(b & 0xFF);
+    return head.get() + bytes;
 }
 
-void decode(int32_type i)
+int32_type size() const
 {
-    put(i & 0xFF);
-    put((i >>  8) & 0xFF);
-    put((i >> 16) & 0xFF);
-    put((i >> 24) & 0xFF);
-}
-
-void decode(int64_type i)
-{
-    put(i & 0xFF);
-    put((i >>  8) & 0xFF);
-    put((i >> 16) & 0xFF);
-    put((i >> 24) & 0xFF);
-    put((i >> 32) & 0xFF);
-    put((i >> 40) & 0xFF);
-    put((i >> 48) & 0xFF);
-    put((i >> 56) & 0xFF);
-}
-
-void decode(double_type d)
-{
-    union{
-        double_type d64;
-        int64_type i64;
-    } d2i;
-    d2i.d64 = d;
-    decode(d2i.i64);
-}
-
-void decode(const cstring_type& str)
-{
-    for(byte_type b : str)
-        decode(b);
-    decode(byte_type{'\x00'});
-}
-
-void decode(const decoder& d)
-{
-//    bytes += d.bytes; FIXME
-//    std::copy(buffer, d.head.get(), d.head.get() + d.bytes); FIXME
+    return bytes;
 }
 
 char* data()
@@ -150,12 +123,15 @@ char* data()
 
 private:
 
-void put(char b)
-{
-    *buffer = b;
-    ++buffer;
-    ++bytes;
-}
+void put(char b);
+
+void put(const char* begin, const char* end);
+
+std::unique_ptr<char> head;
+
+char* current;
+
+int32_type bytes;
 
 };
 

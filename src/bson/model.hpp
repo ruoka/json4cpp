@@ -25,10 +25,17 @@ namespace bson
     struct element : public decoder
     {
         template <typename V>
-        element(const std::string& name, const V& value)
+        element(const cstring_type& name, const V& value)
         {
             decode(type(value));
             decode(name);
+            decode(value);
+        }
+
+        template <typename V>
+        element(int32_type idx, const V& value)
+        {
+            decode(idx); // FIXME?
             decode(value);
         }
     };
@@ -37,13 +44,15 @@ namespace bson
     {
         array()
         {
-            decode(int32_type{0}); // bytes
+            decode(int32_type{0}); // 0 bytes
         }
+
         template <typename V>
-        array(std::initializer_list<V> il) : array()
+        array(std::initializer_list<V> values)
         {
-            for(auto& i : il)
-                decode(i);
+            int32_type idx{0};
+            for(auto& value : values)
+                decode(element{idx++,value});
         }
     };
 
@@ -51,20 +60,26 @@ namespace bson
     {
         document()
         {
-            decode(int32_type{0}); // bytes
+            decode(int32_type{0}); // 0 bytes
         }
+
         template <typename V>
         document(const std::string& key, const V& value)
         {
             decode(element{key, value});
         }
-        document(std::initializer_list<element> il) : document()
+
+        document(std::initializer_list<element> elements)
         {
-            for(auto& i : il)
-                decode(i);
+            for(auto& element : elements)
+                decode(element);
         }
-        friend std::ostream& operator << (std::ostream& os, const document&)
+
+        friend std::ostream& operator << (std::ostream& os, const document& doc)
         {
+            decoder dec;
+            dec.decode(doc);
+            os.write(dec.cbegin(), dec.size());
             return os;
         }
     };
