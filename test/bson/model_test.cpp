@@ -19,78 +19,78 @@ protected:
 
 TEST_F(BsonModelTest,Double)
 {
-    bson::document d
+    bson::document doc
     {
       {"Double"s, 12.55}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,String)
 {
-    bson::document d
+    bson::document doc
     {
       {"String"s, "B"s}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 
 TEST_F(BsonModelTest,Array)
 {
-    bson::document d
+    bson::document doc
     {
       {"Array"s, bson::array{"a"s, "b"s, "c"s, "d"s}}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,BooleanTrue)
 {
-    bson::document d
+    bson::document doc
     {
       {"Boolean"s, false}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,BooleanFalse)
 {
-    bson::document d
+    bson::document doc
     {
       {"Boolean"s, true}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,Integer32)
 {
-    bson::document d
+    bson::document doc
     {
       {"Integer"s, 9}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,Long64)
 {
-    bson::document d
+    bson::document doc
     {
       {"Long"s, 2112ll}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,Mix)
 {
-    bson::document d
+    bson::document doc
     {
       {"Double"s, 12.55},
       {"String"s, "B"s},
@@ -101,8 +101,8 @@ TEST_F(BsonModelTest,Mix)
       {"Integer"s, 9},
       {"Long"s, 2112ll}
     };
-    ofs.write(d.cbegin(), d.size());
-    ofs << endl;
+
+    ofs << doc << endl;
 }
 
 TEST_F(BsonModelTest,Nested)
@@ -129,6 +129,5 @@ TEST_F(BsonModelTest,Nested)
       {"LuckyNumbers", bson::array{2,22,2112}}
     };
 
-    ofs.write(papa.data(), papa.size());
-    ofs << endl;
+    ofs << papa << endl;
 }
