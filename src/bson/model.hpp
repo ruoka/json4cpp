@@ -7,61 +7,6 @@
 
 namespace bson
 {
-    template <typename T> constexpr int32_type type(const T&)
-    {
-        return 0x06;
-    };
-
-    template <> int32_type constexpr type(const double_type&)
-    {
-        return 0x01;
-    };
-
-    template <> int32_type constexpr type(const string_type&)
-    {
-        return 0x02;
-    };
-
-    template <> int32_type constexpr type(const document_type&)
-    {
-        return 0x03;
-    };
-
-    template <> int32_type constexpr type(const array_type&)
-    {
-        return 0x04;
-    };
-
-    template <> int32_type constexpr type(const binary_type&)
-    {
-        return 0x05;
-    };
-
-    template <> int32_type constexpr type(const objectid_type&)
-    {
-        return 0x07;
-    };
-
-    template <> int32_type constexpr type(const boolean_type& b)
-    {
-        return !b ? 0x08 : 0x09;
-    };
-
-    template <> int32_type constexpr type(const null_type&)
-    {
-        return 0x0A;
-    };
-
-    template <> int32_type constexpr type(const int32_type&)
-    {
-        return 0x10;
-    };
-
-    template <> int32_type constexpr type(const int64_type&)
-    {
-        return 0x12;
-    };
-
     struct objectid
     {
         byte_type epoch[4];
@@ -92,8 +37,7 @@ namespace bson
     {
         array()
         {
-            decode(int32_type{0x04});
-            decode(int32_type{0});
+            decode(int32_type{0}); // bytes
         }
         template <typename V>
         array(std::initializer_list<V> il) : array()
@@ -107,8 +51,7 @@ namespace bson
     {
         document()
         {
-            decode(int32_type{0x04});
-            decode(int32_type{0});
+            decode(int32_type{0}); // bytes
         }
         template <typename V>
         document(const std::string& key, const V& value)
