@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <type_traits>
 
 namespace bson
 {
@@ -27,7 +28,7 @@ using null_type = std::nullptr_t;
 
 template <typename T> constexpr int32_type type(const T&)
 {
-    static_assert(std::is_null_pointer<T>::value, "This type is not supported");
+    static_assert(std::is_void<T>::value, "This type is not supported");
     return 0x06;
 };
 

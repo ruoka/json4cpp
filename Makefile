@@ -1,8 +1,8 @@
 CXX = clang++
 
-CXXFLAGS = -std=c++1z -stdlib=libc++ -I./src/ -I../googletest/include/ -MMD # --analyze
+CXXFLAGS = -v -std=c++1y -stdlib=libc++ -I./src/ -I../googletest/include/ -MMD # --analyze
 
-LDFLAGS = -stdlib=libc++ ../googletest/make/gtest_main.a
+LDFLAGS =  -stdlib=libc++ ../googletest/make/gtest_main.a
 
 SRCDIR = src
 
