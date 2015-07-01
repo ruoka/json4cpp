@@ -3,7 +3,8 @@
 #include "bson/decoder.hpp"
 #include "bson/model.hpp"
 
-#define TRACE(a) std::clog << __func__ << a << std::endl;
+#define _TRACE(a) std::clog << __func__ << a << std::endl;
+#define TRACE(a)
 
 namespace bson
 {
@@ -42,7 +43,7 @@ void decoder::decode(boolean_type b)
 
 void decoder::decode(double_type d)
 {
-    TRACE("(bool)");
+    TRACE("(double)");
     union{
         double_type d64;
         int64_type i64;
