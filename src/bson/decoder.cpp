@@ -3,6 +3,8 @@
 #include "bson/decoder.hpp"
 #include "bson/model.hpp"
 
+#define TRACE(a) std::clog << __func__ << a << std::endl;
+
 namespace bson
 {
 
@@ -11,7 +13,7 @@ decoder::decoder() : buffer{}
 
 void decoder:: decode(int32_type i)
 {
-    std::clog << __func__ << "(int32)" << std::endl;
+    TRACE("(int32)");
     put(i & 0xFF);
     put((i >>  8) & 0xFF);
     put((i >> 16) & 0xFF);
@@ -20,7 +22,7 @@ void decoder:: decode(int32_type i)
 
 void decoder::decode(int64_type i)
 {
-    std::clog << __func__ << "(int64)" << std::endl;
+    TRACE("(int64)");
     put(i & 0xFF);
     put((i >>  8) & 0xFF);
     put((i >> 16) & 0xFF);
@@ -33,14 +35,14 @@ void decoder::decode(int64_type i)
 
 void decoder::decode(boolean_type b)
 {
-    std::clog << __func__ << "(bool)" << std::endl;
+    TRACE("(bool)");
     if(b) put('\x01');
     else  put('\x00');
 }
 
 void decoder::decode(double_type d)
 {
-    std::clog << __func__ << "(double)" << std::endl;
+    TRACE("(bool)");
     union{
         double_type d64;
         int64_type i64;
@@ -51,7 +53,7 @@ void decoder::decode(double_type d)
 
 void decoder::decode(const cstring_type& str)
 {
-    std::clog << __func__ << "(cstring)" << std::endl;
+    TRACE("(cstring)");
     for(byte_type b : str)
         put(b);
     put('\x00');
@@ -59,13 +61,13 @@ void decoder::decode(const cstring_type& str)
 
 void decoder::decode(const element& e)
 {
-    std::clog << __func__ << "(element)" << std::endl;
+    TRACE("(element)");
     put(e.cbegin(), e.cend());
 }
 
 void decoder::decode(const array& a)
 {
-    std::clog << __func__ << "(array)" << std::endl;
+    TRACE("(array)");
     decoder l;
     l.decode(a.size());
     put(l.cbegin(), l.cend());
@@ -75,7 +77,7 @@ void decoder::decode(const array& a)
 
 void decoder::decode(const document& d)
 {
-    std::clog << __func__ << "(document)" << std::endl;
+    TRACE("(document)");
     decoder l;
     l.decode(d.size());
     put(l.cbegin(), l.cend());
@@ -87,14 +89,14 @@ void decoder::put(char b)
 {
     buffer.emplace_back(b);
     using namespace std;
-    clog << buffer.size() << " " << __func__ << "(byte)" << " " << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec << endl;
+    TRACE("(byte)     " << setw(5) << buffer.size() << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec);
 }
 
 void decoder::put(const_iterator begin, const_iterator end)
 {
     buffer.insert(buffer.cend(), begin, end);
     using namespace std;
-    clog << buffer.size() << " " << __func__ << "(begin,end)" << endl;
+    TRACE("(begin,end)" << setw(5) << buffer.size());
 }
 
 } // namespace bson
