@@ -81,8 +81,9 @@ template <> int32_type constexpr type(const int64_type&)
     return 0x12;
 };
 
-struct decoder
+class decoder
 {
+public:
 
 decoder();
 
