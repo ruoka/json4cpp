@@ -79,7 +79,7 @@ namespace bson
         {
             decoder dec;
             dec.decode(doc);
-            os.write(dec.cbegin(), dec.size());
+            os.write(dec.data(), dec.size());
             return os;
         }
     };

@@ -17,6 +17,18 @@ protected:
     std::ofstream ofs;
 };
 
+/*
+TEST_F(BsonModelTest,Unknown)
+{
+    bson::document doc
+    {
+      {"Double"s, "Static assert test"}
+    };
+
+    ofs << doc << endl;
+}
+*/
+
 TEST_F(BsonModelTest,Double)
 {
     bson::document doc

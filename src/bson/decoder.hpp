@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <vector>
 
 namespace bson
 {
@@ -27,6 +27,7 @@ using null_type = std::nullptr_t;
 
 template <typename T> constexpr int32_type type(const T&)
 {
+    static_assert(std::is_null_pointer<T>::value, "This type is not supported");
     return 0x06;
 };
 
@@ -101,37 +102,35 @@ void decode(const array_type& a);
 
 void decode(const document_type& d);
 
-char* cbegin() const
-{
-    return head.get();
-}
-
-char* cend() const
-{
-    return head.get() + bytes;
-}
-
 int32_type size() const
 {
-    return bytes;
+    return buffer.size();
 }
 
 char* data()
 {
-    return head.get();
+    return buffer.data();
 }
 
 private:
 
+using const_iterator = std::vector<char>::const_iterator;
+
 void put(char b);
 
-void put(const char* begin, const char* end);
+void put(const_iterator begin, const_iterator end);
 
-std::unique_ptr<char> head;
+const_iterator cbegin() const
+{
+    return buffer.cbegin();
+}
 
-char* current;
+const_iterator cend() const
+{
+    return buffer.end();
+}
 
-int32_type bytes;
+std::vector<char> buffer;
 
 };
 

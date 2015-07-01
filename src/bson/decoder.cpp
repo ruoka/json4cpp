@@ -6,7 +6,7 @@
 namespace bson
 {
 
-decoder::decoder() : head{new char[1000]}, current{head.get()}, bytes{0}
+decoder::decoder() : buffer{}
 {}
 
 void decoder:: decode(int32_type i)
@@ -67,7 +67,7 @@ void decoder::decode(const array& a)
 {
     std::clog << __func__ << "(array)" << std::endl;
     decoder l;
-    l.decode(a.bytes);
+    l.decode(a.size());
     put(l.cbegin(), l.cend());
     put(a.cbegin(), a.cend());
     put('\x00');
@@ -77,7 +77,7 @@ void decoder::decode(const document& d)
 {
     std::clog << __func__ << "(document)" << std::endl;
     decoder l;
-    l.decode(d.bytes);
+    l.decode(d.size());
     put(l.cbegin(), l.cend());
     put(d.cbegin(), d.cend());
     put('\x00');
@@ -85,19 +85,16 @@ void decoder::decode(const document& d)
 
 void decoder::put(char b)
 {
-    *current = b;
-    ++current;
-    ++bytes;
+    buffer.emplace_back(b);
     using namespace std;
-    clog << bytes << " " << __func__ << "(byte)" << " " << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec << endl;
+    clog << buffer.size() << " " << __func__ << "(byte)" << " " << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec << endl;
 }
 
-void decoder::put(const char* begin, const char* end)
+void decoder::put(const_iterator begin, const_iterator end)
 {
-    current = std::copy(begin, end, current);
-    bytes += (end-begin);
+    buffer.insert(buffer.cend(), begin, end);
     using namespace std;
-    clog << bytes << " " << __func__ << "(begin,end)" << endl;
+    clog << buffer.size() << " " << __func__ << "(begin,end)" << endl;
 }
 
 } // namespace bson

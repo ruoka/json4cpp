@@ -66,7 +66,7 @@ TEST(DecoderTest,Mockup7)
               << bson::type(b3) << "\n"
               << bson::type(b4) << "\n"
               << bson::type(b5) << "\n"
-              << bson::type(b6) << "\n"
+//            << bson::type(b6) << "\n"
               << bson::type(b7) << "\n"
               << bson::type(false) << "\n"
               << bson::type(true) << "\n"
