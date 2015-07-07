@@ -52,7 +52,7 @@ namespace bson
         {
             int32_type idx{0};
             for(auto& value : values)
-                decode(element{idx++,value});
+                decode(element{std::to_string(idx++),value});
         }
     };
 

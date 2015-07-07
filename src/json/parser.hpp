@@ -44,29 +44,17 @@ public:
 
     operator int () const
     {
-        int i;
-        std::stringstream ss;
-        ss << value;
-        ss >> i;
-        return i;
+        return std::stoi(value);
     }
 
     operator long () const
     {
-        long l;
-        std::stringstream ss;
-        ss << value;
-        ss >> l;
-        return l;
+        return std::stol(value);;
     }
 
     operator double () const
     {
-        double d;
-        std::stringstream ss;
-        ss << value;
-        ss >> d;
-        return d;
+        return std::stod(value);;
     }
 
     operator bool () const

@@ -3,8 +3,8 @@
 #include "bson/decoder.hpp"
 #include "bson/model.hpp"
 
-#define _TRACE(a) std::clog << __func__ << a << std::endl;
-#define TRACE(a)
+#define TRACE(a) std::clog << __func__ << a << std::endl;
+#define _TRACE(a)
 
 namespace bson
 {
@@ -70,7 +70,7 @@ void decoder::decode(const array& a)
 {
     TRACE("(array)");
     decoder l;
-    l.decode(a.size());
+    l.decode(a.size()+1);
     put(l.cbegin(), l.cend());
     put(a.cbegin(), a.cend());
     put('\x00');
@@ -80,7 +80,7 @@ void decoder::decode(const document& d)
 {
     TRACE("(document)");
     decoder l;
-    l.decode(d.size());
+    l.decode(d.size()+1);
     put(l.cbegin(), l.cend());
     put(d.cbegin(), d.cend());
     put('\x00');

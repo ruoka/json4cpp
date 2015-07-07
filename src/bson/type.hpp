@@ -25,7 +25,7 @@ using objectid_type = objectid;
 using boolean_type = bool;
 using null_type = std::nullptr_t;
 
-template <typename T> constexpr int32_type type(const T&)
+template <typename T> int32_type constexpr type(const T&)
 {
     static_assert(std::is_void<T>::value, "This type is not supported");
     return 0x06;
