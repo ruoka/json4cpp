@@ -90,11 +90,11 @@ int32_type object::parse_document(std::istream& is, object& result)
 
         if(type == 0x01)
         {
-            parse_value<double>(is, result.objects[name]);
+            bytes -= parse_value<double>(is, result.objects[name]);
         }
         else if(type == 0x02)
         {
-            parse_string(is, result.objects[name]);
+            bytes -= parse_string(is, result.objects[name]);
         }
         else if(type == 0x03 || type == 0x04)
         {
