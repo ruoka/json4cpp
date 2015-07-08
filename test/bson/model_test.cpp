@@ -11,7 +11,7 @@ protected:
 
     void SetUp()
     {
-        ofs.open("test1.bson");
+        ofs.open("./test/test1.bson");
     }
 
     std::ofstream ofs;
