@@ -10,73 +10,82 @@ struct element;
 struct array;
 struct binary;
 struct objectid;
+struct regular_expression;
+struct dbpointer;
+struct javascript;
+struct javascript_with_scope;
+struct timestamp;
 
 using byte_type = std::int8_t;
-using int32_type = std::int32_t;
-using int64_type = std::int64_t;
-using double_type = double;
-using element_type = element;
-using string_type = std::string;
-using cstring_type = std::string;
-using document_type = document;
-using array_type = array;
-using binary_type = binary;
-using objectid_type = objectid;
-using boolean_type = bool;
-using null_type = std::nullptr_t;
 
-template <typename T> int32_type constexpr type(const T&)
+using element_type = element;
+
+using double_type = double;                                // \x01
+using string_type = std::string;                           // \x02
+using document_type = document;                            // \x03
+using array_type = array;                                  // \x04
+using binary_type = binary;                                // \x05
+using undefined_type = void;                               // \x06 — Deprecated
+using objectid_type = objectid;                            // \x07
+using boolean_type = bool;                                 // \x08
+using date_type = std::chrono::system_clock::time_point;   // \x09
+using null_type = std::nullptr_t;                          // \x0A
+using regular_expression_type = regular_expression;        // \x0B
+using dbpointer_type = dbpointer;                          // \x0C — Deprecated
+using javascript_type = javascript;                        // \x0D
+using deprecated_type = void;                              // \x0E
+using javascript_with_scope_type = javascript_with_scope;  // \x0F
+using int32_type = std::int32_t;                           // \x10
+using timestamp_type = timestamp;                          // \x11
+using int64_type = std::int64_t;                           // \x12
+
+template <typename T> constexpr int32_type type(const T&)
 {
-    static_assert(std::is_void<T>::value, "This type is not supported");
+    static_assert(std::is_void<T>::value, "This type is not supported yet");
     return 0x06;
 };
 
-template <> int32_type constexpr type(const double_type&)
+template <> constexpr int32_type type(const double_type&)
 {
     return 0x01;
 };
 
-template <> int32_type constexpr type(const string_type&)
+template <> constexpr int32_type type(const string_type&)
 {
     return 0x02;
 };
 
-template <> int32_type constexpr type(const document_type&)
+template <> constexpr int32_type type(const document_type&)
 {
     return 0x03;
 };
 
-template <> int32_type constexpr type(const array_type&)
+template <> constexpr int32_type type(const array_type&)
 {
     return 0x04;
 };
 
-template <> int32_type constexpr type(const binary_type&)
+template <> constexpr int32_type type(const boolean_type& b)
 {
-    return 0x05;
+    return 0x08;
 };
 
-template <> int32_type constexpr type(const objectid_type&)
+template <> constexpr int32_type type(const date_type& b)
 {
-    return 0x07;
+    return 0x09;
 };
 
-template <> int32_type constexpr type(const boolean_type& b)
-{
-    return !b ? 0x08 : 0x09;
-};
-
-template <> int32_type constexpr type(const null_type&)
+template <> constexpr int32_type type(const null_type& b)
 {
     return 0x0A;
 };
 
-template <> int32_type constexpr type(const int32_type&)
+template <> constexpr int32_type type(const int32_type&)
 {
     return 0x10;
 };
 
-template <> int32_type constexpr type(const int64_type&)
+template <> constexpr int32_type type(const int64_type&)
 {
     return 0x12;
 };

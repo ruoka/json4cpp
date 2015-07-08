@@ -5,6 +5,7 @@
 #include <iosfwd>
 #include <iostream>
 #include "bson/type.hpp"
+#include "std/utility.hpp"
 
 namespace bson
 {
@@ -30,11 +31,9 @@ struct object
 private:
 
     template <typename T>
-    int32_type parse_value(std::istream& is, object& result);
+    friend int32_type parse_value(std::istream& is, object& result);
 
-    int32_type parse_string(std::istream& is, object& result);
-
-    int32_type parse_document(std::istream& is, object& result);
+    friend int32_type parse_document(std::istream& is, object& result);
 
     std::string value;
 
@@ -48,27 +47,58 @@ private:
 };
 
 template <typename T>
-int32_type object::parse_value(std::istream& is, object& result)
+int32_type parse_value(std::istream& is, object& result)
 {
-    T value;
-    is.read(reinterpret_cast<char*>(&value), sizeof(T));
-    std::clog << "val: "  << std::boolalpha << value << "; size: " << sizeof(T) << std::endl;
-    result.value = std::to_string(value);
-    result.value_type = bson::type(value);
+    T val;
+    is.read(reinterpret_cast<char*>(&val), sizeof(val));
+    result.value = std::to_string(val);
+    result.value_type = bson::type(val);
+
+    std::clog << "val: "  << result.value << "; size: " << sizeof(T) << std::endl;
+
     return is.gcount();
 }
 
-int32_type object::parse_string(std::istream& is, object& result)
+template<>
+int32_type parse_value<std::chrono::system_clock::time_point>(std::istream& is, object& result)
 {
-    std::string value;
-    std::getline(is, value, '\x00');
-    std::clog << "val: " << value << std::endl;
-    result.value = value;
-    result.value_type = bson::type(value);
+    int64_type val1;
+    is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
+    auto val2 = std::chrono::system_clock::from_time_t(val1);
+    result.value = std::to_string(val2);
+    result.value_type = bson::type(val2);
+
+    std::clog << "val: "  << result.value << "; size: " << sizeof(val1) << std::endl;
+
     return is.gcount();
 }
 
-int32_type object::parse_document(std::istream& is, object& result)
+template<>
+int32_type parse_value<std::nullptr_t>(std::istream& is, object& result)
+{
+    std::nullptr_t val;
+    result.value = std::to_string(val);
+    result.value_type = bson::type(val);
+
+    std::clog << "val: "  << result.value << "; size: " << 0 << std::endl;
+
+    return 0;
+}
+
+template<>
+int32_type parse_value<std::string>(std::istream& is, object& result)
+{
+    std::string val;
+    std::getline(is, val, '\x00');
+    result.value = val;
+    result.value_type = bson::type(val);
+
+    std::clog << "val: "  << result.value << "; size: " << val.size() << std::endl;
+
+    return is.gcount();
+}
+
+int32_type parse_document(std::istream& is, object& result)
 {
     int32_type length;
     is.read(reinterpret_cast<char*>(&length), sizeof(length));
@@ -82,40 +112,43 @@ int32_type object::parse_document(std::istream& is, object& result)
         is.read(reinterpret_cast<char*>(&type), sizeof(type));
         bytes -= is.gcount();
 
-        cstring_type name;
+        std::string name;
         std::getline(is, name, '\x00');
         bytes -= name.size();
         --bytes;
         std::clog << "key: " << name << std::endl;
 
-        if(type == 0x01)
+        switch(type)
         {
+        case 0x01:
             bytes -= parse_value<double>(is, result.objects[name]);
-        }
-        else if(type == 0x02)
-        {
-            bytes -= parse_string(is, result.objects[name]);
-        }
-        else if(type == 0x03 || type == 0x04)
-        {
+            break;
+        case 0x02:
+            bytes -= parse_value<std::string>(is, result.objects[name]);
+            break;
+        case 0x03:
+        case 0x04:
             bytes -= parse_document(is, result.objects[name]);
             result.objects[name].value_type = type;
-        }
-        else if(type == 0x08 || type == 0x09)
-        {
+            break;
+        case 0x08:
             bytes -= parse_value<bool>(is, result.objects[name]);
-        }
-        else if(type == 0x10)
-        {
-            bytes -= parse_value<int>(is, result.objects[name]);
-        }
-        else if(type == 0x12)
-        {
-            bytes -= parse_value<long long>(is, result.objects[name]);
-        }
-        else
-        {
-            assert(false);
+            break;
+        case 0x09:
+            bytes -= parse_value<std::chrono::system_clock::time_point>(is, result.objects[name]);
+            break;
+        case 0x0A:
+            bytes -= parse_value<std::nullptr_t>(is, result.objects[name]);
+            break;
+        case 0x10:
+            bytes -= parse_value<std::int32_t>(is, result.objects[name]);
+            break;
+        case 0x12:
+            bytes -= parse_value<std::nullptr_t>(is, result.objects[name]);
+            break;
+        default:
+            assert(false && "This type is not supported yet");
+            break;
         }
 
         std::clog << bytes << std::endl;

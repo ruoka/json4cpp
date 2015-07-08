@@ -12,6 +12,12 @@ namespace bson
 decoder::decoder() : buffer{}
 {}
 
+void decoder:: decode(byte_type b)
+{
+    TRACE("(byte)");
+    put(b);
+}
+
 void decoder:: decode(int32_type i)
 {
     TRACE("(int32)");
@@ -34,13 +40,6 @@ void decoder::decode(int64_type i)
     put((i >> 56) & 0xFF);
 }
 
-void decoder::decode(boolean_type b)
-{
-    TRACE("(bool)");
-    if(b) put('\x01');
-    else  put('\x00');
-}
-
 void decoder::decode(double_type d)
 {
     TRACE("(double)");
@@ -52,7 +51,27 @@ void decoder::decode(double_type d)
     decode(d2i.i64);
 }
 
-void decoder::decode(const cstring_type& str)
+void decoder::decode(boolean_type b)
+{
+    TRACE("(bool)");
+    if(b) put('\x01');
+    else  put('\x00');
+}
+
+void decoder::decode(date_type dt)
+{
+    using namespace std::chrono;
+    TRACE("(date)");
+    int64_type i = system_clock::to_time_t(dt);
+    decode(i);
+}
+
+void decoder::decode(null_type b)
+{
+    TRACE("(null)");
+}
+
+void decoder::decode(const string_type& str)
 {
     TRACE("(cstring)");
     for(byte_type b : str)

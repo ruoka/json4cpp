@@ -7,6 +7,7 @@
 
 namespace bson
 {
+/*
     struct objectid
     {
         byte_type epoch[4];
@@ -22,10 +23,16 @@ namespace bson
         byte_type* bytes;
     };
 
+    struct timestamp
+    {
+        byte_type increment[4];
+        byte_type timestamp[4];
+    };
+*/
     struct element : public decoder
     {
         template <typename V>
-        element(const cstring_type& name, const V& value)
+        element(const std::string& name, const V& value)
         {
             decode(type(value));
             decode(name);
@@ -35,8 +42,7 @@ namespace bson
         template <typename V>
         element(int32_type idx, const V& value)
         {
-            decode(idx); // FIXME?
-            decode(value);
+            element(std::to_string(idx), value);
         }
     };
 
@@ -52,7 +58,7 @@ namespace bson
         {
             int32_type idx{0};
             for(auto& value : values)
-                decode(element{std::to_string(idx++),value});
+                decode(element{idx++,value});
         }
     };
 
@@ -64,9 +70,9 @@ namespace bson
         }
 
         template <typename V>
-        document(const std::string& key, const V& value)
+        document(const std::string& name, const V& value)
         {
-            decode(element{key, value});
+            decode(element{name, value});
         }
 
         document(std::initializer_list<element> elements)

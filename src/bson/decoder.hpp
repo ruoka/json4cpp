@@ -12,21 +12,27 @@ public:
 
 decoder();
 
+void decode(byte_type b);
+
 void decode(int32_type i);
 
 void decode(int64_type i);
 
-void decode(boolean_type b);
-
 void decode(double_type d);
 
-void decode(const cstring_type& str);
+void decode(boolean_type b);
+
+void decode(date_type n);
+
+void decode(null_type n);
+
+void decode(const string_type& str);
 
 void decode(const element_type& e);
 
-void decode(const array_type& a);
-
 void decode(const document_type& d);
+
+void decode(const array_type& a);
 
 int32_type size() const
 {
