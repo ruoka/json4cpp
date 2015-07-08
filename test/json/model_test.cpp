@@ -3,34 +3,37 @@
 #include <gtest/gtest.h>
 #include "json/model.hpp"
 
-using namespace std;
 using namespace std::literals::string_literals;
+using std::clog;
+using std::endl;
+using json::document;
+using json::array;
 
-TEST(JsonModelTest,Mockup)
+TEST(JsonModelTest,ComplexDocument)
 {
-    json::document sons
+    document sons
     {
         {"Name","Tulppu"s},
         {"Name","Elppu"s},
         {"Name","Jalppu"s}
     };
 
-    json::array sizes
+    array sizes
     {
-        json::document {"ShoeSize",47.50},
-        json::document {"WaistSize",120.50}
+        document{"ShoeSize",47.50},
+        document{"WaistSize",120.50}
     };
 
-    json::document papa
+    document papa
     {
         {"Name","Papa Cool"s},
         {"Age",39u},
         {"Sons",sons},
         {"Sizes",sizes},
-        {"LuckyNumbers", json::array{2u,22u,2112u}}
+        {"LuckyNumbers", array{2u,22u,2112u}}
     };
 
     clog << papa << endl;
 
-    clog << json::document{{"_id", 2,},{"Name","Dodo"s}} << endl;
+    clog << document{{"_id",2,},{"Name","Dodo"s}} << endl;
 }

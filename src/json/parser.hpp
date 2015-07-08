@@ -44,29 +44,17 @@ public:
 
     operator int () const
     {
-        int i;
-        std::stringstream ss;
-        ss << value;
-        ss >> i;
-        return i;
+        return std::stoi(value);
     }
 
     operator long () const
     {
-        long l;
-        std::stringstream ss;
-        ss << value;
-        ss >> l;
-        return l;
+        return std::stol(value);;
     }
 
     operator double () const
     {
-        double d;
-        std::stringstream ss;
-        ss << value;
-        ss >> d;
-        return d;
+        return std::stod(value);;
     }
 
     operator bool () const
@@ -193,17 +181,17 @@ void object::parse_document(std::istream& is, object& result)
         is >> std::ws;
         next = is.peek();
 
-        if (next == '{')
+        if(next == '{')
         {
             parse_document(is, result.objects[name]);
             is >> next; // , or }
         }
-        else if (next == '[')
+        else if(next == '[')
         {
             parse_array(is, result.objects[name]);
             is >> next; // , or }
         }
-        else if (next == '\"')
+        else if(next == '\"')
         {
             parse_string(is, result.objects[name]);
             is >> next; // , or ]

@@ -8,29 +8,6 @@ using namespace std::literals::string_literals;
 
 TEST(BsonModelTest,Mockup)
 {
-    bson::double_type b1;
-    bson::string_type b2;
-    bson::document_type b3;
-    bson::array_type b4;
-    bson::binary_type b5;
-    struct foo {} b6;
-    bson::objectid_type b7;
-    bson::int32_type b16;
-    bson::int64_type b18;
-
-    std::clog << bson::type(b1) << "\n"
-              << bson::type(b2) << "\n"
-              << bson::type(b3) << "\n"
-              << bson::type(b4) << "\n"
-              << bson::type(b5) << "\n"
-              << bson::type(b6) << "\n"
-              << bson::type(b7) << "\n"
-              << bson::type(false) << "\n"
-              << bson::type(true) << "\n"
-              << bson::type(nullptr) << "\n"
-              << bson::type(b16) << "\n"
-              << bson::type(b18) << "\n";
-
     bson::document sons
     {
       {"Name","Tulppu"s},
@@ -47,13 +24,13 @@ TEST(BsonModelTest,Mockup)
     bson::document papa
     {
       {"Name","Papa Cool"s},
-      {"Age",39u},
+      {"Age",39},
       {"Sons",sons},
       {"Sizes",sizes},
-      {"LuckyNumbers", bson::array{2u,22u,2112u}}
+      {"LuckyNumbers", bson::array{2,22,2112}}
     };
 
     clog << papa << endl;
 
-    clog << bson::document{{"_id", 2,},{"Name","Ruoka"}} << endl;
+    clog << bson::document{{"_id", 2,},{"Name","Ruoka"s}} << endl;
 }
