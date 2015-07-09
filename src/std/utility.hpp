@@ -66,7 +66,8 @@ inline std::string to_string(chrono::system_clock::time_point tp)
        << ':' << std::setw(2) << std::setfill('0')
        << ss.count()
        << '.' << std::setw(3) << std::setfill('0')
-       << ff.count();
+       << ff.count()
+       << 'Z';
 
     return os.str();
 }

@@ -108,9 +108,10 @@ int32_type parse_value(std::istream& is, object& result)
 template<>
 int32_type parse_value<std::chrono::system_clock::time_point>(std::istream& is, object& result)
 {
+    using namespace std::chrono;
     int64_type val1;
     is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
-    auto val2 = std::chrono::system_clock::from_time_t(val1);
+    auto val2 = system_clock::time_point{milliseconds{val1}};
     result.value = std::to_string(val2);
     result.value_type = bson::type(val2);
 

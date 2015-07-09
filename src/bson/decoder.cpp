@@ -55,11 +55,12 @@ void decoder::decode(boolean_type b)
     else  put('\x00');
 }
 
-void decoder::decode(date_type dt)
+void decoder::decode(date_type d)
 {
     using namespace std::chrono;
     TRACE("(date)");
-    int64_type i = system_clock::to_time_t(dt);
+//  int64_type i = system_clock::to_time_t(d);
+    int64_type i = duration_cast<milliseconds>(d.time_since_epoch()).count();
     decode(i);
 }
 

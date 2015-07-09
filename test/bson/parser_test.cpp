@@ -68,7 +68,7 @@ TEST(BsonParserTest,Date)
     TRACE(result);
 
     string d = result["Date"s];
-    EXPECT_EQ(d.substr(0,20), to_string(now).substr(0,20));
+    EXPECT_EQ(d, to_string(now));
 }
 
 TEST(BsonParserTest,Null)

@@ -17,22 +17,6 @@ protected:
     std::ofstream ofs;
 };
 
-/*
-TEST_F(BsonModelTest,Unknown)
-{
-    bson::document doc
-    {
-      {"Double"s, "Static assert test"}
-    };
-
-    auto p1 = ofs.tellp();
-    ofs << doc << flush;
-    auto p2 = ofs.tellp();
-
-    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
-}
-*/
-
 TEST_F(BsonModelTest,Double)
 {
     bson::document doc
@@ -69,7 +53,7 @@ TEST_F(BsonModelTest,Document)
 {
     bson::document doc
     {
-      {"A"s, 1},{"B"s,true},{"C"s, 21.12}
+      {"A"s, 1}, {"B"s,true}, {"C"s, 21.12}
     };
 
     ASSERT_EQ(doc.size(), 6 + 4 + 6 + 1 + 6 + 8); // (int32 + bytes*2 + int32) etc.
@@ -167,7 +151,7 @@ TEST_F(BsonModelTest,Long64)
 
 TEST_F(BsonModelTest,Mix)
 {
-    bson::document doc
+    bson::document doc =
     {
       {"Double"s, 12.55},
       {"String"s, "B"s},
@@ -188,20 +172,20 @@ TEST_F(BsonModelTest,Mix)
 
 TEST_F(BsonModelTest,Nested)
 {
-    bson::document sons
+    auto sons = bson::document
     {
       {"Name","Tulppu"s},
       {"Name","Elppu"s},
       {"Name","Jalppu"s}
     };
 
-    bson::array sizes
+    auto sizes = bson::array
     {
       bson::document {"ShoeSize",47.50},
       bson::document {"WaistSize",120.50}
     };
 
-    bson::document doc
+    auto doc = bson::document
     {
       {"Name","Papa Cool"s},
       {"Age",39},
@@ -215,4 +199,10 @@ TEST_F(BsonModelTest,Nested)
     auto p2 = ofs.tellp();
 
     ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
+}
+
+TEST_F(BsonModelTest,StaticAssert)
+{
+    struct foo{} f;
+//  bson::document doc{"Double"s, f}; // Uncommenting this line will cause a static assertion!
 }
