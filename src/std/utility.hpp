@@ -84,4 +84,13 @@ inline std::string to_string(std::nullptr_t)
     return "null";
 }
 
+inline bool stob(const string& str)
+{
+    bool b;
+    stringstream ss;
+    ss << str;
+    ss >> boolalpha >> b;
+    return b;
+}
+
 } // namespace std

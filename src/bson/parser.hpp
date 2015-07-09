@@ -111,7 +111,7 @@ int32_type parse_value<std::chrono::system_clock::time_point>(std::istream& is, 
     using namespace std::chrono;
     int64_type val1;
     is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
-    auto val2 = system_clock::time_point{milliseconds{val1}};
+    const auto val2 = system_clock::time_point{milliseconds{val1}};
     result.value = std::to_string(val2);
     result.value_type = bson::type(val2);
 
@@ -139,12 +139,11 @@ int32_type parse_value<std::string>(std::istream& is, object& result)
     is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
 
     std::string val;
-//    std::getline(is, val, '\x00');
     while(--bytes)
         val += is.get();
 
     is.ignore(1);
-    bytes -= is.gcount();
+    --bytes;
 
     result.value = val;
     result.value_type = bson::type(val);

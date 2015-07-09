@@ -3,9 +3,12 @@
 #include <map>
 #include <string>
 #include <iosfwd>
+#include "std/utility.hpp"
 
 namespace json
 {
+
+using namespace std::literals::string_literals;
 
 class object
 {
@@ -37,9 +40,7 @@ public:
 
     operator std::string () const
     {
-        std::ostringstream os;
-        os << value;
-        return os.str();
+        return value;
     }
 
     operator int () const
@@ -59,11 +60,7 @@ public:
 
     operator bool () const
     {
-        bool b;
-        std::stringstream ss;
-        ss << value;
-        ss >> std::boolalpha >> b;
-        return b;
+        return std::stob(value);
     }
 
     bool empty () const
@@ -77,7 +74,7 @@ private:
 
     void parse_string(std::istream& is, object& result);
 
-    void parse_number(std::istream& is, object& result);
+    void parse_value(std::istream& is, object& result);
 
     void parse_array(std::istream& is, object& result);
 
@@ -114,7 +111,7 @@ void object::parse_string(std::istream& is, object& result)
     result.value_type = type::string;
 }
 
-void object::parse_number(std::istream& is, object& result)
+void object::parse_value(std::istream& is, object& result)
 {
     char next;
     std::string value;
@@ -124,9 +121,14 @@ void object::parse_number(std::istream& is, object& result)
         value += next;
         is >> next;
     }
-    is.putback(next); // , }, or ] do not belong to the number
+    is.putback(next); // , }, or ] do not belong to values
     result.value = value;
-    result.value_type = type::number;
+    if(value == "true"s || value == "false"s)
+        result.value_type = type::boolean;
+    else if(value == "null"s)
+        result.value_type = type::null;
+    else
+        result.value_type = type::number;
 }
 
 void object::parse_array(std::istream& is, object& result)
@@ -159,7 +161,7 @@ void object::parse_array(std::istream& is, object& result)
         }
         else
         {
-            parse_number(is, result.objects[name]);
+            parse_value(is, result.objects[name]);
             is >> next; // , }, or ]
         }
     }
@@ -198,7 +200,7 @@ void object::parse_document(std::istream& is, object& result)
         }
         else
         {
-            parse_number(is, result.objects[name]);
+            parse_value(is, result.objects[name]);
             is >> next; // , }, or ]
         }
     }

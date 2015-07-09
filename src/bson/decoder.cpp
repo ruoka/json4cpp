@@ -59,7 +59,7 @@ void decoder::decode(date_type d)
 {
     using namespace std::chrono;
     TRACE("(date)");
-    int64_type i = duration_cast<milliseconds>(d.time_since_epoch()).count();
+    const int64_type i = duration_cast<milliseconds>(d.time_since_epoch()).count();
     decode(i);
 }
 

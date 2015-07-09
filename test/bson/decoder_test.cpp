@@ -63,8 +63,8 @@ TEST(DecoderTest,BooleanFalse)
 TEST(DecoderTest,Date)
 {
     using namespace std::chrono;
-    auto val = system_clock::now();
-    auto ref = duration_cast<milliseconds>(val.time_since_epoch()).count();
+    const auto val = system_clock::now();
+    const auto ref = duration_cast<milliseconds>(val.time_since_epoch()).count();
     bson::decoder d;
     d.decode(val);
     EXPECT_EQ(ref, *reinterpret_cast<bson::int64_type*>(d.data()));
