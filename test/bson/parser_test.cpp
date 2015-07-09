@@ -4,121 +4,110 @@
 #include <gtest/gtest.h>
 #include "bson/parser.hpp"
 #include "bson/model.hpp"
+#include "std/trace.hpp"
 
+using namespace std;
 using namespace std::literals::string_literals;
-using std::stringstream;
-using std::clog;
-using std::endl;
-using std::chrono::system_clock;
-using bson::document;
-using bson::array;
+using namespace std::chrono;
+using namespace bson;
 
 TEST(BsonParserTest,Double)
 {
-    document doc
-    {
-        {"Today",21.12}
-    };
-
     stringstream ios;
-    ios << doc;
+    ios << document{"Double", 21.12};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    double d = result["Double"s];
+    ASSERT_EQ(d, 21.12);
 }
 
 TEST(BsonParserTest,String)
 {
-    document doc
-    {
-        {"Name"s,"Aku Ankka"s}
-    };
-
     stringstream ios;
-    ios << doc;
+    ios << document{"String"s,"Aku Ankka"s};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    string s = result["String"s];
+    ASSERT_EQ(s, "Aku Ankka"s);
 }
 
 TEST(BsonParserTest,Array)
 {
-    document doc
-    {
-        {"Inhabitant"s, array{"Mikki"s,"Hessu"s,"Roope"s,"Pelle"s}}
+    stringstream ios;
+    ios << document {
+        {"Inhabitants"s, bson::array{"Mikki"s, "Hessu"s, "Roope"s, "Pelle"s}}
     };
 
-    stringstream ios;
-    ios << doc;
-
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    string i1 = result["Inhabitants"s][0];
+    ASSERT_EQ(i1, "Mikki"s);
+
+    string i2 = result["Inhabitants"s][1];
+    ASSERT_EQ(i2, "Hessu"s);
+
+    string i3 = result["Inhabitants"s][2];
+    ASSERT_EQ(i3, "Roope"s);
+
+    string i4 = result["Inhabitants"s][3];
+    ASSERT_EQ(i4, "Pelle"s);
 }
 
 TEST(BsonParserTest,Date)
 {
-    document doc
-    {
-        {"Today",system_clock::now()}
-    };
-
+    const auto now = system_clock::now();
     stringstream ios;
-    ios << doc;
+    ios << document{"Date"s, now};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    string d = result["Date"s];
+    EXPECT_EQ(d.substr(0,20), to_string(now).substr(0,20));
 }
 
 TEST(BsonParserTest,Null)
 {
-    document doc
-    {
-        {"Ideas",nullptr}
-    };
-
     stringstream ios;
-    ios << doc;
+    ios << document{"Null"s, nullptr};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    string n = result["Null"s];
+    ASSERT_EQ(n, "null"s);
 }
 
 TEST(BsonParserTest,Int32)
 {
-    document doc
-    {
-        {"MinInt32",std::numeric_limits<std::int32_t>::min()}
-    };
-
     stringstream ios;
-    ios << doc;
+    ios << document{"MinInt32"s, numeric_limits<std::int32_t>::min()};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    int i = result["MinInt32"s];
+    ASSERT_EQ(i, numeric_limits<std::int32_t>::min());
 }
 
 TEST(BsonParserTest,Int64)
 {
-    document doc
-    {
-        {"MaxInt64",std::numeric_limits<std::int64_t>::max()}
-    };
-
     stringstream ios;
-    ios << doc;
+    ios << document{"MinInt64"s, numeric_limits<std::int64_t>::max()};
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    long i = result["MinInt64"s];
+    ASSERT_EQ(i, numeric_limits<std::int64_t>::max());
 }
 
-TEST(BsonParserTest,Simple)
+TEST(BsonParserTest,SimpleDocument)
 {
     document doc
     {
@@ -133,26 +122,33 @@ TEST(BsonParserTest,Simple)
     ios << doc;
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    bool b1 = result["Ruoka"s];
+    ASSERT_EQ(b1, true);
+
+    bool b2 = result["Onni"s];
+    ASSERT_EQ(b2, false);
 }
 
-TEST(BsonParserTest,Nested)
+TEST(BsonParserTest,NestedDocument)
 {
     document doc
     {
-        {"Ruoka",true},
-        {"Onni",false},
-        {"Tulppu",1},
-        {"Elppu",2},
-        {"Jalppu",3},
-        {"Ages",array{39,40,9,5,2}}
+        { "Ruoka",  true                     },
+        { "Onni",   false                    },
+        { "Tulppu", 1                        },
+        { "Elppu",  2                        },
+        { "Jalppu", 3                        },
+        { "Ages",   bson::array{39,40,9,5,2} }
     };
 
     stringstream ios;
     ios << doc;
 
     auto result = bson::parse(ios);
+    TRACE(result);
 
-    clog << result << endl;
+    int i = result["Ages"s][4];
+    ASSERT_EQ(i, 2);
 }

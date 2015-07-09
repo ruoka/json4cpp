@@ -26,6 +26,52 @@ struct object
     value{std::move(c.value)}, value_type{c.value_type}, objects{std::move(c.objects)}
     {}
 
+    object& operator [] (const std::string& name)
+    {
+        return objects[name];
+    }
+
+    object& operator [] (std::size_t idx)
+    {
+        return objects[std::to_string(idx)];
+    }
+
+    operator std::string () const
+    {
+        std::ostringstream os;
+        os << value;
+        return os.str();
+    }
+
+    operator int () const
+    {
+        return std::stoi(value);
+    }
+
+    operator long () const
+    {
+        return std::stol(value);;
+    }
+
+    operator double () const
+    {
+        return std::stod(value);;
+    }
+
+    operator bool () const
+    {
+        bool b;
+        std::stringstream ss;
+        ss << value;
+        ss >> std::boolalpha >> b;
+        return b;
+    }
+
+    bool empty () const
+    {
+        return objects.empty();
+    }
+
     friend std::ostream& operator << (std::ostream&, const object&);
 
 private:
