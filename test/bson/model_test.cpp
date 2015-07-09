@@ -25,7 +25,11 @@ TEST_F(BsonModelTest,Unknown)
       {"Double"s, "Static assert test"}
     };
 
-    ofs << doc << endl;
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 */
 
@@ -36,7 +40,13 @@ TEST_F(BsonModelTest,Double)
       {"Double"s, 12.55}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 6 + 1 + 8); // int32 + bytes*6 + \x00 + int64
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,String)
@@ -46,18 +56,49 @@ TEST_F(BsonModelTest,String)
       {"String"s, "B"s}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 6 + 1 + 4 + 1 + 1); // int32 + bytes*6 + \x00 + int32 + bytes*1 + \x00
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
-
-TEST_F(BsonModelTest,Array)
+TEST_F(BsonModelTest,Document)
 {
     bson::document doc
     {
-      {"Array"s, bson::array{"a"s, "b"s, "c"s, "d"s}}
+      {"A"s, 1},{"B"s,true},{"C"s, 21.12}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 6 + 4 + 6 + 1 + 6 + 8); // (int32 + bytes*2 + int32) etc.
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
+}
+
+TEST_F(BsonModelTest,Array)
+{
+    auto arr = bson::array{"a"s, "b"s, "c"s, "d"s};
+
+    ASSERT_EQ(arr.size(), 4 * ( 4 + 1 + 1 + 4 +1 +1)); // 4 * (int32 + bytes*1 + \x00 + int32 + bytes*1  + \x00)
+
+    bson::document doc
+    {
+      {"Array"s, arr}
+    };
+
+    ASSERT_EQ(doc.size(), 4 + 10 + arr.size() + 1);
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,BooleanTrue)
@@ -67,17 +108,29 @@ TEST_F(BsonModelTest,BooleanTrue)
       {"Boolean"s, false}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 7 + 1 + 1); // int32 + bytes*7 + \x00 + \x01
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,BooleanFalse)
 {
     bson::document doc
     {
-      {"Boolean"s, true}
+      {"Boolean"s, false}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 7 + 1 + 1); // int32 + bytes*7 + \x00 + \x00
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,Integer32)
@@ -87,7 +140,13 @@ TEST_F(BsonModelTest,Integer32)
       {"Integer"s, 9}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 7 + 1 + 4); // int32 + bytes*7 + \x00 + int32
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,Long64)
@@ -97,7 +156,13 @@ TEST_F(BsonModelTest,Long64)
       {"Long"s, 2112ll}
     };
 
-    ofs << doc << endl;
+    ASSERT_EQ(doc.size(), 4 + 4 + 1 + 8); // int32 + bytes*4 + \x00 + int64
+
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,Mix)
@@ -114,7 +179,11 @@ TEST_F(BsonModelTest,Mix)
       {"Long"s, 2112ll}
     };
 
-    ofs << doc << endl;
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }
 
 TEST_F(BsonModelTest,Nested)
@@ -132,7 +201,7 @@ TEST_F(BsonModelTest,Nested)
       bson::document {"WaistSize",120.50}
     };
 
-    bson::document papa
+    bson::document doc
     {
       {"Name","Papa Cool"s},
       {"Age",39},
@@ -141,5 +210,9 @@ TEST_F(BsonModelTest,Nested)
       {"LuckyNumbers", bson::array{2,22,2112}}
     };
 
-    ofs << papa << endl;
+    auto p1 = ofs.tellp();
+    ofs << doc << flush;
+    auto p2 = ofs.tellp();
+
+    ASSERT_EQ(p2 - p1, 4 + doc.size() + 1); // int32 + doc + \x00
 }

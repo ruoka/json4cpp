@@ -70,7 +70,7 @@ void decoder::decode(null_type b)
 
 void decoder::decode(const string_type& str, bool csting)
 {
-    TRACE("(string) " << csting);
+    TRACE("(string)    " << boolalpha << csting);
     if(!csting) decode(static_cast<int32_type>(str.size()+1)); // bytes
     for(byte_type b : str)            // data
         put(b);

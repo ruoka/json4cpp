@@ -40,10 +40,8 @@ namespace bson
         }
 
         template <typename V>
-        element(int32_type idx, const V& value)
-        {
-            element(std::to_string(idx), value);
-        }
+        element(int32_type idx, const V& value) : element(std::to_string(idx), value)
+        {}
     };
 
     struct array : public decoder

@@ -43,6 +43,21 @@ TEST(BsonParserTest,String)
     clog << result << endl;
 }
 
+TEST(BsonParserTest,Array)
+{
+    document doc
+    {
+        {"Inhabitant"s, array{"Mikki"s,"Hessu"s,"Roope"s,"Pelle"s}}
+    };
+
+    stringstream ios;
+    ios << doc;
+
+    auto result = bson::parse(ios);
+
+    clog << result << endl;
+}
+
 TEST(BsonParserTest,Date)
 {
     document doc
