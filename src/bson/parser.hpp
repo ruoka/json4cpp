@@ -249,6 +249,8 @@ std::ostream& operator << (std::ostream& os, const object& c)
      }
     else if(!c.value.empty() && c.value_type == 0x02)
         os << '\"' << c.value << '\"';
+    else if(!c.value.empty() && c.value_type == 0x09)
+        os << "{\"$date\":\"" << c.value << "\"}";
     else if(!c.value.empty())
         os << std::boolalpha << c.value;
     else if (c.value_type == 0x03 || c.value_type == 0x04)

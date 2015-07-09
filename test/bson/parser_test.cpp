@@ -62,13 +62,16 @@ TEST(BsonParserTest,Date)
 {
     const auto now = system_clock::now();
     stringstream ios;
-    ios << document{"Date"s, now};
+    ios << document{{"Date1"s, now}, {"Date2"s, nullptr}};
 
     auto result = bson::parse(ios);
     TRACE(result);
 
-    string d = result["Date"s];
-    EXPECT_EQ(d, to_string(now));
+    string d1 = result["Date1"s];
+    EXPECT_EQ(d1, to_string(now));
+
+    string d2 = result["Date2"s];
+    EXPECT_EQ(d2, "null"s);
 }
 
 TEST(BsonParserTest,Null)
