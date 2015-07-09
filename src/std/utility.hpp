@@ -35,7 +35,7 @@ inline constexpr tuple<years,months,days> split(const days& ds) noexcept
 
 } // namespace chrono
 
-std::string to_string(chrono::system_clock::time_point tp)
+inline std::string to_string(chrono::system_clock::time_point tp)
 {
 	using namespace chrono;
 
@@ -78,7 +78,7 @@ inline std::string to_string(bool b)
 	return ss.str();
 }
 
-inline std::string to_string(std::nullptr_t n)
+inline std::string to_string(std::nullptr_t)
 {
 	return "null";
 }
