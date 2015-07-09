@@ -3,8 +3,8 @@
 #include <map>
 #include <string>
 #include <iosfwd>
-#include <iostream>
 #include "bson/type.hpp"
+#include "std/trace.hpp"
 #include "std/utility.hpp"
 
 namespace bson
@@ -54,7 +54,7 @@ int32_type parse_value(std::istream& is, object& result)
     result.value = std::to_string(val);
     result.value_type = bson::type(val);
 
-    std::clog << "val: "  << result.value << "; size: " << sizeof(T) << std::endl;
+    TRACE("   val: "  << result.value << "; size: " << sizeof(val));
 
     return is.gcount();
 }
@@ -68,7 +68,7 @@ int32_type parse_value<std::chrono::system_clock::time_point>(std::istream& is, 
     result.value = std::to_string(val2);
     result.value_type = bson::type(val2);
 
-    std::clog << "val: "  << result.value << "; size: " << sizeof(val1) << std::endl;
+    TRACE("   val: "  << result.value << "; size: " << sizeof(val1));
 
     return is.gcount();
 }
@@ -80,7 +80,7 @@ int32_type parse_value<std::nullptr_t>(std::istream& is, object& result)
     result.value = std::to_string(val);
     result.value_type = bson::type(val);
 
-    std::clog << "val: "  << result.value << "; size: " << 0 << std::endl;
+    TRACE("   val: "  << result.value << "; size: " << 0);
 
     return 0;
 }
@@ -88,23 +88,33 @@ int32_type parse_value<std::nullptr_t>(std::istream& is, object& result)
 template<>
 int32_type parse_value<std::string>(std::istream& is, object& result)
 {
+    int32_type bytes;
+    is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+
     std::string val;
-    std::getline(is, val, '\x00');
+//    std::getline(is, val, '\x00');
+    while(--bytes)
+        val += is.get();
+
+    is.ignore(1);
+    bytes -= is.gcount();
+
     result.value = val;
     result.value_type = bson::type(val);
 
-    std::clog << "val: "  << result.value << "; size: " << val.size() << std::endl;
+    TRACE("   val: "  << result.value << "; size: " << val.size());
 
-    return is.gcount();
+    return sizeof(bytes) + val.size() + 1;
 }
 
 int32_type parse_document(std::istream& is, object& result)
 {
-    int32_type length;
-    is.read(reinterpret_cast<char*>(&length), sizeof(length));
-    std::clog << "bytes: " << length << std::endl;
+    int32_type bytes;
+    is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+    const auto length = sizeof(bytes) + bytes;
 
-    int32_type bytes{length};
+    TRACE("length: " << length);
+    TRACE("bytes: "  << bytes);
 
     while(bytes > 1)
     {
@@ -116,7 +126,8 @@ int32_type parse_document(std::istream& is, object& result)
         std::getline(is, name, '\x00');
         bytes -= name.size();
         --bytes;
-        std::clog << "key: " << name << std::endl;
+
+        TRACE("key: " << name);
 
         switch(type)
         {
@@ -144,21 +155,22 @@ int32_type parse_document(std::istream& is, object& result)
             bytes -= parse_value<std::int32_t>(is, result.objects[name]);
             break;
         case 0x12:
-            bytes -= parse_value<std::nullptr_t>(is, result.objects[name]);
+            bytes -= parse_value<std::int64_t>(is, result.objects[name]);
             break;
         default:
             assert(false && "This type is not supported yet");
             break;
         }
 
-        std::clog << bytes << std::endl;
+        TRACE("bytes: " << bytes);
     }
 
     is.ignore(1);
     bytes -= is.gcount();
-    std::clog << bytes << std::endl;
 
-    return length + 4;
+    TRACE("bytes: " << bytes);
+
+    return length;
 }
 
 object parse(std::istream& is)

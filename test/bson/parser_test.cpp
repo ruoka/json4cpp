@@ -1,5 +1,6 @@
 #include <sstream>
 #include <fstream>
+#include <limits>
 #include <gtest/gtest.h>
 #include "bson/parser.hpp"
 #include "bson/model.hpp"
@@ -11,6 +12,36 @@ using std::endl;
 using std::chrono::system_clock;
 using bson::document;
 using bson::array;
+
+TEST(BsonParserTest,Double)
+{
+    document doc
+    {
+        {"Today",21.12}
+    };
+
+    stringstream ios;
+    ios << doc;
+
+    auto result = bson::parse(ios);
+
+    clog << result << endl;
+}
+
+TEST(BsonParserTest,String)
+{
+    document doc
+    {
+        {"Name"s,"Aku Ankka"s}
+    };
+
+    stringstream ios;
+    ios << doc;
+
+    auto result = bson::parse(ios);
+
+    clog << result << endl;
+}
 
 TEST(BsonParserTest,Date)
 {
@@ -32,6 +63,36 @@ TEST(BsonParserTest,Null)
     document doc
     {
         {"Ideas",nullptr}
+    };
+
+    stringstream ios;
+    ios << doc;
+
+    auto result = bson::parse(ios);
+
+    clog << result << endl;
+}
+
+TEST(BsonParserTest,Int32)
+{
+    document doc
+    {
+        {"MinInt32",std::numeric_limits<std::int32_t>::min()}
+    };
+
+    stringstream ios;
+    ios << doc;
+
+    auto result = bson::parse(ios);
+
+    clog << result << endl;
+}
+
+TEST(BsonParserTest,Int64)
+{
+    document doc
+    {
+        {"MaxInt64",std::numeric_limits<std::int64_t>::max()}
     };
 
     stringstream ios;

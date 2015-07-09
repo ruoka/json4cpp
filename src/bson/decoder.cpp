@@ -1,10 +1,7 @@
 #include <iostream>
-#include <iomanip>
 #include "bson/decoder.hpp"
 #include "bson/model.hpp"
-
-#define TRACE(a) std::clog << __func__ << a << std::endl;
-#define _TRACE(a)
+#include "std/trace.hpp"
 
 namespace bson
 {
@@ -71,12 +68,13 @@ void decoder::decode(null_type b)
     TRACE("(null)");
 }
 
-void decoder::decode(const string_type& str)
+void decoder::decode(const string_type& str, bool csting)
 {
-    TRACE("(cstring)");
-    for(byte_type b : str)
+    TRACE("(string) " << csting);
+    if(!csting) decode(static_cast<int32_type>(str.size()+1)); // bytes
+    for(byte_type b : str)            // data
         put(b);
-    put('\x00');
+    put('\x00');                      // 0
 }
 
 void decoder::decode(const element& e)
@@ -90,9 +88,9 @@ void decoder::decode(const array& a)
     TRACE("(array)");
     decoder l;
     l.decode(a.size()+1);
-    put(l.cbegin(), l.cend());
-    put(a.cbegin(), a.cend());
-    put('\x00');
+    put(l.cbegin(), l.cend()); // bytes
+    put(a.cbegin(), a.cend()); // data
+    put('\x00');               // 0
 }
 
 void decoder::decode(const document& d)
@@ -100,15 +98,14 @@ void decoder::decode(const document& d)
     TRACE("(document)");
     decoder l;
     l.decode(d.size()+1);
-    put(l.cbegin(), l.cend());
-    put(d.cbegin(), d.cend());
-    put('\x00');
+    put(l.cbegin(), l.cend()); // bytes
+    put(d.cbegin(), d.cend()); // data
+    put('\x00');               // 0
 }
 
 void decoder::put(char b)
 {
     buffer.emplace_back(b);
-    using namespace std;
     TRACE("(byte)     " << setw(5) << buffer.size() << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec);
 }
 
@@ -117,6 +114,14 @@ void decoder::put(const_iterator begin, const_iterator end)
     buffer.insert(buffer.cend(), begin, end);
     using namespace std;
     TRACE("(begin,end)" << setw(5) << buffer.size());
+}
+
+std::ostream& operator << (std::ostream& os, const document& doc)
+{
+    decoder dec;
+    dec.decode(doc);
+    os.write(dec.data(), dec.size());
+    return os;
 }
 
 } // namespace bson

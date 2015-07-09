@@ -26,7 +26,7 @@ void decode(date_type n);
 
 void decode(null_type n);
 
-void decode(const string_type& str);
+void decode(const string_type& str, bool csting = false);
 
 void decode(const element_type& e);
 

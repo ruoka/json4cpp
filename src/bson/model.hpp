@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <initializer_list>
+#include <string>
 #include <iosfwd>
 #include "bson/decoder.hpp"
 
@@ -35,7 +35,7 @@ namespace bson
         element(const std::string& name, const V& value)
         {
             decode(type(value));
-            decode(name);
+            decode(name,true);
             decode(value);
         }
 
@@ -81,13 +81,7 @@ namespace bson
                 decode(element);
         }
 
-        friend std::ostream& operator << (std::ostream& os, const document& doc)
-        {
-            decoder dec;
-            dec.decode(doc);
-            os.write(dec.data(), dec.size());
-            return os;
-        }
+        friend std::ostream& operator << (std::ostream& os, const document& doc);
     };
 
 } // namespace bson

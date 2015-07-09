@@ -1,4 +1,3 @@
-#include <string>
 #include <gtest/gtest.h>
 #include "bson/model.hpp"
 
@@ -32,14 +31,29 @@ TEST(DecoderTest,Double)
     EXPECT_EQ(4.0, *reinterpret_cast<bson::double_type*>(d.data()));
 }
 
+TEST(DecoderTest,CString)
+{
+    bson::decoder d;
+    d.decode("Ruoka"s, true);
+    EXPECT_STREQ("Ruoka"s.c_str(), d.data());
+}
+
 TEST(DecoderTest,String)
 {
     bson::decoder d;
-    d.decode("Ruoka"s);
-    EXPECT_STREQ("Ruoka",d.data());
+    d.decode("Ruoka"s, false);
+    EXPECT_EQ("Ruoka"s.size()+1, *reinterpret_cast<bson::int32_type*>(d.data())); // bytes
+    EXPECT_STREQ("Ruoka"s.c_str(), d.data()+4);                                   // data
 }
 
-TEST(DecoderTest,Boolean)
+TEST(DecoderTest,BooleanTrue)
+{
+    bson::decoder d;
+    d.decode(true);
+    EXPECT_EQ(true, *reinterpret_cast<bson::boolean_type*>(d.data()));
+}
+
+TEST(DecoderTest,BooleanFalse)
 {
     bson::decoder d;
     d.decode(false);
@@ -60,27 +74,4 @@ TEST(DecoderTest,Null)
     bson::decoder d;
     d.decode(nullptr);
     EXPECT_EQ(nullptr, *reinterpret_cast<bson::null_type*>(d.data()));
-}
-
-TEST(DecoderTest,TypeMap)
-{
-    bson::double_type b1;
-    bson::string_type b2;
-    bson::document_type b3;
-    bson::array_type b4;
-    bson::boolean_type b8;
-    bson::date_type b9;
-    bson::null_type b10;
-    bson::int32_type b16;
-    bson::int64_type b18;
-
-    std::clog << bson::type(b1)  << "\n"
-              << bson::type(b2) << "\n"
-              << bson::type(b3)  << "\n"
-              << bson::type(b4)  << "\n"
-              << bson::type(b8)  << "\n"
-              << bson::type(b9)  << "\n"
-              << bson::type(b10) << "\n"
-              << bson::type(b16) << "\n"
-              << bson::type(b18) << "\n";
 }
