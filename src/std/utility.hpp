@@ -37,7 +37,7 @@ inline constexpr tuple<years,months,days> split(const days& ds) noexcept
 
 inline std::string to_string(chrono::system_clock::time_point tp)
 {
-	using namespace chrono;
+    using namespace chrono;
 
     auto dd = duration_cast<days>(tp.time_since_epoch());
     years YY;
@@ -53,13 +53,13 @@ inline std::string to_string(chrono::system_clock::time_point tp)
     tp -= ss;
     auto ff = duration_cast<milliseconds>(tp.time_since_epoch());
 
-	std::ostringstream os;
+    std::ostringstream os;
     os << YY.count()
        << '-' << std::setw(2) << std::setfill('0')
        << MM.count()
        << '-' << std::setw(2) << std::setfill('0')
        << DD.count()
-	   << 'T'
+       << 'T'
        << hh.count()
        << ':' << std::setw(2) << std::setfill('0')
        << mm.count()
@@ -73,14 +73,14 @@ inline std::string to_string(chrono::system_clock::time_point tp)
 
 inline std::string to_string(bool b)
 {
-	std::stringstream ss;
-	ss << std::boolalpha << b;
-	return ss.str();
+    std::stringstream ss;
+    ss << std::boolalpha << b;
+    return ss.str();
 }
 
 inline std::string to_string(std::nullptr_t)
 {
-	return "null";
+    return "null";
 }
 
 } // namespace std
