@@ -5,11 +5,10 @@
 using namespace std;
 using namespace xson;
 
-/*
 TEST(XsonJsonTest,Parse)
 {
     auto& is = std::cin;
-    auto object = json::parse(is);
+//    auto object = json::parse(is);
 }
 
 TEST(XsonJsonTest,Stringify)
@@ -17,7 +16,6 @@ TEST(XsonJsonTest,Stringify)
     auto obj = json::object{};
     auto str = json::stringify(obj);
 }
-*/
 
 TEST(XsonJsonTest,ParseFile)
 {

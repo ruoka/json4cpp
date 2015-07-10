@@ -13,6 +13,8 @@ class encoder
 {
 public:
 
+    encoder() = delete;
+
     static void encode(std::istream& is, object& obj)
     {
         encode_document(is, obj);

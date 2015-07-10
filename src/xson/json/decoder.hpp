@@ -11,6 +11,8 @@ class decoder
 {
 public:
 
+    decoder() = delete;
+
     static void decode(std::ostream& os, const object& obj)
     {
         decode_document(os, obj);

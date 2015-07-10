@@ -15,7 +15,7 @@ using vector = std::vector<string>;
 TEST(XsonObjectTest,IsValue)
 {
     ASSERT_EQ(xson::is_value<int>(),       true);
-    ASSERT_EQ(xson::is_value<long>(),      true);
+    ASSERT_EQ(xson::is_value<long long>(), true);
     ASSERT_EQ(xson::is_value<double>(),    true);
     ASSERT_EQ(xson::is_value<bool>(),      true);
     ASSERT_EQ(xson::is_value<string>(),    true);
@@ -30,7 +30,7 @@ TEST(XsonObjectTest,IsValue)
 TEST(XsonObjectTest,IsArray)
 {
     ASSERT_EQ(xson::is_array<int>(),       false);
-    ASSERT_EQ(xson::is_array<long>(),      false);
+    ASSERT_EQ(xson::is_array<long long>(), false);
     ASSERT_EQ(xson::is_array<double>(),    false);
     ASSERT_EQ(xson::is_array<bool>(),      false);
     ASSERT_EQ(xson::is_array<string>(),    false);

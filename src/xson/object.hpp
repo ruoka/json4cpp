@@ -6,7 +6,7 @@
 #include <array>
 #include <vector>
 #include <map>
-#include "std/utility.hpp"
+#include "xson/utility.hpp"
 
 namespace xson {
 
@@ -17,11 +17,18 @@ namespace json {
     class encoder;
 }
 
+namespace bson {
+
+    class decoder;
+
+    class encoder;
+}
+
 template <typename T> struct is_value : std::false_type {};
 
 template <> struct is_value<int> : std::true_type {};
 
-template <> struct is_value<long> : std::true_type {};
+template <> struct is_value<long long> : std::true_type {};
 
 template <> struct is_value<double> : std::true_type {};
 
@@ -157,14 +164,31 @@ public:
 
 private:
 
-    enum class type
+    enum class type : std::int32_t
     {
-        object,
-        array,
-        string,
-        number,
-        boolean,
-        null
+        // json
+        number                = '\x01',
+        string                = '\x02',
+        object                = '\x03',
+        array                 = '\x04',
+        boolean               = '\x08',
+        null                  = '\x0A',
+
+        // + bson
+        binary                = '\x05',
+        undefined             = '\x06', // Deprecated
+        objectid              = '\x07',
+        date                  = '\x09',
+        regular_expression    = '\x0B',
+        db_pointer            = '\x0C', // Deprecated
+        javascript            = '\x0D',
+        deprecated            = '\x0E',
+        javascript_with_scope = '\x0F',
+        int32                 = '\x10',
+        timestamp             = '\x11',
+        int64                 = '\x12',
+        min_key               = '\xFF',
+        max_key               = '\x7F'
     };
 
     template <typename T>
@@ -174,7 +198,7 @@ private:
     }
 
     template <typename T>
-    static type to_type(const T&);
+    static constexpr type to_type(const T&);
 
     template <typename T>
     static std::string to_value(const T& val)
@@ -188,29 +212,23 @@ private:
 
     std::map<std::string,object> m_objects;
 
-    friend class xson::json::decoder;
+    friend class json::decoder;
 
-    friend class xson::json::encoder;
+    friend class json::encoder;
+
+    friend class bson::decoder;
+
+    friend class bson::encoder;
 };
-
-template <> inline object::type object::to_type(const std::string&)
-{
-    return object::type::string;
-}
-
-template <> inline object::type object::to_type(const int&)
-{
-    return object::type::number;
-}
-
-template <> inline object::type object::to_type(const long&)
-{
-    return object::type::number;
-}
 
 template <> inline object::type object::to_type(const double&)
 {
     return object::type::number;
+}
+
+template <> inline object::type object::to_type(const std::string&)
+{
+    return object::type::string;
 }
 
 template <> inline object::type object::to_type(const bool&)
@@ -218,14 +236,24 @@ template <> inline object::type object::to_type(const bool&)
     return object::type::boolean;
 }
 
-template <> inline object::type object::to_type(const std::chrono::system_clock::time_point&)
-{
-    return object::type::string;
-}
-
 template <> inline object::type object::to_type(const std::nullptr_t&)
 {
     return object::type::null;
+}
+
+template <> inline object::type object::to_type(const std::chrono::system_clock::time_point&)
+{
+    return object::type::date;
+}
+
+template <> inline object::type object::to_type(const int&)
+{
+    return object::type::int32;
+}
+
+template <> inline object::type object::to_type(const long long&)
+{
+    return object::type::int64;
 }
 
 } // namespace xson
