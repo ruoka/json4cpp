@@ -33,11 +33,7 @@ template <> struct is_value<std::chrono::system_clock::time_point> : std::true_t
 
 template <> struct is_value<std::nullptr_t> : std::true_type {};
 
-template <typename T> struct is_array : std::false_type {};
-
-template <typename T, int N> struct is_array<std::array<T,N>> : std::true_type {};
-
-template <typename T> struct is_array<std::vector<T>> : std::true_type {};
+template <typename T> using is_array = std::is_array<T>;
 
 class object
 {
@@ -132,6 +128,31 @@ public:
     operator bool () const
     {
         return std::stob(m_value);
+    }
+
+    bool empty () const
+    {
+        return m_objects.empty();
+    }
+
+    std::map<std::string,object>::iterator begin()
+    {
+        return m_objects.begin();
+    }
+
+    std::map<std::string,object>::iterator end()
+    {
+        return m_objects.end();
+    }
+
+    std::map<std::string,object>::const_iterator cbegin() const
+    {
+        return m_objects.cbegin();
+    }
+
+    std::map<std::string,object>::const_iterator cend() const
+    {
+        return m_objects.cend();
     }
 
 private:

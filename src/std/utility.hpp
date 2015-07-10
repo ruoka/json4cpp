@@ -98,4 +98,8 @@ inline bool stob(const string& str)
     return b;
 }
 
+template <typename T, int N> struct is_array<std::array<T,N>> : std::true_type {};
+
+template <typename T> struct is_array<std::vector<T>> : std::true_type {};
+
 } // namespace std
