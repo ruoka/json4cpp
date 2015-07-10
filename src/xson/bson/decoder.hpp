@@ -5,25 +5,6 @@
 namespace xson {
 namespace bson {
 
-using double_type = double;                                 // \x01
-using string_type = std::string;                            // \x02
-using document_type = object;                               // \x03
-using array_type = object;                                  // \x04
-//using binary_type = binary;                               // \x05
-//using undefined_type = void;                              // \x06 — Deprecated
-//using objectid_type = objectid;                           // \x07
-using boolean_type = bool;                                  // \x08
-using date_type = std::chrono::system_clock::time_point;    // \x09
-using null_type = std::nullptr_t;                           // \x0A
-//using regular_expression_type = regular_expression;       // \x0B
-//using dbpointer_type = dbpointer;                         // \x0C — Deprecated
-//using javascript_type = javascript;                       // \x0D
-//using deprecated_type = void;                             // \x0E
-//using javascript_with_scope_type = javascript_with_scope; // \x0F
-using int32_type = std::int32_t;                            // \x10
-//using timestamp_type = timestamp;                         // \x11
-using int64_type = std::int64_t;                            // \x12
-
 std::ostream& operator << (std::ostream& os, const object& obj);
 
 class decoder
@@ -147,7 +128,7 @@ inline void decoder::decode(const string_type str)
 }
 
 template <>
-inline void decoder::decode(object::type t)
+inline void decoder::decode(xson::type t)
 {
     TRACE("(type)");
     decode(static_cast<int32_t>(t));
@@ -166,10 +147,10 @@ void decoder::decode(const object& obj)
 {
     TRACE("(object)");
 
-    switch(obj.get_type())
+    switch(obj.type())
     {
-    case object::type::object:
-    case object::type::array:
+    case type::object:
+    case type::array:
     {
         const int32_type head = size();
 
@@ -179,7 +160,7 @@ void decoder::decode(const object& obj)
 
         for(const auto& o : obj)
         {
-            decode(o.second.get_type()); // name
+            decode(o.second.type()); // name
             decode(o.first, true);   // type
             decode(o.second);        // object
         }
@@ -195,30 +176,30 @@ void decoder::decode(const object& obj)
     }
         break;
 
-    case object::type::number:
+    case type::number:
         decode<double_type>(obj);
         break;
 
-    case object::type::string:
+    case type::string:
         decode<string_type>(obj);
         break;
 
-    case object::type::boolean:
+    case type::boolean:
         decode<boolean_type>(obj);
         break;
 
-    case object::type::date:
+    case type::date:
         decode<date_type>(obj);
 
-    case object::type::null:
+    case type::null:
         decode<null_type>(nullptr);
         break;
 
-    case object::type::int32:
+    case type::int32:
         decode<int32_type>(obj);
         break;
 
-    case object::type::int64:
+    case type::int64:
         decode<int64_type>(obj);
         break;
 

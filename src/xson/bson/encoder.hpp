@@ -90,7 +90,7 @@ inline int32_type encoder::encode(object& parent)
 
     while(bytes > 1)
     {
-        object::type type;
+        xson::type type;
         m_is.read(reinterpret_cast<char*>(&type), sizeof(type));
         bytes -= m_is.gcount();
 
@@ -107,30 +107,30 @@ inline int32_type encoder::encode(object& parent)
 
         switch(type)
         {
-        case object::type::number:
+        case type::number:
             bytes -= encode<double>(child);
             break;
-        case object::type::string:
+        case type::string:
             bytes -= encode<std::string>(child);
             break;
-        case object::type::object:
-        case object::type::array:
+        case type::object:
+        case type::array:
             bytes -= encode(child);
-            child.value(type);
+            child.type(type);
             break;
-        case object::type::boolean:
+        case type::boolean:
             bytes -= encode<bool>(child);
             break;
-        case object::type::date:
+        case type::date:
             bytes -= encode<std::chrono::system_clock::time_point>(child);
             break;
-        case object::type::null:
+        case type::null:
             bytes -= encode<std::nullptr_t>(child);
             break;
-        case object::type::int32:
+        case type::int32:
             bytes -= encode<std::int32_t>(child);
             break;
-        case object::type::int64:
+        case type::int64:
             bytes -= encode<std::int64_t>(child);
             break;
         default:

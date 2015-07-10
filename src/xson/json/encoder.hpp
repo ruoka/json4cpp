@@ -81,7 +81,7 @@ private:
                 m_is >> next; // , }, or ]
             }
         }
-        parent.value(object::type::array);
+        parent.type(type::array);
     }
 
     void encode_document(object& parent)
@@ -122,7 +122,7 @@ private:
                 m_is >> next; // , }, or ]
             }
         }
-        parent.value(object::type::object);
+        parent.type(type::object);
     }
 
     std::istream& m_is;

@@ -16,7 +16,7 @@ public:
 
     void decode(const object& ob)
     {
-        if(!ob.empty() && ob.get_type() == object::type::object)
+        if(!ob.empty() && ob.type() == type::object)
         {
             m_os << '{';
             for(auto it = ob.cbegin(); it != ob.cend(); ++it)
@@ -26,7 +26,7 @@ public:
             }
             m_os << '}';
         }
-        else if(!ob.empty() && ob.get_type() == object::type::array)
+        else if(!ob.empty() && ob.type() == type::array)
         {
             m_os << '[';
             for(auto it = ob.cbegin(); it != ob.cend(); ++it)
@@ -36,11 +36,11 @@ public:
             }
             m_os << ']';
         }
-        else if(!ob.value().empty() && ob.get_type() == object::type::string)
+        else if(!ob.value().empty() && ob.type() == type::string)
             m_os << '\"' << ob.value() << '\"';
         else if(!ob.value().empty())
             m_os << ob.value();
-        else if (ob.get_type() == object::type::object || ob.get_type() == object::type::array)
+        else if (ob.type() == type::object || ob.type() == type::array)
             m_os << "{}";
         else
             m_os << "null";
