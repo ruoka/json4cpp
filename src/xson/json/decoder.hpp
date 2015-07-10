@@ -5,58 +5,55 @@
 namespace xson {
 namespace json {
 
-std::ostream& operator << (std::ostream& os, const object& obj);
+std::ostream& operator << (std::ostream& os, const object& ob);
 
 class decoder
 {
 public:
 
-    decoder() = delete;
+    decoder(std::ostream& os) : m_os{os}
+    {}
 
-    static void decode(std::ostream& os, const object& obj)
+    void decode(const object& ob)
     {
-        decode_document(os, obj);
+        if(!ob.empty() && ob.get_type() == object::type::object)
+        {
+            m_os << '{';
+            for(auto it = ob.cbegin(); it != ob.cend(); ++it)
+            {
+                if (it != ob.cbegin()) m_os << ',';
+                m_os << '\"' << it->first << '\"' << ':' << it->second;
+            }
+            m_os << '}';
+        }
+        else if(!ob.empty() && ob.get_type() == object::type::array)
+        {
+            m_os << '[';
+            for(auto it = ob.cbegin(); it != ob.cend(); ++it)
+            {
+                if (it != ob.cbegin()) m_os << ',';
+                m_os << it->second;
+            }
+            m_os << ']';
+        }
+        else if(!ob.value().empty() && ob.get_type() == object::type::string)
+            m_os << '\"' << ob.value() << '\"';
+        else if(!ob.value().empty())
+            m_os << ob.value();
+        else if (ob.get_type() == object::type::object || ob.get_type() == object::type::array)
+            m_os << "{}";
+        else
+            m_os << "null";
     }
 
 private:
 
-    static void decode_document(std::ostream& os, const object& obj)
-    {
-        if(!obj.m_objects.empty() && obj.m_type == object::type::object)
-        {
-            os << '{';
-            for(auto it = obj.m_objects.cbegin(); it != obj.m_objects.cend(); ++it)
-            {
-                if (it != obj.m_objects.cbegin()) os << ',';
-                os << '\"' << it->first << '\"' << ':' << it->second;
-            }
-            os << '}';
-        }
-        else if(!obj.m_objects.empty() && obj.m_type == object::type::array)
-        {
-            os << '[';
-            for(auto it = obj.m_objects.cbegin(); it != obj.m_objects.cend(); ++it)
-            {
-                if (it != obj.m_objects.cbegin()) os << ',';
-                os << it->second;
-            }
-            os << ']';
-        }
-        else if(!obj.m_value.empty() && obj.m_type == object::type::string)
-        os << '\"' << obj.m_value << '\"';
-        else if(!obj.m_value.empty())
-        os << obj.m_value;
-        else if (obj.m_type == object::type::object || obj.m_type == object::type::array)
-        os << "{}";
-        else
-        os << "null";
-    }
-
+    std::ostream& m_os;
 };
 
-inline std::ostream& operator << (std::ostream& os, const object& obj)
+inline std::ostream& operator << (std::ostream& os, const object& ob)
 {
-    decoder::decode(os, obj);
+    decoder{os}.decode(ob);
     return os;
 }
 

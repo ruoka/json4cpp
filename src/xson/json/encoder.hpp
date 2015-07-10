@@ -7,131 +7,130 @@ namespace json {
 
 using namespace std::literals::string_literals;
 
-std::istream& operator >> (std::istream& os, object& obj);
+std::istream& operator >> (std::istream& os, object& ob);
 
 class encoder
 {
 public:
 
-    encoder() = delete;
+    encoder(std::istream& is) : m_is{is}
+    {}
 
-    static void encode(std::istream& is, object& obj)
+    void encode(object& ob)
     {
-        encode_document(is, obj);
+        encode_document(ob);
     }
 
 private:
 
-    static void encode_string(std::istream& is, object& obj)
+    void encode_string(object& ob)
     {
         char next;
         std::string value;
-        is >> next; // "
-        getline(is, value, '\"'); // value"
-        obj.m_value = value;
-        obj.m_type = object::type::string;
+        m_is >> next; // "
+        getline(m_is, value, '\"'); // value"
+        ob.value(value);
     }
 
-    static void encode_value(std::istream& is, object& obj)
+    void encode_value(object& ob)
     {
         char next;
         std::string value;
-        is >> next;
+        m_is >> next;
         while (next != ',' && next != '}' && next != ']')
         {
             value += next;
-            is >> next;
+            m_is >> next;
         }
-        is.putback(next); // , }, or ] do not belong to values
-        obj.m_value = value;
-        if(value == "true"s || value == "false"s)
-            obj.m_type = object::type::boolean;
-        else if(value == "null"s)
-            obj.m_type = object::type::null;
-        else
-            obj.m_type = object::type::number;
+        m_is.putback(next); // , }, or ] do not belong to values
+        ob.value(value); // FIXME?
     }
 
-    static void encode_array(std::istream& is, object& obj)
+    void encode_array(object& parent)
     {
         std::size_t idx{0};
         char next;
-        is >> next; // [
+        m_is >> next; // [
 
-        while(next != ']' && is)
+        while(next != ']' && m_is)
         {
-            std::string name{std::to_string(idx++)};
+            const std::string name{std::to_string(idx++)};
+            auto& child = parent[name];
 
-            is >> std::ws;
-            next = is.peek();
+            m_is >> std::ws;
+            next = m_is.peek();
 
             if (next == '{')
             {
-                encode_document(is, obj.m_objects[name]);
-                is >> next; // , or ]
+                encode_document(child);
+                m_is >> next; // , or ]
             }
             else if (next == '[')
             {
-                encode_array(is, obj.m_objects[name]);
-                is >> next; // , or ]
+                encode_array(child);
+                m_is >> next; // , or ]
             }
             else if (next == '\"')
             {
-                encode_string(is, obj.m_objects[name]);
-                is >> next; // , or ]
+                encode_string(child);
+                m_is >> next; // , or ]
             }
             else
             {
-                encode_value(is, obj.m_objects[name]);
-                is >> next; // , }, or ]
+                encode_value(child);
+                m_is >> next; // , }, or ]
             }
         }
-        obj.m_type = object::type::array;
+        parent.value(object::type::array);
     }
 
-    static void encode_document(std::istream& is, object& obj)
+    void encode_document(object& parent)
     {
         char next;
-        is >> next; // {
+        m_is >> next; // {
 
-        while(next != '}' && is)
+        while(next != '}' && m_is)
         {
-            std::string name, value;
-            is >> std::ws >> next; // "
-            getline(is, name, '\"'); // name"
-            is >> next; // :
+            std::string name;
+            m_is >> std::ws >> next; // "
+            getline(m_is, name, '\"'); // name"
+            m_is >> next; // :
 
-            is >> std::ws;
-            next = is.peek();
+            auto& child = parent[name];
+
+            m_is >> std::ws;
+            next = m_is.peek();
 
             if(next == '{')
             {
-                encode_document(is, obj.m_objects[name]);
-                is >> next; // , or }
+                encode_document(child);
+                m_is >> next; // , or }
             }
             else if(next == '[')
             {
-                encode_array(is, obj.m_objects[name]);
-                is >> next; // , or }
+                encode_array(child);
+                m_is >> next; // , or }
             }
             else if(next == '\"')
             {
-                encode_string(is, obj.m_objects[name]);
-                is >> next; // , or ]
+                encode_string(child);
+                m_is >> next; // , or ]
             }
             else
             {
-                encode_value(is, obj.m_objects[name]);
-                is >> next; // , }, or ]
+                encode_value(child);
+                m_is >> next; // , }, or ]
             }
         }
-        obj.m_type = object::type::object;
+        parent.value(object::type::object);
     }
+
+    std::istream& m_is;
 };
 
-inline std::istream& operator >> (std::istream& is, object& obj)
+inline std::istream& operator >> (std::istream& is, object& ob)
 {
-    encoder::encode(is, obj);
+    encoder{is}.encode(ob);
     return is;
 }
 

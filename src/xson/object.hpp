@@ -26,9 +26,9 @@ namespace bson {
 
 template <typename T> struct is_value : std::false_type {};
 
-template <> struct is_value<int> : std::true_type {};
+template <> struct is_value<std::int32_t> : std::true_type {};
 
-template <> struct is_value<long long> : std::true_type {};
+template <> struct is_value<std::int64_t> : std::true_type {};
 
 template <> struct is_value<double> : std::true_type {};
 
@@ -46,15 +46,48 @@ class object
 {
 public:
 
+    enum class type : std::int32_t
+    {
+        // json
+        number                = '\x01',
+        string                = '\x02',
+        object                = '\x03',
+        array                 = '\x04',
+        boolean               = '\x08',
+        null                  = '\x0A',
+
+        // + bson
+        binary                = '\x05',
+        undefined             = '\x06', // Deprecated
+        objectid              = '\x07',
+        date                  = '\x09',
+        regular_expression    = '\x0B',
+        db_pointer            = '\x0C', // Deprecated
+        javascript            = '\x0D',
+        deprecated            = '\x0E',
+        javascript_with_scope = '\x0F',
+        int32                 = '\x10',
+        timestamp             = '\x11',
+        int64                 = '\x12',
+        min_key               = '\xFF',
+        max_key               = '\x7F'
+    };
+
+    friend std::ostream& operator << (std::ostream& os, type t)
+    {
+        os << static_cast<int>(t);
+        return os;
+    }
+
     object() : m_type{type::object}, m_value{}, m_objects{}
     {}
 
     template <typename T>
     object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) : object()
     {
-        object& obj = m_objects[name];
-        obj.m_type = to_type(value);
-        obj.m_value = to_value(value);
+        object& ob = m_objects[name];
+        ob.m_type = to_type(value);
+        ob.m_value = to_value(value);
     }
 
     object(const std::string& name, const object& obj) : object()
@@ -102,6 +135,23 @@ public:
         return *this;
     }
 
+    object::type get_type() const
+    {
+        return m_type;
+    }
+
+    const std::string& value() const
+    {
+        return m_value;
+    }
+
+    template <typename T>
+    void value(const T& val)
+    {
+        m_value = to_value(val);
+        m_type = to_type(val);
+    }
+
     object& operator [] (const std::string& name)
     {
         return m_objects[name];
@@ -122,7 +172,7 @@ public:
         return std::stoi(m_value);
     }
 
-    operator long () const
+    operator long long () const
     {
         return std::stol(m_value);;
     }
@@ -137,19 +187,24 @@ public:
         return std::stob(m_value);
     }
 
+    operator std::chrono::system_clock::time_point () const
+    {
+        return std::chrono::system_clock::now(); // FIXME
+    }
+
     bool empty () const
     {
         return m_objects.empty();
     }
 
-    std::map<std::string,object>::iterator begin()
+    std::map<std::string,object>::const_iterator begin() const
     {
-        return m_objects.begin();
+        return m_objects.cbegin();
     }
 
-    std::map<std::string,object>::iterator end()
+    std::map<std::string,object>::const_iterator end() const
     {
-        return m_objects.end();
+        return m_objects.cend();
     }
 
     std::map<std::string,object>::const_iterator cbegin() const
@@ -163,33 +218,6 @@ public:
     }
 
 private:
-
-    enum class type : std::int32_t
-    {
-        // json
-        number                = '\x01',
-        string                = '\x02',
-        object                = '\x03',
-        array                 = '\x04',
-        boolean               = '\x08',
-        null                  = '\x0A',
-
-        // + bson
-        binary                = '\x05',
-        undefined             = '\x06', // Deprecated
-        objectid              = '\x07',
-        date                  = '\x09',
-        regular_expression    = '\x0B',
-        db_pointer            = '\x0C', // Deprecated
-        javascript            = '\x0D',
-        deprecated            = '\x0E',
-        javascript_with_scope = '\x0F',
-        int32                 = '\x10',
-        timestamp             = '\x11',
-        int64                 = '\x12',
-        min_key               = '\xFF',
-        max_key               = '\x7F'
-    };
 
     template <typename T>
     static std::string to_name(const T& idx)
@@ -212,14 +240,19 @@ private:
 
     std::map<std::string,object> m_objects;
 
-    friend class json::decoder;
+//    friend class json::decoder;
 
-    friend class json::encoder;
+//    friend class json::encoder;
 
-    friend class bson::decoder;
+//    friend class bson::decoder;
 
-    friend class bson::encoder;
+//    friend class bson::encoder;
 };
+
+template <> inline void object::value(const object::type& type)
+{
+    m_type = type;
+}
 
 template <> inline object::type object::to_type(const double&)
 {
