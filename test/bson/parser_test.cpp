@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "bson/parser.hpp"
 #include "bson/model.hpp"
-#include "std/trace.hpp"
+#include "xson/trace.hpp"
 
 using namespace std;
 using namespace std::literals::string_literals;

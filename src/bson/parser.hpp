@@ -4,7 +4,7 @@
 #include <string>
 #include <iosfwd>
 #include "bson/type.hpp"
-#include "std/trace.hpp"
+#include "xson/trace.hpp"
 #include "std/utility.hpp"
 
 namespace bson

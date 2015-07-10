@@ -84,6 +84,11 @@ inline std::string to_string(std::nullptr_t)
     return "null";
 }
 
+inline const std::string& to_string(const string& str)
+{
+    return str;
+}
+
 inline bool stob(const string& str)
 {
     bool b;
