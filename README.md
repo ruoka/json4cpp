@@ -1,7 +1,7 @@
 # json4cpp
 JSON Library for C++14
 
-## Object ##
+## JSON/BSON Object ##
 ```cpp
 #include <vector>
 #include "xson/json.hpp"
@@ -41,7 +41,7 @@ clog << json::stringify(papa) << endl;
 clog << bson::stringify(papa) << endl;
 ```
 
-## Parser ##
+## JSON/BSON Parser ##
 ```cpp
 #include "xson/json.hpp"
 
