@@ -1,3 +1,3 @@
 bin
 obj
-test/test1.bson
+test/xson/bson/test1.bson
