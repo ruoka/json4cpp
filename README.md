@@ -1,7 +1,7 @@
 # json4cpp
 JSON Library for C++14
 
-## Model ##
+## Object ##
 ```cpp
 #include <vector>
 #include "xson/json.hpp"
