@@ -46,9 +46,9 @@ TEST(XsonObjectTest,Array)
     int idx{0};
     for(const auto& a : arr)
     {
+        ASSERT_EQ(type::int32, o["Array"s][idx].type());
         const int i = o["Array"s][idx];
         ASSERT_EQ(i, a);
-        ASSERT_EQ(type::int32, o["Array"s][idx].type());
         ++idx;
     }
 }
@@ -62,9 +62,9 @@ TEST(XsonObjectTest,Vector)
     int idx{0};
     for(const auto& v : vec)
     {
+        ASSERT_EQ(type::string, o["Vector"s][idx].type());
         const string s = o["Vector"s][idx];
         ASSERT_EQ(v, s);
-        ASSERT_EQ(type::string, o["Vector"s][idx].type());
         ++idx;
     }
 }
@@ -78,9 +78,9 @@ TEST(XsonObjectTest,CArray)
     int idx{0};
     for(const auto& a : arr)
     {
+        ASSERT_EQ(type::number, o["CArray"s][idx].type());
         const double d = o["CArray"s][idx];
         ASSERT_EQ(a, d);
-        ASSERT_EQ(type::number, o["CArray"s][idx].type());
         ++idx;
     }
 }
@@ -89,31 +89,31 @@ TEST(XsonObjectTest,BooleanTrue)
 {
     auto o = xson::object{"True"s, true};
     TRACE(o);
-    const string s = o["True"s];
-    ASSERT_EQ("true"s, s);
+    ASSERT_EQ(type::boolean, o["True"s].type());
     const bool b = o["True"s];
     ASSERT_EQ(true, b);
-    ASSERT_EQ(type::boolean, o["True"s].type());
+    const string s = o["True"s];
+    ASSERT_EQ("true"s, s);
 }
 
 TEST(XsonObjectTest,BooleanFalse)
 {
     auto o = xson::object{"False"s, false};
     TRACE(o);
-    const string s = o["False"s];
-    ASSERT_EQ("false"s, s);
+    ASSERT_EQ(type::boolean, o["False"s].type());
     const bool b = o["False"s];
     ASSERT_EQ(false, b);
-    ASSERT_EQ(type::boolean, o["False"s].type());
+    const string s = o["False"s];
+    ASSERT_EQ("false"s, s);
 }
 
 TEST(XsonObjectTest,Null)
 {
     auto o = xson::object{"Null"s, nullptr};
     TRACE(o);
+    ASSERT_EQ(type::null, o["Null"s].type());
     const string s = o["Null"s];
     ASSERT_EQ("null"s, s);
-    ASSERT_EQ(type::null, o["Null"s].type());
 }
 
 TEST(XsonObjectTest,Date)
@@ -121,9 +121,9 @@ TEST(XsonObjectTest,Date)
     auto now = std::chrono::system_clock::now();
     auto o = xson::object{"Date"s, now};
     TRACE(o);
+    ASSERT_EQ(type::date, o["Date"s].type());
     const string s = o["Date"s];
     ASSERT_EQ(std::to_string(now), s);
-    ASSERT_EQ(type::date, o["Date"s].type());
 }
 
 TEST(XsonObjectTest,Complex)

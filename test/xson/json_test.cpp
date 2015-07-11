@@ -177,12 +177,33 @@ TEST(XsonJsonTest,Vector)
     EXPECT_EQ(str1, str2);
 }
 
-TEST(XsonJsonTest,ParseFile)
+TEST(XsonJsonTest,ParseFile1)
 {
     using namespace std::literals::string_literals;
     using namespace xson::json;
 
-    ifstream fs{"./test/json/test2.json"};
+    ifstream fs{"./test/xson/test1.json"};
+    auto ob = json::parse(fs);
+    TRACE("test1.json: "s << ob);
+
+    ASSERT_EQ(type::array, ob["required"s].type());
+    ASSERT_EQ(type::string, ob["required"s][2].type());
+    const std::string price = ob["required"s][2];
+    EXPECT_EQ("price"s, price);
+
+    ASSERT_EQ(type::object, ob["properties"s].type());
+    ASSERT_EQ(type::object, ob["properties"s]["price"s].type());
+    ASSERT_EQ(type::int32, ob["properties"s]["price"s]["minimum"s].type());
+    const int minimum = ob["properties"s]["price"s]["minimum"s];
+    EXPECT_EQ(0, minimum);
+}
+
+TEST(XsonJsonTest,ParseFile2)
+{
+    using namespace std::literals::string_literals;
+    using namespace xson::json;
+
+    ifstream fs{"./test/xson/test2.json"};
     auto ob = json::parse(fs);
     TRACE("test2.json: "s << ob);
 
