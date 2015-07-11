@@ -20,8 +20,8 @@ xson::object sons
 
 std::vector<object> sizes
 {
-    xson::object {"ShoeSize",47.50},
-    xson::object {"WaistSize",120.50}
+    xson::object{"ShoeSize",  47.50},
+    xson::object{"WaistSize", 120.50}
 };
 
 xson::object papa
