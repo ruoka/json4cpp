@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xson/object.hpp"
+#include "xson/trace.hpp"
 
 namespace xson {
 namespace bson {
@@ -45,7 +46,7 @@ public:
         return m_buffer.data();
     }
 
-private:
+//private:
 
     template <typename T>
     void decode(T);
@@ -143,7 +144,7 @@ inline void decoder::decode(const string_type& str, bool csting)
     put('\x00');                      // 0
 }
 
-void decoder::decode(const object& obj)
+inline void decoder::decode(const object& obj)
 {
     TRACE("(object)");
 
@@ -208,7 +209,7 @@ void decoder::decode(const object& obj)
     }
 }
 
-void decoder::put(char b)
+inline void decoder::put(char b)
 {
     m_buffer.emplace_back(b);
     TRACE("(byte)     " << setw(5) << m_buffer.size() << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec);

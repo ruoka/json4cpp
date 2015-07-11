@@ -3,53 +3,56 @@ JSON Library for C++14
 
 ## Model ##
 ```cpp
-#include "json/model.hpp"
+#include "xson/json.hpp"
+#include "xson/bson.hpp"
+
 using namespace std;
 using namespace literals::string_literals;
 
 [...]
 
-json::document sons
+xson::object sons
 {
-    {"Name","Tulppu"s},
-    {"Name","Elppu"s},
-    {"Name","Jalppu"s}
+    { "Name", "Tulppu"s },
+    { "Name", "Elppu"s  },
+    { "Name", "Jalppu"s }
 };
 
-json::array sizes
+std::vector<object> sizes
 {
-    json::document {"ShoeSize",47.50},
-    json::document {"WaistSize",120.50}
+    xson::object {"ShoeSize",47.50},
+    xson::object {"WaistSize",120.50}
 };
 
-json::document papa
+xson::object papa
 {
-    {"Name","Papa Cool"s},
-    {"Age",39u},
-    {"Sons",sons},
-    {"Sizes",sizes},
-    {"LuckyNumbers", json::array{2u,22u,2112u}}
+    {"Name",         "Papa Cool"s                  },
+    {"Age",          39                            },
+    {"Sons",         sons                          },
+    {"Sizes",        sizes                         },
+    {"LuckyNumbers", std::vector<int>{2, 22, 2112} }
 };
 
-clog << papa << endl;
+clog << json::stringify(papa) << endl;
 
-clog << json::document{{"_id", 2,},{"Name","Dodo"s}} << endl;
+clog << bson::stringify(papa) << endl;
 ```
 
 ## Parser ##
 ```cpp
-#include "json/parser.hpp"
+#include "xson/json.hpp"
 using namespace std;
 using namespace literals::string_literals;
 
 [...]
+using namespace xson::json;
 
-stringstream ios;
-ios << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112] }" << endl;
+stringstream ss;
+ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
 
-clog << ios.str() << endl;
+clog << ss.str() << endl;
 
-auto result = json::parse(ios);
+auto result = json::parse(ss);
 
 clog << result << endl;
 

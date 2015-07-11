@@ -26,6 +26,32 @@ public:
         m_objects[name] = ob;
     }
 
+    template <typename T, std::size_t N>
+    object(const std::enable_if_t<std::is_same<T,object>::value,std::string>& name, const std::array<T,N>& array) : object()
+    {
+        object& parent = m_objects[name];
+        parent.type(type::array);
+        std::size_t idx{0};
+        for(const auto& obj : array)
+        {
+            parent.m_objects[std::to_string(idx)] = obj;
+            ++idx;
+        }
+    }
+
+    template <typename T, typename A>
+    object(const std::enable_if_t<std::is_same<T,object>::value,std::string>& name, const std::vector<T,A>& array) : object()
+    {
+        object& parent = m_objects[name];
+        parent.type(type::array);
+        std::size_t idx{0};
+        for(const auto& obj : array)
+        {
+            parent.m_objects[std::to_string(idx)] = obj;
+            ++idx;
+        }
+    }
+
     template <typename T>
     object(const std::enable_if_t<is_array<T>::value,std::string>& name, const T& array) : object()
     {
@@ -34,15 +60,16 @@ public:
         std::size_t idx{0};
         for(const auto& value : array)
         {
-            object& child = parent.m_objects[std::to_string(idx++)];
+            object& child = parent.m_objects[std::to_string(idx)];
             child.value(value);
+            ++idx;
         }
     }
 
     object(std::initializer_list<object> il) : object()
     {
         for(const auto& i : il)
-            m_objects.insert(i.m_objects.cbegin(), i.m_objects.cend());
+            m_objects.insert(i.cbegin(), i.cend());
     }
 
     object(const object& ob) :

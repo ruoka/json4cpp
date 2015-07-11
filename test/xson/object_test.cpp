@@ -126,6 +126,26 @@ TEST(XsonObjectTest,Date)
     ASSERT_EQ(std::to_string(now), s);
 }
 
+TEST(XsonObjectTest,ObjectArray)
+{
+    auto o = xson::object
+    {
+        "ObjectArray"s, std::array<object,3>{xson::object{"A"s, 1}, xson::object{"B"s, 2}, xson::object{"C"s, 3}}
+    };
+
+    TRACE(o);
+}
+
+TEST(XsonObjectTest,ObjectVector)
+{
+    auto o = xson::object
+    {
+        "ObjectVector"s, std::vector<object>{xson::object{"A"s, 1}, xson::object{"B"s, 2}, xson::object{"C"s, 3}}
+    };
+
+    TRACE(o);
+}
+
 TEST(XsonObjectTest,Complex)
 {
     xson::object obj
