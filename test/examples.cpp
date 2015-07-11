@@ -18,18 +18,18 @@ TEST(Examples,Stringify)
 
     object measures
     {
-        { "Height"s,    200   },
-        { "ShoeSize"s,  47.5  },
-        { "WaistSize"s, 120.5 }
+        { "Height"s,   200   },
+        { "Waist"s,    120.5 },
+        { "ShoeSize"s, 47.5  }
     };
 
     object papa
     {
-        { "Name",         "Cool Papa"s                  },
-        { "Age",          39                            },
-        { "Kids",         kids                          },
-        { "Measures",     measures                      },
-        { "LuckyNumbers", vector<int>{2, 22, 2112}      }
+        { "Name",         "Cool Papa"s             },
+        { "Age",          39                       },
+        { "Kids",         kids                     },
+        { "Measures",     measures                 },
+        { "LuckyNumbers", vector<int>{2, 22, 2112} }
     };
 
     clog << json::stringify(papa) << endl;
