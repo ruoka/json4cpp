@@ -37,10 +37,10 @@ TEST(Examples,Stringify)
     clog << bson::stringify(papa) << endl;
 }
 
+using namespace json;
+
 TEST(Examples,Parse)
 {
-    using namespace json;
-
     stringstream ss;
     ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
 

@@ -3,11 +3,13 @@ JSON Library for C++14
 
 ## Model ##
 ```cpp
+#include <vector>
 #include "xson/json.hpp"
 #include "xson/bson.hpp"
 
 using namespace std;
 using namespace literals::string_literals;
+using namespace xson;
 
 [...]
 
@@ -42,8 +44,11 @@ clog << bson::stringify(papa) << endl;
 ## Parser ##
 ```cpp
 #include "xson/json.hpp"
+
 using namespace std;
 using namespace literals::string_literals;
+using namespace xson;
+using namespace json;
 
 [...]
 using namespace xson::json;
