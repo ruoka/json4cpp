@@ -4,7 +4,7 @@
 #include "xson/trace.hpp"
 
 using namespace std;
-using namespace std::string_literals;
+using namespace string_literals;
 using namespace xson;
 using namespace json;
 
@@ -16,8 +16,10 @@ TEST(XsonJsonEncoderTest,Object)
         { "Second", "Elppu"s  },
         { "Third",  "Jalppu"s }
     };
-
     TRACE(ob);
+    ASSERT_EQ(type::string, ob["First"s].type());
+    ASSERT_EQ(type::string, ob["Second"s].type());
+    ASSERT_EQ(type::string, ob["Third"s].type());
 }
 
 TEST(XsonJsonEncoderTest,Array)
@@ -32,6 +34,12 @@ TEST(XsonJsonEncoderTest,Array)
             { "Name", "Jalppu"s }
         }
     };
-
     TRACE(ob);
+    ASSERT_EQ(type::array,  ob["Kids"s].type());
+    ASSERT_EQ(type::object, ob["Kids"s][0].type());
+    ASSERT_EQ(type::object, ob["Kids"s][1].type());
+    ASSERT_EQ(type::object, ob["Kids"s][2].type());
+    ASSERT_EQ(type::string, ob["Kids"s][0]["Name"s].type());
+    ASSERT_EQ(type::string, ob["Kids"s][1]["Name"s].type());
+    ASSERT_EQ(type::string, ob["Kids"s][2]["Name"s].type());
 }

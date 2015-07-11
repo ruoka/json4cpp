@@ -3,67 +3,79 @@
 #include "xson/json.hpp"
 #include "xson/trace.hpp"
 
-using namespace std::string_literals;
+using namespace std;
+using namespace chrono;
+using namespace string_literals;
 using namespace xson;
-using namespace xson::json;
-
-using string = std::string;
-using array = std::array<int,9>;
-using vector = std::vector<string>;
+using namespace json;
 
 TEST(XsonObjectTest,Mix)
 {
-    auto o1 = xson::object{"Integer"s, 123456789};
-    TRACE(o1);
-    const int i1 = o1["Integer"s];
-    ASSERT_EQ(i1, 123456789);
+    auto ob1 = object{"Integer"s, 123456789};
+    TRACE(ob1);
 
-    xson::object o2 =
+    ASSERT_EQ(type::int32, ob1["Integer"s].type());
+    const int i1 = ob1["Integer"s];
+    ASSERT_EQ(123456789, i1);
+
+    object ob2 =
     {
         {"Integer"s, 987654321},
-        {"Double"s, 21.12},
-        {"Object1"s, o1},
-        {"Object2"s, xson::object{{"Boolean"s, false}, {"String"s, "4"s}}},
+        {"Double"s,  21.12},
+        {"Boolean"s, false},
+        {"Object1"s, ob1},
+        {"Object2"s, object{{"Boolean"s, false}, {"String"s, "4"s}}},
     };
-    TRACE(o2);
+    TRACE(ob2);
 
-    const int i2 = o2["Object1"s]["Integer"s];
-    ASSERT_EQ(i2, 123456789);
+    ASSERT_EQ(type::number, ob2["Double"s].type());
+    const double d = ob2["Double"s];
+    ASSERT_EQ(21.12, d);
 
-    const double d = o2["Double"s];
-    ASSERT_EQ(d, 21.12);
+    ASSERT_EQ(type::object, ob2["Object1"s].type());
 
-    string s = o2["Object2"s]["String"s];
-    ASSERT_EQ(s, "4"s);
+    ASSERT_EQ(type::int32, ob2["Object1"s]["Integer"s].type());
+    const int i2 = ob2["Object1"s]["Integer"s];
+    ASSERT_EQ(123456789, i2);
+
+    ASSERT_EQ(type::object, ob2["Object2"s].type());
+
+    ASSERT_EQ(type::boolean, ob2["Object2"s]["Boolean"s].type());
+    bool b = ob2["Object2"s]["Boolean"s];
+    ASSERT_EQ(false, b);
+
+    ASSERT_EQ(type::string, ob2["Object2"s]["String"s].type());
+    string s = ob2["Object2"s]["String"s];
+    ASSERT_EQ("4"s, s);
 }
 
 TEST(XsonObjectTest,Array)
 {
-    array arr = {1,2,3,4,5,6,7,8,9};
-    xson::object o{"Array"s, arr};
-    TRACE(o);
-    ASSERT_EQ(type::array, o["Array"s].type());
+    array<int,9> arr = {1,2,3,4,5,6,7,8,9};
+    object ob{"Array"s, arr};
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["Array"s].type());
     int idx{0};
     for(const auto& a : arr)
     {
-        ASSERT_EQ(type::int32, o["Array"s][idx].type());
-        const int i = o["Array"s][idx];
-        ASSERT_EQ(i, a);
+        ASSERT_EQ(type::int32, ob["Array"s][idx].type());
+        const int i = ob["Array"s][idx];
+        ASSERT_EQ(a, i);
         ++idx;
     }
 }
 
 TEST(XsonObjectTest,Vector)
 {
-    vector vec = {"a","b","c","d","e","f","g","h","i"};
-    xson::object o{"Vector"s, vec};
-    TRACE(o);
-    ASSERT_EQ(type::array, o["Vector"s].type());
+    vector<string> vec = {"a","b","c","d","e","f","g","h","i"};
+    object ob{"Vector"s, vec};
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["Vector"s].type());
     int idx{0};
     for(const auto& v : vec)
     {
-        ASSERT_EQ(type::string, o["Vector"s][idx].type());
-        const string s = o["Vector"s][idx];
+        ASSERT_EQ(type::string, ob["Vector"s][idx].type());
+        const string s = ob["Vector"s][idx];
         ASSERT_EQ(v, s);
         ++idx;
     }
@@ -72,14 +84,14 @@ TEST(XsonObjectTest,Vector)
 TEST(XsonObjectTest,CArray)
 {
     double arr[] = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
-    xson::object o{"CArray"s, arr};
-    TRACE(o);
-    ASSERT_EQ(type::array, o["CArray"s].type());
+    object ob{"CArray"s, arr};
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["CArray"s].type());
     int idx{0};
     for(const auto& a : arr)
     {
-        ASSERT_EQ(type::number, o["CArray"s][idx].type());
-        const double d = o["CArray"s][idx];
+        ASSERT_EQ(type::number, ob["CArray"s][idx].type());
+        const double d = ob["CArray"s][idx];
         ASSERT_EQ(a, d);
         ++idx;
     }
@@ -87,89 +99,101 @@ TEST(XsonObjectTest,CArray)
 
 TEST(XsonObjectTest,BooleanTrue)
 {
-    auto o = xson::object{"True"s, true};
-    TRACE(o);
-    ASSERT_EQ(type::boolean, o["True"s].type());
-    const bool b = o["True"s];
+    auto ob = object{"True"s, true};
+    TRACE(ob);
+    ASSERT_EQ(type::boolean, ob["True"s].type());
+    const bool b = ob["True"s];
     ASSERT_EQ(true, b);
-    const string s = o["True"s];
+    const string s = ob["True"s];
     ASSERT_EQ("true"s, s);
 }
 
 TEST(XsonObjectTest,BooleanFalse)
 {
-    auto o = xson::object{"False"s, false};
-    TRACE(o);
-    ASSERT_EQ(type::boolean, o["False"s].type());
-    const bool b = o["False"s];
+    auto ob = object{"False"s, false};
+    TRACE(ob);
+    ASSERT_EQ(type::boolean, ob["False"s].type());
+    const bool b = ob["False"s];
     ASSERT_EQ(false, b);
-    const string s = o["False"s];
+    const string s = ob["False"s];
     ASSERT_EQ("false"s, s);
 }
 
 TEST(XsonObjectTest,Null)
 {
-    auto o = xson::object{"Null"s, nullptr};
-    TRACE(o);
-    ASSERT_EQ(type::null, o["Null"s].type());
-    const string s = o["Null"s];
+    auto ob = object{"Null"s, nullptr};
+    TRACE(ob);
+    ASSERT_EQ(type::null, ob["Null"s].type());
+    const string s = ob["Null"s];
     ASSERT_EQ("null"s, s);
 }
 
 TEST(XsonObjectTest,Date)
 {
-    auto now = std::chrono::system_clock::now();
-    auto o = xson::object{"Date"s, now};
-    TRACE(o);
-    ASSERT_EQ(type::date, o["Date"s].type());
-    const string s = o["Date"s];
-    ASSERT_EQ(std::to_string(now), s);
+    auto now = system_clock::now();
+    auto ob = object{"Date"s, now};
+    TRACE(ob);
+    ASSERT_EQ(type::date, ob["Date"s].type());
+    const string s = ob["Date"s];
+    ASSERT_EQ(to_string(now), s);
 }
 
 TEST(XsonObjectTest,ObjectArray)
 {
-    auto o = xson::object
+    auto ob = object
     {
-        "ObjectArray"s, std::array<object,3>{xson::object{"A"s, 1}, xson::object{"B"s, 2}, xson::object{"C"s, 3}}
+        "ObjectArray"s, array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
     };
-
-    TRACE(o);
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["ObjectArray"s].type());
+    ASSERT_EQ(type::object, ob["ObjectArray"s][0].type());
+    ASSERT_EQ(type::int32, ob["ObjectArray"s][0]["A"s].type());
+    ASSERT_EQ(type::object, ob["ObjectArray"s][1].type());
+    ASSERT_EQ(type::int32, ob["ObjectArray"s][1]["B"s].type());
+    ASSERT_EQ(type::object, ob["ObjectArray"s][2].type());
+    ASSERT_EQ(type::int32, ob["ObjectArray"s][2]["C"s].type());
 }
 
 TEST(XsonObjectTest,ObjectVector)
 {
-    auto o = xson::object
+    auto ob = object
     {
-        "ObjectVector"s, std::vector<object>{xson::object{"A"s, 1}, xson::object{"B"s, 2}, xson::object{"C"s, 3}}
+        "ObjectVector"s, vector<object>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
     };
-
-    TRACE(o);
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["ObjectVector"s].type());
+    ASSERT_EQ(type::object, ob["ObjectVector"s][0].type());
+    ASSERT_EQ(type::int32, ob["ObjectVector"s][0]["A"s].type());
+    ASSERT_EQ(type::object, ob["ObjectVector"s][1].type());
+    ASSERT_EQ(type::int32, ob["ObjectVector"s][1]["B"s].type());
+    ASSERT_EQ(type::object, ob["ObjectVector"s][2].type());
+    ASSERT_EQ(type::int32, ob["ObjectVector"s][2]["C"s].type());
 }
 
 TEST(XsonObjectTest,Complex)
 {
-    xson::object obj
+    object ob
     {
-        { "Ruoka",  true                          },
-        { "Onni",   false                         },
-        { "Tulppu", 1                             },
-        { "Elppu",  2                             },
-        { "Jalppu", 3                             },
-        { "Ages",   std::vector<int>{39,40,9,5,2} }
+        { "Ruoka",  true                         },
+        { "Onni",   false                        },
+        { "Tulppu", 1                            },
+        { "Elppu",  2                            },
+        { "Jalppu", 3                            },
+        { "Ages",   vector<int>{39, 40, 9, 5, 2} }
     };
-    TRACE(obj);
+    TRACE(ob);
 
-    ASSERT_EQ(type::boolean, obj["Ruoka"s].type());
-    const bool b = obj["Ruoka"s];
+    ASSERT_EQ(type::boolean, ob["Ruoka"s].type());
+    const bool b = ob["Ruoka"s];
     ASSERT_EQ(true, b);
 
-    ASSERT_EQ(type::int32, obj["Tulppu"s].type());
-    const int i1 = obj["Tulppu"s];
+    ASSERT_EQ(type::int32, ob["Tulppu"s].type());
+    const int i1 = ob["Tulppu"s];
     ASSERT_EQ(1, i1);
 
-    ASSERT_EQ(type::array, obj["Ages"s].type());
+    ASSERT_EQ(type::array, ob["Ages"s].type());
 
-    ASSERT_EQ(type::int32, obj["Ages"s][4].type());
-    const int i2 = obj["Ages"s][4];
+    ASSERT_EQ(type::int32, ob["Ages"s][4].type());
+    const int i2 = ob["Ages"s][4];
     ASSERT_EQ(2, i2);
 }

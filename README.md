@@ -15,9 +15,9 @@ using namespace xson;
 
 vector<object> kids
 {
-    object{ "Name"s, "Tulppu"s },
-    object{ "Name"s, "Elppu"s  },
-    object{ "Name"s, "Jalppu"s }
+    { "Name"s, "Tulppu"s },
+    { "Name"s, "Elppu"s  },
+    { "Name"s, "Jalppu"s }
 };
 
 object measures

@@ -5,8 +5,9 @@
 #include "xson/trace.hpp"
 
 using namespace std;
+using namespace chrono;
 using namespace xson;
-using namespace xson::json;
+using namespace json;
 
 TEST(XsonJsonTest,String)
 {
@@ -18,7 +19,7 @@ TEST(XsonJsonTest,String)
     TRACE(ob);
 
     ASSERT_EQ(type::string, ob["String"s].type());
-    std::string s = ob["String"s];
+    string s = ob["String"s];
     ASSERT_EQ("1234567890"s, s);
 }
 
@@ -56,7 +57,7 @@ TEST(XsonJsonTest,Boolean)
 
 TEST(XsonJsonTest,Date2String)
 {
-    auto now = std::chrono::system_clock::now();
+    auto now = system_clock::now();
     stringstream ss;
     ss << json::object{"Date", now};
     TRACE(ss.str());
@@ -65,8 +66,8 @@ TEST(XsonJsonTest,Date2String)
     TRACE(ob);
 
     ASSERT_EQ(type::string, ob["Date"s].type());
-    std::string d = ob["Date"s];
-    ASSERT_EQ(std::to_string(now), d);
+    string d = ob["Date"s];
+    ASSERT_EQ(to_string(now), d);
 }
 
 TEST(XsonJsonTest,Null)
@@ -79,7 +80,7 @@ TEST(XsonJsonTest,Null)
     TRACE(ob);
 
     ASSERT_EQ(type::null, ob["Null"s].type());
-    std::string n = ob["Null"s];
+    string n = ob["Null"s];
     ASSERT_EQ("null"s, n);
 }
 
@@ -87,9 +88,9 @@ TEST(XsonJsonTest,Int32)
 {
     stringstream ss;
     ss << json::object{
-        {"Zero", std::int32_t{0}},
-        {"Min", std::numeric_limits<int>::min()},
-        {"Max", std::numeric_limits<int>::max()}
+        {"Zero", int32_t{0}},
+        {"Min", numeric_limits<int>::min()},
+        {"Max", numeric_limits<int>::max()}
     };
     TRACE(ss.str());
 
@@ -102,20 +103,20 @@ TEST(XsonJsonTest,Int32)
 
     ASSERT_EQ(type::int32, ob["Min"s].type());
     int min = ob["Min"s];
-    ASSERT_EQ(std::numeric_limits<int>::min(), min);
+    ASSERT_EQ(numeric_limits<int>::min(), min);
 
     ASSERT_EQ(type::int32, ob["Max"s].type());
     int max = ob["Max"s];
-    ASSERT_EQ(std::numeric_limits<int>::max(), max);
+    ASSERT_EQ(numeric_limits<int>::max(), max);
 }
 
 TEST(XsonJsonTest,Int64)
 {
     stringstream ss;
     ss << json::object{
-        {"Zero", std::int64_t{0}},
-        {"Min", std::numeric_limits<long long>::min()},
-        {"Max", std::numeric_limits<long long>::max()}
+        {"Zero", int64_t{0}},
+        {"Min", numeric_limits<long long>::min()},
+        {"Max", numeric_limits<long long>::max()}
     };
     TRACE(ss.str());
 
@@ -128,28 +129,28 @@ TEST(XsonJsonTest,Int64)
 
     ASSERT_EQ(type::int64, ob["Min"s].type());
     long long min = ob["Min"s];
-    ASSERT_EQ(std::numeric_limits<long long>::min(), min);
+    ASSERT_EQ(numeric_limits<long long>::min(), min);
 
     ASSERT_EQ(type::int64, ob["Max"s].type());
     long long max = ob["Max"s];
-    ASSERT_EQ(std::numeric_limits<long long>::max(), max);
+    ASSERT_EQ(numeric_limits<long long>::max(), max);
 }
 
 TEST(XsonJsonTest,Array)
 {
     auto ob1 = json::object
     {
-        {"Array"s, std::array<int,3>{1, 2, 3}}
+        {"Array"s, array<int,3>{1, 2, 3}}
     };
     TRACE("ob1:  " << ob1);
     auto str1 = json::stringify(ob1);
     TRACE("str1: " << str1);
 
-    auto ss = std::stringstream{str1};
+    auto ss = stringstream{str1};
 
     auto ob2 = json::parse(ss);
     TRACE("ob2:  " << ob2);
-    auto str2 = json::stringify(ob1);
+    auto str2 = json::stringify(ob2);
     TRACE("str2: " << str2);
 
     EXPECT_EQ(str1, str2);
@@ -159,17 +160,17 @@ TEST(XsonJsonTest,Vector)
 {
     auto ob1 = json::object
     {
-        {"Vector"s, std::vector<std::string>{"a", "b", "c", "d", "e", "f"}}
+        {"Vector"s, vector<string>{"a", "b", "c", "d", "e", "f"}}
     };
     TRACE("ob1:  " << ob1);
     auto str1 = json::stringify(ob1);
     TRACE("str1: " << str1);
 
-    auto ss = std::stringstream{str1};
+    auto ss = stringstream{str1};
 
     auto ob2 = json::parse(ss);
     TRACE("ob2:  " << ob2);
-    auto str2 = json::stringify(ob1);
+    auto str2 = json::stringify(ob2);
     TRACE("str2: " << str2);
 
     EXPECT_EQ(str1, str2);
@@ -179,15 +180,15 @@ TEST(XsonJsonTest,Complex)
 {
     xson::object mix
     {
-        { "Ruoka",  true                          },
-        { "Onni",   false                         },
-        { "Tulppu", 1                             },
-        { "Elppu",  2                             },
-        { "Jalppu", 3                             },
-        { "Ages",   std::vector<int>{39,40,9,5,2} }
+        { "Ruoka",  true                     },
+        { "Onni",   false                    },
+        { "Tulppu", 1                        },
+        { "Elppu",  2                        },
+        { "Jalppu", 3                        },
+        { "Ages",   vector<int>{39,40,9,5,2} }
     };
 
-    std::stringstream ss;
+    stringstream ss;
     ss << mix;
     TRACE(ss.str());
 
@@ -211,7 +212,7 @@ TEST(XsonJsonTest,Complex)
 
 TEST(XsonJsonTest,ParseFile1)
 {
-    using namespace std::string_literals;
+    using namespace string_literals;
     using namespace xson::json;
 
     ifstream fs{"./test/xson/test1.json"};
@@ -220,7 +221,7 @@ TEST(XsonJsonTest,ParseFile1)
 
     ASSERT_EQ(type::array, ob["required"s].type());
     ASSERT_EQ(type::string, ob["required"s][2].type());
-    const std::string price = ob["required"s][2];
+    const string price = ob["required"s][2];
     EXPECT_EQ("price"s, price);
 
     ASSERT_EQ(type::object, ob["properties"s].type());
@@ -232,7 +233,7 @@ TEST(XsonJsonTest,ParseFile1)
 
 TEST(XsonJsonTest,ParseFile2)
 {
-    using namespace std::string_literals;
+    using namespace string_literals;
     using namespace xson::json;
 
     ifstream fs{"./test/xson/test2.json"};
@@ -243,7 +244,7 @@ TEST(XsonJsonTest,ParseFile2)
     EXPECT_EQ(true, alive);
     ASSERT_EQ(type::boolean, ob["isAlive"s].type());
 
-    const std::string spouce = ob["spouse"s];
+    const string spouce = ob["spouse"s];
     EXPECT_EQ("null"s, spouce);
     ASSERT_EQ(type::null, ob["spouse"s].type());
 }
