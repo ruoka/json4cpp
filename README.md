@@ -55,18 +55,18 @@ using namespace json;
 stringstream ss;
 ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
 
-clog << ss.str() << endl;
+clog << ss.str() << "\n";
 
 auto result = json::parse(ss);
 
-clog << result << endl;
+clog << result << "\n";
 
-clog << "_id = "  << result["_id"s]                           << "\n"
-     << "Name = " << result["Name"s]                          << "\n"
-     << "Embeded.Name = "   << result["Embedded"s]["Name"s]   << "\n"
-     << "Lucky Number 1 = " << result["Lucky Numbers"s][0]    << "\n"
-     << "Lucky Number 2 = " << result["Lucky Numbers"s][1]    << "\n"
-     << "Lucky Number 3 = " << result["Lucky Numbers"s]["2"s] << endl;
+clog << "_id =            " << result["_id"s]               << "\n"
+     << "Name =           " << result["Name"s]              << "\n"
+     << "Embeded.Name =   " << result["Embedded"s]["Name"s] << "\n"
+     << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
+     << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
+     << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n";
 
 int id = result["_id"s];
 string name = result["Name"s];
