@@ -29,7 +29,7 @@ TEST(Examples,Stringify)
         { "Age",          39                            },
         { "Kids",         kids                          },
         { "Measures",     measures                      },
-        { "LuckyNumbers", vector<int>{2, 22, 2112} }
+        { "LuckyNumbers", vector<int>{2, 22, 2112}      }
     };
 
     clog << json::stringify(papa) << endl;
