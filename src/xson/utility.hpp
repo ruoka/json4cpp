@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <sstream>
+#include <stdexcept>
 
 namespace std
 {
@@ -95,6 +96,7 @@ inline bool stob(const string& str)
     stringstream ss;
     ss << str;
     ss >> boolalpha >> b;
+    if(!ss) throw std::invalid_argument{"No conversion could be performed for '"s + str + "'"s};
     return b;
 }
 

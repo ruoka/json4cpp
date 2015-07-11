@@ -43,7 +43,28 @@ private:
             m_is >> next;
         }
         m_is.putback(next); // , }, or ] do not belong to values
-        ob.value(value); // FIXME?
+
+        try
+        {
+            if(value.find('.') != std::string::npos)
+                ob.value(std::stod(value));
+            else if(value == "true")
+                ob.value(true);
+            else if(value == "false")
+                ob.value(false);
+            else if(value == "null")
+                ob.value(nullptr);
+            else
+                ob.value(std::stoi(value));
+        }
+        catch(const std::out_of_range&)
+        {
+            ob.value(std::stoll(value));
+        }
+        catch(const std::invalid_argument&)
+        {
+            ob.value(value);
+        }
     }
 
     void encode_array(object& parent)

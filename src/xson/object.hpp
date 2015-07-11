@@ -18,8 +18,7 @@ public:
     object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) : object()
     {
         object& ob = m_objects[name];
-        ob.m_type = to_type(value);
-        ob.m_value = to_value(value);
+        ob.value(value);
     }
 
     object(const std::string& name, const object& ob) : object()
@@ -31,13 +30,12 @@ public:
     object(const std::enable_if_t<is_array<T>::value,std::string>& name, const T& array) : object()
     {
         object& parent = m_objects[name];
-        parent.m_type = type::array;
+        parent.type(type::array);
         std::size_t idx{0};
-        for(const auto& i : array)
+        for(const auto& value : array)
         {
-            object& child = parent.m_objects[to_name(idx++)];
-            child.m_type = to_type(i);
-            child.m_value = to_value(i);
+            object& child = parent.m_objects[std::to_string(idx++)];
+            child.value(value);
         }
     }
 
@@ -85,8 +83,8 @@ public:
     template <typename T>
     void value(const T& val)
     {
-        m_value = to_value(val);
-        m_type = to_type(val);
+        m_type = xson::to_type(val);
+        m_value = std::to_string(val);
     }
 
     object& operator [] (const std::string& name)
@@ -96,7 +94,7 @@ public:
 
     object& operator [] (std::size_t idx)
     {
-        return m_objects[to_name(idx)];
+        return m_objects[std::to_string(idx)];
     }
 
     operator std::string () const
@@ -155,18 +153,6 @@ public:
     }
 
 private:
-
-    template <typename T>
-    static std::string to_name(const T& idx)
-    {
-        return std::to_string(idx);
-    }
-
-    template <typename T>
-    static std::string to_value(const T& val)
-    {
-        return std::to_string(val);
-    }
 
     xson::type m_type;
 
