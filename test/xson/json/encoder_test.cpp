@@ -4,7 +4,7 @@
 #include "xson/trace.hpp"
 
 using namespace std;
-using namespace std::literals::string_literals;
+using namespace std::string_literals;
 using namespace xson;
 using namespace json;
 

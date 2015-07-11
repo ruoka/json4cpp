@@ -8,7 +8,7 @@ JSON Library for C++14
 #include "xson/bson.hpp"
 
 using namespace std;
-using namespace literals::string_literals;
+using namespace string_literals;
 using namespace xson;
 
 [...]
@@ -46,12 +46,11 @@ clog << bson::stringify(papa) << endl;
 #include "xson/json.hpp"
 
 using namespace std;
-using namespace literals::string_literals;
+using namespace string_literals;
 using namespace xson;
 using namespace json;
 
 [...]
-using namespace xson::json;
 
 stringstream ss;
 ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;

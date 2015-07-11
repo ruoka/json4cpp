@@ -3,7 +3,7 @@
 #include "xson/json.hpp"
 #include "xson/trace.hpp"
 
-using namespace std::literals::string_literals;
+using namespace std::string_literals;
 using namespace xson;
 using namespace xson::json;
 

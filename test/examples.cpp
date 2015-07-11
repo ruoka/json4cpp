@@ -4,8 +4,8 @@
 #include "xson/bson.hpp"
 
 using namespace std;
+using namespace string_literals;
 using namespace xson;
-using namespace literals::string_literals;
 
 TEST(Examples,Stringify)
 {

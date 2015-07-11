@@ -211,7 +211,7 @@ TEST(XsonJsonTest,Complex)
 
 TEST(XsonJsonTest,ParseFile1)
 {
-    using namespace std::literals::string_literals;
+    using namespace std::string_literals;
     using namespace xson::json;
 
     ifstream fs{"./test/xson/test1.json"};
@@ -232,7 +232,7 @@ TEST(XsonJsonTest,ParseFile1)
 
 TEST(XsonJsonTest,ParseFile2)
 {
-    using namespace std::literals::string_literals;
+    using namespace std::string_literals;
     using namespace xson::json;
 
     ifstream fs{"./test/xson/test2.json"};

@@ -5,7 +5,7 @@
 namespace xson {
 namespace json {
 
-using namespace std::literals::string_literals;
+using namespace std::string_literals;
 
 std::istream& operator >> (std::istream& os, object& ob);
 
