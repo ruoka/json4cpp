@@ -11,26 +11,27 @@ using namespace literals::string_literals;
 
 [...]
 
-xson::object sons
+vector<object> kids
 {
-    { "Name", "Tulppu"s },
-    { "Name", "Elppu"s  },
-    { "Name", "Jalppu"s }
+    object{ "Name"s, "Tulppu"s },
+    object{ "Name"s, "Elppu"s  },
+    object{ "Name"s, "Jalppu"s }
 };
 
-std::vector<object> sizes
+object measures
 {
-    xson::object{ "ShoeSize",  47.50  },
-    xson::object{ "WaistSize", 120.50 }
+    { "Height"s,    200   },
+    { "ShoeSize"s,  47.5  },
+    { "WaistSize"s, 120.5 }
 };
 
-xson::object papa
+object papa
 {
-    { "Name",         "Papa Cool"s                  },
+    { "Name",         "Cool Papa"s                  },
     { "Age",          39                            },
-    { "Sons",         sons                          },
-    { "Sizes",        sizes                         },
-    { "LuckyNumbers", std::vector<int>{2, 22, 2112} }
+    { "Kids",         kids                          },
+    { "Measures",     measures                      },
+    { "LuckyNumbers", vector<int>{2, 22, 2112} }
 };
 
 clog << json::stringify(papa) << endl;

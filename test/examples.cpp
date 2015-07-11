@@ -9,26 +9,27 @@ using namespace literals::string_literals;
 
 TEST(Examples,Stringify)
 {
-    xson::object sons
+    vector<object> kids
     {
-        { "Name", "Tulppu"s },
-        { "Name", "Elppu"s  },
-        { "Name", "Jalppu"s }
+        object{ "Name"s, "Tulppu"s },
+        object{ "Name"s, "Elppu"s  },
+        object{ "Name"s, "Jalppu"s }
     };
 
-    std::vector<object> sizes
+    object measures
     {
-        xson::object{ "ShoeSize",  47.50  },
-        xson::object{ "WaistSize", 120.50 }
+        { "Height"s,    200   },
+        { "ShoeSize"s,  47.5  },
+        { "WaistSize"s, 120.5 }
     };
 
-    xson::object papa
+    object papa
     {
-        { "Name",         "Papa Cool"s                  },
+        { "Name",         "Cool Papa"s                  },
         { "Age",          39                            },
-        { "Sons",         sons                          },
-        { "Sizes",        sizes                         },
-        { "LuckyNumbers", std::vector<int>{2, 22, 2112} }
+        { "Kids",         kids                          },
+        { "Measures",     measures                      },
+        { "LuckyNumbers", vector<int>{2, 22, 2112} }
     };
 
     clog << json::stringify(papa) << endl;
@@ -38,7 +39,7 @@ TEST(Examples,Stringify)
 
 TEST(Examples,Parse)
 {
-    using namespace xson::json;
+    using namespace json;
 
     stringstream ss;
     ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
