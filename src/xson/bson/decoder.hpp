@@ -95,6 +95,7 @@ inline void decoder::decode(double_type d)
     d2i.d64 = d;
     decode(d2i.i64);
 }
+
 template <>
 inline void decoder::decode(boolean_type b)
 {
@@ -132,7 +133,7 @@ template <>
 inline void decoder::decode(xson::type t)
 {
     TRACE("(type)");
-    decode(static_cast<int32_t>(t));
+    put(static_cast<char>(t));
 }
 
 inline void decoder::decode(const string_type& str, bool csting)
@@ -161,8 +162,8 @@ inline void decoder::decode(const object& obj)
 
         for(const auto& o : obj)
         {
-            decode(o.second.type()); // name
-            decode(o.first, true);   // type
+            decode(o.second.type()); // type
+            decode(o.first, true);   // name
             decode(o.second);        // object
         }
 
@@ -172,7 +173,7 @@ inline void decoder::decode(const object& obj)
 
         const int32_type tail = size();
         decoder bytes;
-        bytes.decode<int32_type>(tail - head - 4);
+        bytes.decode<int32_type>(tail - head);
         std::copy(bytes.cbegin(), bytes.cend(), m_buffer.begin()+head);
     }
         break;

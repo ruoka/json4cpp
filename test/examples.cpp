@@ -1,4 +1,5 @@
 #include <vector>
+#include <fstream>
 #include <gtest/gtest.h>
 #include "xson/json.hpp"
 #include "xson/bson.hpp"
@@ -37,10 +38,10 @@ TEST(Examples,Stringify)
     clog << bson::stringify(papa) << endl;
 }
 
-using namespace json;
-
 TEST(Examples,Parse)
 {
+    using namespace json;
+
     stringstream ss;
     ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
 
@@ -60,4 +61,16 @@ TEST(Examples,Parse)
     int id = result["_id"s];
     string name = result["Name"s];
     double number = result["Lucky Numbers"s][1];
+}
+
+TEST(Examples,BsonDump)
+{
+    using namespace bson;
+    ifstream fs{"./test/xson/test3.bson"};
+    while(fs && !fs.eof())
+    {
+        auto ob = bson::parse(fs);
+        clog << json::stringify(ob) << endl;
+        fs >> ws;
+    }
 }

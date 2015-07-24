@@ -1,6 +1,8 @@
 #include <limits>
+#include <fstream>
 #include <gtest/gtest.h>
 #include "xson/bson.hpp"
+#include "xson/json.hpp"
 #include "xson/trace.hpp"
 
 using namespace std;
@@ -207,4 +209,16 @@ TEST(XsonBsonTest,Complex)
     ASSERT_EQ(type::int32, ob["Ages"s][4].type());
     const int i2 = ob["Ages"s][4];
     ASSERT_EQ(2, i2);
+}
+
+TEST(XsonJsonTest,ParseFile)
+{
+    using namespace bson;
+    ifstream fs{"./test/xson/test3.bson"};
+    while(fs && !fs.eof())
+    {
+        auto ob = bson::parse(fs);
+        clog << json::stringify(ob) << endl;
+        fs >> ws;
+    }
 }

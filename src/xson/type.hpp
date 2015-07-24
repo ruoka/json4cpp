@@ -28,7 +28,7 @@ using int32_type = std::int32_t;                            // \x10
 //using timestamp_type = timestamp;                         // \x11
 using int64_type = std::int64_t;                            // \x12
 
-enum class type : std::int32_t
+enum class type : char
 {
     // json types
     number                = '\x01',

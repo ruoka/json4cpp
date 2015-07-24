@@ -30,8 +30,8 @@ TEST_F(XsonBsonDecoderTest,Double)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 6 + 1 + 8; // int32 + bytes*6 + \x00 + int64
-    size += 4 + 1;              // int32 + bob + \x00
+    auto size = 1 + 6 + 1 + 8; // byte + bytes*6 + \x00 + int64
+    size += 4 + 1;             // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
 
@@ -46,7 +46,7 @@ TEST_F(XsonBsonDecoderTest,String)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 6 + 1 + 4 + 1 + 1; // int32 + bytes*6 + \x00 + int32 + bytes*1 + \x00
+    auto size = 1 + 6 + 1 + 4 + 1 + 1; // byte + bytes*6 + \x00 + int32 + bytes*1 + \x00
     size += 4 + 1;                     // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
@@ -62,7 +62,7 @@ TEST_F(XsonBsonDecoderTest,bobument)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 6 + 4 + 6 + 1 + 6 + 8; // (int32 + bytes*2 + int32) etc.
+    auto size = 3 + 4 + 3 + 1 + 3 + 8; // (int + bytes*2 + int32) etc.
     size += 4 + 1;                     // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
@@ -98,7 +98,7 @@ TEST_F(XsonBsonDecoderTest,BooleanTrue)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 7 + 1 + 1; // int32 + bytes*7 + \x00 + \x01
+    auto size = 1 + 7 + 1 + 1; // byte + bytes*7 + \x00 + \x01
     size += 4 + 1;             // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
@@ -114,7 +114,7 @@ TEST_F(XsonBsonDecoderTest,BooleanFalse)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 7 + 1 + 1; // int32 + bytes*7 + \x00 + \x01
+    auto size = 1 + 7 + 1 + 1; // byte + bytes*7 + \x00 + \x01
     size += 4 + 1;             // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
@@ -130,7 +130,7 @@ TEST_F(XsonBsonDecoderTest,Integer32)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 7 + 1 + 4; // int32 + bytes*7 + \x00 + int32
+    auto size = 1 + 7 + 1 + 4; // byte + bytes*7 + \x00 + int32
     size += 4 + 1;             // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }
@@ -146,7 +146,7 @@ TEST_F(XsonBsonDecoderTest,Long64)
     ofs << bob << flush;
     auto p2 = ofs.tellp();
 
-    auto size = 4 + 4 + 1 + 8; // int32 + bytes*4 + \x00 + int64
+    auto size = 1 + 4 + 1 + 8; // byte + bytes*4 + \x00 + int64
     size += 4 + 1;             // int32 + bob + \x00
     ASSERT_EQ(size, p2 - p1);
 }

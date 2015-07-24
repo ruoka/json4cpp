@@ -34,7 +34,7 @@ inline int32_type encoder::encode(object& ob)
     T val;
     m_is.read(reinterpret_cast<char*>(&val), sizeof(val));
     ob.value(val);
-    TRACE("   val: "  << ob.value() << "; size: " << sizeof(val));
+    TRACE("val: "  << ob.value() << "; size: " << sizeof(val));
     return m_is.gcount();
 }
 
@@ -46,7 +46,7 @@ inline int32_type encoder::encode<std::chrono::system_clock::time_point>(object&
     m_is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
     const auto val2 = system_clock::time_point{milliseconds{val1}};
     ob.value(val2);
-    TRACE("   val: "  << ob.value() << "; size: " << sizeof(val1));
+    TRACE("val: "  << ob.value() << "; size: " << sizeof(val1));
     return m_is.gcount();
 }
 
@@ -55,7 +55,7 @@ inline int32_type encoder::encode<std::nullptr_t>(object& ob)
 {
     std::nullptr_t val;
     ob.value(val);
-    TRACE("   val: "  << ob.value() << "; size: " << 0);
+    TRACE("val: "  << ob.value() << "; size: " << 0);
     return 0;
 }
 
@@ -64,7 +64,7 @@ inline int32_type encoder::encode<std::string>(object& ob)
 {
     int32_type bytes;
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
-    const auto length = sizeof(bytes) + bytes + 1;
+    const auto length = sizeof(bytes) + bytes;
 
     std::string val;
     while(--bytes)
@@ -75,7 +75,7 @@ inline int32_type encoder::encode<std::string>(object& ob)
 
     ob.value(val);
 
-    TRACE("   val: "  << ob.value() << "; size: " << val.size());
+    TRACE("val: "  << ob.value() << "; size: " << val.size());
     return length;
 }
 
@@ -83,16 +83,17 @@ inline int32_type encoder::encode(object& parent)
 {
     int32_type bytes;
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
-    const auto length = sizeof(bytes) + bytes;
+    const auto length = bytes;
+    bytes -= sizeof(bytes);
 
-    TRACE("length:   " << length);
-    TRACE("bytes:    " << bytes);
+    TRACE("length: " << length);
+    TRACE("bytes: " << bytes);
 
     while(bytes > 1)
     {
         xson::type type;
         m_is.read(reinterpret_cast<char*>(&type), sizeof(type));
-        bytes -= m_is.gcount();
+        --bytes;
 
         TRACE("type: " << type);
 
@@ -101,7 +102,7 @@ inline int32_type encoder::encode(object& parent)
         bytes -= name.size();
         --bytes;
 
-        TRACE("key:  " << name);
+        TRACE("key: " << name);
 
         auto& child = parent[name];
 
