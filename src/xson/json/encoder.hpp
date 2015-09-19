@@ -99,7 +99,7 @@ private:
             else
             {
                 encode_value(child);
-                m_is >> next; // , }, or ]
+                m_is >> next; // , or ]
             }
         }
         parent.type(type::array);
@@ -135,12 +135,12 @@ private:
             else if(next == '\"')
             {
                 encode_string(child);
-                m_is >> next; // , or ]
+                m_is >> next; // , or }
             }
             else
             {
                 encode_value(child);
-                m_is >> next; // , }, or ]
+                m_is >> next; // , or }
             }
         }
         parent.type(type::object);
