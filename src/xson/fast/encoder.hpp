@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iosfwd>
 #include <iterator>
 
@@ -33,12 +35,12 @@ inline void encoder::encode(std::uint8_t byte)
     m_os.put(byte);
 }
 
-void encoder::encode(std::uint32_t i)
+inline void encoder::encode(std::uint32_t i)
 {
     encode(static_cast<std::uint64_t>(i));
 }
 
-void encoder::encode(std::int32_t i)
+inline void encoder::encode(std::int32_t i)
 {
     encode(static_cast<std::int64_t>(i));
 }
