@@ -9,6 +9,20 @@ using namespace string_literals;
 using namespace xson;
 using namespace json;
 
+TEST(XsonObjectTest,Object)
+{
+    object ob
+    {
+        { "First",  "Tulppu"s },
+        { "Second", "Elppu"s  },
+        { "Third",  "Jalppu"s }
+    };
+    TRACE(ob);
+    ASSERT_EQ(type::string, ob["First"s].type());
+    ASSERT_EQ(type::string, ob["Second"s].type());
+    ASSERT_EQ(type::string, ob["Third"s].type());
+}
+
 TEST(XsonObjectTest,Mix)
 {
     auto ob1 = object{"Integer"s, 123456789};
@@ -138,7 +152,7 @@ TEST(XsonObjectTest,Date)
     ASSERT_EQ(to_string(now), s);
 }
 
-TEST(XsonObjectTest,ObjectArray)
+TEST(XsonObjectTest,ObjectWithArray)
 {
     auto ob = object
     {
@@ -154,7 +168,29 @@ TEST(XsonObjectTest,ObjectArray)
     ASSERT_EQ(type::int32, ob["ObjectArray"s][2]["C"s].type());
 }
 
-TEST(XsonObjectTest,ObjectVector)
+TEST(XsonObjectTest,ObjectWithVector1)
+{
+    object ob
+    {
+        "Kids",
+        vector<object>
+        {
+            { "Name", "Tulppu"s },
+            { "Name", "Elppu"s  },
+            { "Name", "Jalppu"s }
+        }
+    };
+    TRACE(ob);
+    ASSERT_EQ(type::array,  ob["Kids"s].type());
+    ASSERT_EQ(type::object, ob["Kids"s][0].type());
+    ASSERT_EQ(type::object, ob["Kids"s][1].type());
+    ASSERT_EQ(type::object, ob["Kids"s][2].type());
+    ASSERT_EQ(type::string, ob["Kids"s][0]["Name"s].type());
+    ASSERT_EQ(type::string, ob["Kids"s][1]["Name"s].type());
+    ASSERT_EQ(type::string, ob["Kids"s][2]["Name"s].type());
+}
+
+TEST(XsonObjectTest,ObjectWithVector2)
 {
     auto ob = object
     {
