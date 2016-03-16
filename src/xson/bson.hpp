@@ -12,14 +12,14 @@ using object = xson::object;
 inline object parse(std::istream& is)
 {
     object ob;
-    encoder{is}.encode(ob);
+    decoder{is}.decode(ob);
     return std::move(ob);
 }
 
 inline std::string stringify(const object& ob)
 {
-    decoder dc{ob};
-    return std::string{dc.data(), dc.size()};
+    encoder e{ob};
+    return std::string{e.data(), e.size()};
 }
 
 } // namespace bson

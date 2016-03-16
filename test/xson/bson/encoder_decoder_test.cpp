@@ -9,12 +9,12 @@ using namespace std::chrono;
 using namespace xson;
 using namespace xson::bson;
 
-TEST(XsonBsonEncoderTest,Double)
+TEST(XsonBsonEncoderDecoderTest,Double)
 {
     stringstream ss;
-    ss << bson::object{"Double", 21.12};
+    ss << bson::object{"Double", 21.12};        // encode
 
-    auto result = bson::parse(ss);
+    auto result = bson::parse(ss);              // decode
     TRACE(result);
 
     ASSERT_EQ(type::number, result["Double"s].type());
@@ -22,12 +22,12 @@ TEST(XsonBsonEncoderTest,Double)
     ASSERT_EQ(21.12, d);
 }
 
-TEST(XsonBsonEncoderTest,String)
+TEST(XsonBsonEncoderDecoderTest,String)
 {
     stringstream ss;
-    ss << bson::object{"String"s,"Aku Ankka"s};
+    ss << bson::object{"String"s,"Aku Ankka"s}; // encode
 
-    auto result = bson::parse(ss);
+    auto result = bson::parse(ss);              // decode
     TRACE(result);
 
     ASSERT_EQ(type::string, result["String"s].type());
@@ -35,7 +35,7 @@ TEST(XsonBsonEncoderTest,String)
     ASSERT_EQ("Aku Ankka"s, s);
 }
 
-TEST(XsonBsonEncoderTest,Array)
+TEST(XsonBsonEncoderDecoderTest,Array)
 {
     stringstream ss;
     ss << bson::object {
@@ -64,7 +64,7 @@ TEST(XsonBsonEncoderTest,Array)
     ASSERT_EQ("Pelle"s, i4);
 }
 
-TEST(XsonBsonEncoderTest,Date)
+TEST(XsonBsonEncoderDecoderTest,Date)
 {
     const auto now = system_clock::now();
     stringstream ss;
@@ -82,7 +82,7 @@ TEST(XsonBsonEncoderTest,Date)
     EXPECT_EQ("null"s, d2);
 }
 
-TEST(XsonBsonEncoderTest,Null)
+TEST(XsonBsonEncoderDecoderTest,Null)
 {
     stringstream ss;
     ss << bson::object{"Null"s, nullptr};
@@ -95,7 +95,7 @@ TEST(XsonBsonEncoderTest,Null)
     ASSERT_EQ("null"s, n);
 }
 
-TEST(XsonBsonEncoderTest,Int32)
+TEST(XsonBsonEncoderDecoderTest,Int32)
 {
     stringstream ss;
     ss << bson::object{"MinInt32"s, numeric_limits<std::int32_t>::min()};
@@ -108,7 +108,7 @@ TEST(XsonBsonEncoderTest,Int32)
     ASSERT_EQ(numeric_limits<std::int32_t>::min(), i);
 }
 
-TEST(XsonBsonEncoderTest,Int64)
+TEST(XsonBsonEncoderDecoderTest,Int64)
 {
     stringstream ss;
     ss << bson::object{"MinInt64"s, numeric_limits<std::int64_t>::max()};
@@ -121,7 +121,7 @@ TEST(XsonBsonEncoderTest,Int64)
     ASSERT_EQ(numeric_limits<std::int64_t>::max(), i);
 }
 
-TEST(XsonBsonEncoderTest,SimplebsonObject)
+TEST(XsonBsonEncoderDecoderTest,SimplebsonObject)
 {
     bson::object doc
     {
@@ -145,7 +145,7 @@ TEST(XsonBsonEncoderTest,SimplebsonObject)
     ASSERT_EQ(false, b2);
 }
 
-TEST(XsonBsonEncoderTest,NestedbsonObject)
+TEST(XsonBsonEncoderDecoderTest,NestedbsonObject)
 {
     bson::object doc
     {

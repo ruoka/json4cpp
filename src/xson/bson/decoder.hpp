@@ -6,222 +6,154 @@
 namespace xson {
 namespace bson {
 
-std::ostream& operator << (std::ostream& os, const object& obj);
+std::istream& operator >> (std::istream& os, object& ob);
+
+using int32_type = std::int32_t;                           // \x10
+using int64_type = std::int64_t;                           // \x12
 
 class decoder
 {
 public:
 
-    using const_iterator = std::vector<char>::const_iterator;
-
-    using pointer = std::vector<char>::pointer;
-
-    using size_type = std::vector<char>::size_type;
-
-    decoder() : m_buffer{}
+    decoder(std::istream& is) : m_is{is}
     {}
 
-    decoder(const object& obj) : decoder()
-    {
-        decode(obj);
-    }
+    int32_type decode(object& ob);
 
-    const_iterator cbegin() const
-    {
-        return m_buffer.cbegin();
-    }
-
-    const_iterator cend() const
-    {
-        return m_buffer.end();
-    }
-
-    size_type size() const
-    {
-        return m_buffer.size();
-    }
-
-    pointer data()
-    {
-        return m_buffer.data();
-    }
-
-//private:
+private:
 
     template <typename T>
-    void decode(T);
+    int32_type decode(object& ob);
 
-    void decode(const string_type& str, bool csting = false);
-
-    void decode(const object& obj);
-
-    void put(char b);
-
-    std::vector<char> m_buffer;
+    std::istream& m_is;
 };
 
-template <>
-inline void decoder::decode(int32_type i)
+template <typename T>
+inline int32_type decoder::decode(object& ob)
 {
-    TRACE("(int32)");
-    put(i & 0xFF);
-    put((i >>  8) & 0xFF);
-    put((i >> 16) & 0xFF);
-    put((i >> 24) & 0xFF);
+    T val;
+    m_is.read(reinterpret_cast<char*>(&val), sizeof(val));
+    ob.value(val);
+    TRACE("val: "  << ob.value() << "; size: " << sizeof(val));
+    return m_is.gcount();
 }
 
-template <>
-inline void decoder::decode(int64_type i)
-{
-    TRACE("(int64)");
-    put(i & 0xFF);
-    put((i >>  8) & 0xFF);
-    put((i >> 16) & 0xFF);
-    put((i >> 24) & 0xFF);
-    put((i >> 32) & 0xFF);
-    put((i >> 40) & 0xFF);
-    put((i >> 48) & 0xFF);
-    put((i >> 56) & 0xFF);
-}
-
-template <>
-inline void decoder::decode(double_type d)
-{
-    TRACE("(double)");
-    union{
-        double_type d64;
-        int64_type i64;
-    } d2i;
-    d2i.d64 = d;
-    decode(d2i.i64);
-}
-
-template <>
-inline void decoder::decode(boolean_type b)
-{
-    TRACE("(bool)");
-    if(b) put('\x01');
-    else  put('\x00');
-}
-
-template <>
-inline void decoder::decode(date_type d)
+template<>
+inline int32_type decoder::decode<std::chrono::system_clock::time_point>(object& ob)
 {
     using namespace std::chrono;
-    TRACE("(date)");
-    const int64_type i = duration_cast<milliseconds>(d.time_since_epoch()).count();
-    decode(i);
+    int64_type val1;
+    m_is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
+    const auto val2 = system_clock::time_point{milliseconds{val1}};
+    ob.value(val2);
+    TRACE("val: "  << ob.value() << "; size: " << sizeof(val1));
+    return m_is.gcount();
 }
 
-template <>
-inline void decoder::decode(null_type b)
+template<>
+inline int32_type decoder::decode<std::nullptr_t>(object& ob)
 {
-    TRACE("(null)");
+    std::nullptr_t val;
+    ob.value(val);
+    TRACE("val: "  << ob.value() << "; size: " << 0);
+    return 0;
 }
 
-template <>
-inline void decoder::decode(const string_type str)
+template<>
+inline int32_type decoder::decode<std::string>(object& ob)
 {
-    TRACE("(string)");
-    decode(static_cast<int32_type>(str.size()+1)); // bytes
-    for(char b : str)                              // data
-        put(b);
-    put('\x00');                                   // 0
+    int32_type bytes;
+    m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+    const auto length = sizeof(bytes) + bytes;
+
+    std::string val;
+    while(--bytes)
+        val += m_is.get();
+
+    m_is.ignore(1);
+    --bytes;
+
+    ob.value(val);
+
+    TRACE("val: "  << ob.value() << "; size: " << val.size());
+    return length;
 }
 
-template <>
-inline void decoder::decode(xson::type t)
+inline int32_type decoder::decode(object& parent)
 {
-    TRACE("(type)");
-    put(static_cast<char>(t));
-}
+    int32_type bytes;
+    m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+    const auto length = bytes;
+    bytes -= sizeof(bytes);
 
-inline void decoder::decode(const string_type& str, bool csting)
-{
-    TRACE("(string)    " << boolalpha << csting);
-    if(!csting) decode(static_cast<int32_type>(str.size()+1)); // bytes
-    for(char b : str)            // data
-        put(b);
-    put('\x00');                      // 0
-}
+    TRACE("length: " << length);
+    TRACE("bytes: " << bytes);
 
-inline void decoder::decode(const object& obj)
-{
-    TRACE("(object)");
-
-    switch(obj.type())
+    while(bytes > 1)
     {
-    case type::object:
-    case type::array:
-    {
-        const int32_type head = size();
+        xson::type type;
+        m_is.read(reinterpret_cast<char*>(&type), sizeof(type));
+        --bytes;
 
-        // We'll leave the length field empty for the time being...
+        TRACE("type: " << type);
 
-        decode<int32_type>(0);       // length = 0
+        std::string name;
+        std::getline(m_is, name, '\x00');
+        bytes -= name.size();
+        --bytes;
 
-        for(const auto& o : obj)
+        TRACE("key: " << name);
+
+        auto& child = parent[name];
+
+        switch(type)
         {
-            decode(o.second.type()); // type
-            decode(o.first, true);   // name
-            decode(o.second);        // object
+        case type::number:
+            bytes -= decode<double>(child);
+            break;
+        case type::string:
+            bytes -= decode<std::string>(child);
+            break;
+        case type::object:
+        case type::array:
+            bytes -= decode(child);
+            child.type(type);
+            break;
+        case type::boolean:
+            bytes -= decode<bool>(child);
+            break;
+        case type::date:
+            bytes -= decode<std::chrono::system_clock::time_point>(child);
+            break;
+        case type::null:
+            bytes -= decode<std::nullptr_t>(child);
+            break;
+        case type::int32:
+            bytes -= decode<std::int32_t>(child);
+            break;
+        case type::int64:
+            bytes -= decode<std::int64_t>(child);
+            break;
+        default:
+            assert(false && "FIXME");
+            break;
         }
 
-        put('\x00');                 // tailing 0
-
-        // Now we'll fix the length field...
-
-        const int32_type tail = size();
-        decoder bytes;
-        bytes.decode<int32_type>(tail - head);
-        std::copy(bytes.cbegin(), bytes.cend(), m_buffer.begin()+head);
+        TRACE("bytes: " << bytes);
     }
-        break;
 
-    case type::number:
-        decode<double_type>(obj);
-        break;
+    m_is.ignore(1);
+    --bytes;
 
-    case type::string:
-        decode<string_type>(obj);
-        break;
+    TRACE("bytes: " << bytes);
 
-    case type::boolean:
-        decode<boolean_type>(obj);
-        break;
-
-    case type::date:
-        decode<date_type>(obj);
-
-    case type::null:
-        decode<null_type>(nullptr);
-        break;
-
-    case type::int32:
-        decode<int32_type>(obj);
-        break;
-
-    case type::int64:
-        decode<int64_type>(obj);
-        break;
-
-    default:
-        assert(false && "FIXME!");
-    }
+    return length;
 }
 
-inline void decoder::put(char b)
+inline std::istream& operator >> (std::istream& is, object& ob)
 {
-    m_buffer.emplace_back(b);
-    TRACE("(byte)     " << setw(5) << m_buffer.size() << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec);
-}
-
-inline std::ostream& operator << (std::ostream& os, const object& obj)
-{
-    decoder dc{obj};
-    os.write(dc.data(), dc.size());
-    os.flush();
-    return os;
+    decoder{is}.decode(ob);
+    return is;
 }
 
 } // namespace bson
