@@ -30,9 +30,9 @@ public:
         encode(d2i.i64);
     }
 
-    void encode(boolean_type d)
+    void encode(boolean_type b)
     {
-        if(d)
+        if(b)
             encode(std::uint8_t{'\x01'});
         else
             encode(std::uint8_t{'\x00'});
@@ -41,7 +41,7 @@ public:
     void encode(date_type d)
     {
         using namespace std::chrono;
-        const int64_type i64 = duration_cast<milliseconds>(d.time_since_epoch()).count();
+        const std::int64_t i64 = duration_cast<milliseconds>(d.time_since_epoch()).count();
         encode(i64);
     }
 
