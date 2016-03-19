@@ -17,13 +17,12 @@ public:
     template <typename T>
     object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) : object()
     {
-        object& ob = m_objects[name];
-        ob.value(value);
+        m_objects[name].value(value);
     }
 
-    object(const std::string& name, const object& ob) : object()
+    object(const std::string& name, const object& obj) : object()
     {
-        m_objects[name] = ob;
+        m_objects[name] = obj;
     }
 
     template <typename T, std::size_t N>
@@ -60,8 +59,7 @@ public:
         std::size_t idx{0};
         for(const auto& value : array)
         {
-            object& child = parent.m_objects[std::to_string(idx)];
-            child.value(value);
+            parent.m_objects[std::to_string(idx)].value(value);
             ++idx;
         }
     }
