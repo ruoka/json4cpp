@@ -22,7 +22,7 @@ public:
 
     void encode(double_type d)
     {
-        union{
+        union {
             double d64;
             std::uint64_t i64;
         } d2i;

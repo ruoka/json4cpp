@@ -17,7 +17,7 @@ public:
 
     void decode(double& d)
     {
-        union{
+        union {
             std::uint64_t i64;
             double d64;
         } i2d;
@@ -35,7 +35,7 @@ public:
     void decode(std::chrono::system_clock::time_point& tp)
     {
         using namespace std::chrono;
-        std::int64_t i64;
+        std::uint64_t i64;
         decode(i64);
         tp = system_clock::time_point{milliseconds{i64}};
     }
