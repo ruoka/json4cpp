@@ -63,43 +63,43 @@ inline std::ostream& operator << (std::ostream& os, type t)
     return os;
 }
 
-template <typename T> static constexpr type to_type(const T&)
+template <typename T> constexpr type to_type(const T&)
 {
     static_assert(std::is_void<T>::value, "This type is not supported");
     return type::null;
 }
 
-template <> inline type to_type(const double&)
+template <> constexpr type to_type(const double&)
 {
     return type::number;
 }
 
-template <> inline type to_type(const std::string&)
+template <> constexpr type to_type(const std::string&)
 {
     return type::string;
 }
 
-template <> inline type to_type(const bool&)
+template <> constexpr type to_type(const bool&)
 {
     return type::boolean;
 }
 
-template <> inline type to_type(const std::nullptr_t&)
+template <> constexpr type to_type(const std::nullptr_t&)
 {
     return type::null;
 }
 
-template <> inline type to_type(const std::chrono::system_clock::time_point&)
+template <> constexpr type to_type(const std::chrono::system_clock::time_point&)
 {
     return type::date;
 }
 
-template <> inline type to_type(const int&)
+template <> constexpr type to_type(const int&)
 {
     return type::int32;
 }
 
-template <> inline type to_type(const long long&)
+template <> constexpr type to_type(const long long&)
 {
     return type::int64;
 }
