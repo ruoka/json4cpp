@@ -6,22 +6,22 @@
 using namespace std::string_literals;
 using namespace xson::fast;
 
-TEST(FastTest, Byte)
+TEST(XsonFastTest, Byte)
 {
     std::stringstream ss;
     encoder ncdr{ss};
     decoder dcdr{ss};
 
-    const std::uint8_t b1{1};
+    const std::uint8_t b1{'y'};
     ncdr.encode(b1);
+    EXPECT_EQ(b1, ss.str()[0]);
 
-    std::uint8_t b2{0};
+    std::uint8_t b2{'n'};
     dcdr.decode(b2);
-
     ASSERT_EQ(b1, b2);
 }
 
-TEST(FastTest, UInteger32)
+TEST(XsonFastTest, UInteger32)
 {
     std::stringstream ss;
     encoder ncdr{ss};
@@ -36,7 +36,7 @@ TEST(FastTest, UInteger32)
     ASSERT_EQ(i1, i2);
 }
 
-TEST(FastTest, Integer32)
+TEST(XsonFastTest, Integer32)
 {
     std::stringstream ss;
     encoder ncdr{ss};
@@ -51,7 +51,7 @@ TEST(FastTest, Integer32)
     ASSERT_EQ(i1, i2);
 }
 
-TEST(FastTest, UInteger64)
+TEST(XsonFastTest, UInteger64)
 {
     std::stringstream ss;
     encoder ncdr{ss};
@@ -66,7 +66,7 @@ TEST(FastTest, UInteger64)
     ASSERT_EQ(i1, i2);
 }
 
-TEST(FastTest, Integer64)
+TEST(XsonFastTest, Integer64)
 {
     std::stringstream ss;
     encoder ncdr{ss};
@@ -81,7 +81,7 @@ TEST(FastTest, Integer64)
     ASSERT_EQ(i1, i2);
 }
 
-TEST(FastTest, String)
+TEST(XsonFastTest, String)
 {
     std::stringstream ss;
     encoder ncdr{ss};

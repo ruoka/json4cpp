@@ -24,7 +24,7 @@ public:
 
     void decode(std::string& str);
 
-private:
+protected:
 
     std::istream& m_is;
 };

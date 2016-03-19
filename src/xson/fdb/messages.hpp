@@ -8,7 +8,7 @@ namespace fdb {
 
 struct header
 {
-    enum : std::uint8_t {create = 'C', update = 'U', destroy = 'D', query = 'Q', reply = 'R'};
+    enum : std::int8_t {create = 'C', update = 'U', destroy = 'D', query = 'Q', reply = 'R'};
     std::uint8_t operaion;
     std::string collection;
 };

@@ -1,6 +1,6 @@
 CXX = clang++
 
-CXXFLAGS = -std=c++14 -stdlib=libc++ -I./src/ -I../googletest/include/ -MMD #-D DEBUG=1
+CXXFLAGS = -std=c++14 -stdlib=libc++ -I./src/ -I../googletest/include/ -MMD # -D DEBUG=1
 
 LDFLAGS =  -stdlib=libc++ ../googletest/make/gtest_main.a
 

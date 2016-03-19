@@ -9,5 +9,12 @@ namespace fson {
 
 using object = xson::object;
 
+inline object parse(std::istream& is)
+{
+    object ob;
+    decoder{is}.decode(ob);
+    return std::move(ob);
+}
+
 } // namespace fson
 } // namespace xson

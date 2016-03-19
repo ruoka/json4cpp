@@ -28,7 +28,9 @@ using int32_type = std::int32_t;                            // \x10
 //using timestamp_type = timestamp;                         // \x11
 using int64_type = std::int64_t;                            // \x12
 
-enum class type : char
+const std::uint8_t eod    = '\x00';
+
+enum class type : std::uint8_t
 {
     // json types
     number                = '\x01',
@@ -39,20 +41,20 @@ enum class type : char
     null                  = '\x0A',
 
     // + bson types
-    binary                = '\x05',
-    undefined             = '\x06', // Deprecated
-    objectid              = '\x07',
+//  binary                = '\x05',
+//  undefined             = '\x06', // Deprecated
+//  objectid              = '\x07',
     date                  = '\x09',
-    regular_expression    = '\x0B',
-    db_pointer            = '\x0C', // Deprecated
-    javascript            = '\x0D',
-    deprecated            = '\x0E',
-    javascript_with_scope = '\x0F',
+//  regular_expression    = '\x0B',
+//  db_pointer            = '\x0C', // Deprecated
+//  javascript            = '\x0D',
+//  deprecated            = '\x0E',
+//  javascript_with_scope = '\x0F',
     int32                 = '\x10',
-    timestamp             = '\x11',
+//  timestamp             = '\x11',
     int64                 = '\x12',
-    min_key               = '\xFF',
-    max_key               = '\x7F'
+//  min_key               = '\xFF',
+//  max_key               = '\x7F'
 };
 
 inline std::ostream& operator << (std::ostream& os, type t)
@@ -64,7 +66,7 @@ inline std::ostream& operator << (std::ostream& os, type t)
 template <typename T> static constexpr type to_type(const T&)
 {
     static_assert(std::is_void<T>::value, "This type is not supported");
-    return type::undefined;
+    return type::null;
 }
 
 template <> inline type to_type(const double&)

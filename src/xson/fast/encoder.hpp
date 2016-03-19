@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <iterator>
+#include "xson/trace.hpp"
 
 namespace xson {
 namespace fast {
@@ -13,9 +14,9 @@ public:
     encoder(std::ostream& os) : m_os{os}
     {}
 
-    void encode(std::uint8_t byte);
+    void encode(std::uint8_t b);
 
-    void encode(std::uint32_t i);
+    void encode(std::uint32_t in);
 
     void encode(std::int32_t i);
 
@@ -30,18 +31,21 @@ private:
     std::ostream& m_os;
 };
 
-inline void encoder::encode(std::uint8_t byte)
+inline void encoder::encode(std::uint8_t b)
 {
-    m_os.put(byte);
+    TRACE("std::uint8_t");
+    m_os.put(b);
 }
 
 inline void encoder::encode(std::uint32_t i)
 {
+    TRACE("std::uint32_t");
     encode(static_cast<std::uint64_t>(i));
 }
 
 inline void encoder::encode(std::int32_t i)
 {
+    TRACE("std::uint32_t");
     encode(static_cast<std::int64_t>(i));
 }
 
@@ -60,6 +64,7 @@ inline unsigned size(std::uint64_t i)
 
 inline void encoder::encode(std::uint64_t i)
 {
+    TRACE("std::uint64_t");
     switch(size(i))
     {
     // Shifts are logical (unsigned)
@@ -104,6 +109,7 @@ inline unsigned size(std::int64_t i)
 
 inline void encoder::encode(std::int64_t i)
 {
+    TRACE("std::int64_t");
     switch(size(i))
     {
     // Shifts are arithmetic (signed)
@@ -122,6 +128,7 @@ inline void encoder::encode(std::int64_t i)
 
 inline void encoder::encode(const std::string& str)
 {
+    TRACE("std::string");
     auto head = str.cbegin();
     auto tail = head + (str.size() - 1);
     std::copy(head, tail, std::ostream_iterator<char>(m_os));
