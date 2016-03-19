@@ -1,7 +1,6 @@
 #pragma once
 
 #include "xson/object.hpp"
-#include "xson/trace.hpp"
 #include "xson/fast/decoder.hpp"
 
 namespace xson {
