@@ -15,6 +15,14 @@ public:
 
     using fast::decoder::decode;
 
+    template<typename T>
+    std::enable_if_t<std::is_enum<T>::value,void> decode(T& e)
+    {
+        std::uint8_t byte;
+        decode(byte);
+        e = static_cast<T>(byte);
+    }
+
     void decode(double& d)
     {
         union {
@@ -108,11 +116,15 @@ public:
 
 };
 
-inline std::istream& operator >> (std::istream& is, object& ob)
+} // namespace fson
+} // namespace xson
+
+namespace std {
+
+inline std::istream& operator >> (std::istream& is, xson::object& ob)
 {
-    decoder{is}.decode(ob);
+    xson::fson::decoder{is}.decode(ob);
     return is;
 }
 
-} // namespace fson
-} // namespace xson
+} // namespace std

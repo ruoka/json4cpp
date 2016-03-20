@@ -15,9 +15,10 @@ public:
 
     using fast::encoder::encode;
 
-    void encode(xson::type t)
+    template<typename T>
+    std::enable_if_t<std::is_enum<T>::value,void> encode(T e)
     {
-        encode(static_cast<std::uint8_t>(t));
+        encode(static_cast<std::uint8_t>(e));
     }
 
     void encode(double_type d)
@@ -91,11 +92,15 @@ public:
 
 };
 
-inline std::ostream& operator << (std::ostream& os, const object& ob)
+} // namespace fson
+} // namespace xson
+
+namespace std {
+
+inline std::ostream& operator << (std::ostream& os, const xson::object& ob)
 {
-    encoder{os}.encode(ob);
+    xson::fson::encoder{os}.encode(ob);
     return os;
 }
 
-} // namespace fson
-} // namespace xson
+}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iosfwd>
+#include <ostream>
 #include <iterator>
 #include "xson/trace.hpp"
 

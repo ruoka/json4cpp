@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iosfwd>
+#include <istream>
 
 namespace xson {
 namespace fast {
