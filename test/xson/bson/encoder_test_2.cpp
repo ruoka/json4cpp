@@ -7,7 +7,7 @@ using namespace std::string_literals;
 using namespace xson;
 using namespace xson::bson;
 
-class XsonBsonEncoderTest : public ::testing::Test
+class XsonBsonEncoderTest2 : public ::testing::Test
 {
 protected:
 
@@ -19,7 +19,7 @@ protected:
     std::ofstream ofs;
 };
 
-TEST_F(XsonBsonEncoderTest,Double)
+TEST_F(XsonBsonEncoderTest2,Double)
 {
     bson::object bob
     {
@@ -35,7 +35,7 @@ TEST_F(XsonBsonEncoderTest,Double)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,String)
+TEST_F(XsonBsonEncoderTest2,String)
 {
     bson::object bob
     {
@@ -51,7 +51,7 @@ TEST_F(XsonBsonEncoderTest,String)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,bobument)
+TEST_F(XsonBsonEncoderTest2,bobument)
 {
     bson::object bob
     {
@@ -67,7 +67,7 @@ TEST_F(XsonBsonEncoderTest,bobument)
     ASSERT_EQ(size, p2 - p1);
 }
 
-// TEST_F(XsonBsonEncoderTest,Array)
+// TEST_F(XsonBsonEncoderTest2,Array)
 // {
 //     auto arr = bson::array{"a"s, "b"s, "c"s, "d"s};
 //
@@ -87,7 +87,7 @@ TEST_F(XsonBsonEncoderTest,bobument)
 //     ASSERT_EQ(p2 - p1, 4 + bob.size() + 1); // int32 + bob + \x00
 // }
 
-TEST_F(XsonBsonEncoderTest,BooleanTrue)
+TEST_F(XsonBsonEncoderTest2,BooleanTrue)
 {
     bson::object bob
     {
@@ -103,7 +103,7 @@ TEST_F(XsonBsonEncoderTest,BooleanTrue)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,BooleanFalse)
+TEST_F(XsonBsonEncoderTest2,BooleanFalse)
 {
     bson::object bob
     {
@@ -119,7 +119,7 @@ TEST_F(XsonBsonEncoderTest,BooleanFalse)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,Integer32)
+TEST_F(XsonBsonEncoderTest2,Integer32)
 {
     bson::object bob
     {
@@ -135,7 +135,7 @@ TEST_F(XsonBsonEncoderTest,Integer32)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,Long64)
+TEST_F(XsonBsonEncoderTest2,Long64)
 {
     bson::object bob
     {
@@ -151,7 +151,7 @@ TEST_F(XsonBsonEncoderTest,Long64)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest,Mix)
+TEST_F(XsonBsonEncoderTest2,Mix)
 {
     bson::object bob =
     {
@@ -172,7 +172,7 @@ TEST_F(XsonBsonEncoderTest,Mix)
 //    ASSERT_EQ(p2 - p1, 4 + bob.size() + 1); // int32 + bob + \x00
 }
 
-TEST_F(XsonBsonEncoderTest,Nested)
+TEST_F(XsonBsonEncoderTest2,Nested)
 {
     auto sons = bson::object
     {

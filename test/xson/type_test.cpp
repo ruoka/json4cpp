@@ -1,7 +1,6 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "xson/object.hpp"
-#include "xson/utility.hpp"
 
 using namespace xson;
 

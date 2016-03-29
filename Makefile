@@ -1,8 +1,8 @@
 CXX = clang++
 
-CXXFLAGS = -std=c++14 -stdlib=libc++ -I./src/ -I../googletest/include/ -MMD # -D DEBUG=1
+CXXFLAGS = -std=c++1z -stdlib=libc++ -I$(SRCDIR) -I$(GTESTDIR)/include/ -MMD# -D DEBUG=1
 
-LDFLAGS =  -stdlib=libc++ ../googletest/make/gtest_main.a
+LDFLAGS =  -stdlib=libc++ $(GTESTDIR)/make/gtest_main.a
 
 SRCDIR = src
 
@@ -11,6 +11,8 @@ TESTDIR = test
 OBJDIR = obj
 
 BINDIR = bin
+
+GTESTDIR = ../googletest/googletest
 
 SOURCES := $(wildcard $(SRCDIR)/*.cpp) $(wildcard $(SRCDIR)/*/*.cpp) $(wildcard $(SRCDIR)/*/*/*.cpp)
 
@@ -41,7 +43,7 @@ clean:
 
 .PHONY: test
 test: $(BINDIR)/test
-	$(BINDIR)/test --gtest_filter=-*.CommandLine
+	$(BINDIR)/test --gtest_filter=-*.CommandLine:FdbServerTest.*
 
 .PHONY: dump
 dump:

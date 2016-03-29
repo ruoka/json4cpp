@@ -2,8 +2,8 @@
 
 #include <initializer_list>
 #include <map>
+#include "std/utility.hpp"
 #include "xson/type.hpp"
-#include "xson/utility.hpp"
 
 namespace xson {
 
@@ -25,8 +25,9 @@ public:
         m_objects[name] = obj;
     }
 
-    template <typename T, std::size_t N>
-    object(const std::enable_if_t<std::is_same<T,object>::value,std::string>& name, const std::array<T,N>& array) : object()
+    template <typename T, std::size_t N,
+              typename = std::enable_if_t<std::is_same<T,object>::value>>
+    object(const std::string& name, const std::array<T,N>& array) : object()
     {
         object& parent = m_objects[name];
         parent.type(type::array);
@@ -38,8 +39,9 @@ public:
         }
     }
 
-    template <typename T, typename A>
-    object(const std::enable_if_t<std::is_same<T,object>::value,std::string>& name, const std::vector<T,A>& array) : object()
+    template <typename T, typename A,
+              typename = std::enable_if_t<std::is_same<T,object>::value>>
+    object(const std::string& name, const std::vector<T,A>& array) : object()
     {
         object& parent = m_objects[name];
         parent.type(type::array);
@@ -51,8 +53,9 @@ public:
         }
     }
 
-    template <typename T>
-    object(const std::enable_if_t<is_array<T>::value,std::string>& name, const T& array) : object()
+    template <typename T,
+              typename = std::enable_if_t<is_array<T>::value>>
+    object(const std::string& name, const T& array) : object()
     {
         object& parent = m_objects[name];
         parent.type(type::array);
@@ -106,10 +109,11 @@ public:
     }
 
     template <typename T>
-    void value(const T& val)
+    const T& value(const T& value)
     {
-        m_type = xson::to_type(val);
-        m_value = std::to_string(val);
+        m_type = xson::to_type(value);
+        m_value = std::to_string(value);
+        return value;
     }
 
     object& operator [] (const std::string& name)
@@ -152,9 +156,19 @@ public:
         return std::chrono::system_clock::now(); // FIXME
     }
 
+    object& operator + (const object&)
+    {
+        return *this; // FIXME
+    }
+
     bool empty () const
     {
         return m_objects.empty();
+    }
+
+    bool has (const std::string& name) const
+    {
+        return m_objects.count(name) > 0;
     }
 
     std::map<std::string,object>::const_iterator begin() const
