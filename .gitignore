@@ -1,3 +1,4 @@
 bin
 obj
 test/xson/bson/test1.bson
+engine_test.db
