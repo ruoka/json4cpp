@@ -3,8 +3,7 @@
 #include "xson/object.hpp"
 #include "xson/trace.hpp"
 
-namespace xson {
-namespace bson {
+namespace xson::bson {
 
 std::ostream& operator << (std::ostream& os, const object& obj);
 
@@ -107,10 +106,10 @@ inline void encoder::encode(boolean_type b)
 template <>
 inline void encoder::encode(date_type d)
 {
-    using namespace std::chrono;
     TRACE("(date)");
-    const int64_type i = duration_cast<milliseconds>(d.time_since_epoch()).count();
-    encode(i);
+    using namespace std::chrono;
+    const auto us = duration_cast<milliseconds>(d.time_since_epoch());
+    encode(static_cast<std::int64_t>(us.count()));
 }
 
 template <>
@@ -224,5 +223,4 @@ inline std::ostream& operator << (std::ostream& os, const object& obj)
     return os;
 }
 
-} // namespace bson
-} // namespace xson
+} // namespace xson::bson

@@ -1,6 +1,7 @@
 #include <sstream>
 #include <limits>
 #include <gtest/gtest.h>
+#include "xson/json.hpp"
 #include "xson/fson.hpp"
 
 using namespace std::string_literals;
@@ -123,19 +124,30 @@ TEST(XsonFsonTest, Boolean)
 
 TEST(XsonFsonTest, Date)
 {
-    using namespace std::chrono;
     xson::fson::object o1
     {
-        { "Test"s,  system_clock::now()}
+        { "Test"s, std::chrono::system_clock::now()},
+        { "A"s, true }
     };
+
+    std::string expected = o1["Test"s];
+    const std::chrono::system_clock::time_point us1 = o1["Test"s];
+    ASSERT_EQ(xson::type::date, o1["Test"s].type());
 
     std::stringstream ss;
     ss << o1;
+    std::clog << xson::json::stringify(o1) << std::endl;
 
     xson::fson::object o2;
     ss >> o2;
+    std::clog << xson::json::stringify(o2) << std::endl;
+
+    std::string actual = o2["Test"s];
+    const std::chrono::system_clock::time_point us2 = o2["Test"s];
+    ASSERT_EQ(xson::type::date, o2["Test"s].type());
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(expected, actual);
 }
 
 TEST(XsonFsonTest, Null)

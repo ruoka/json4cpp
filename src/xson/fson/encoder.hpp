@@ -3,8 +3,7 @@
 #include "xson/fast/encoder.hpp"
 #include "xson/object.hpp"
 
-namespace xson {
-namespace fson {
+namespace xson::fson {
 
 class encoder : public fast::encoder
 {
@@ -21,7 +20,7 @@ public:
         encode(static_cast<std::uint8_t>(e));
     }
 
-    void encode(double_type d)
+    void encode(xson::double_type d)
     {
         union {
             double d64;
@@ -31,7 +30,7 @@ public:
         encode(d2i.i64);
     }
 
-    void encode(boolean_type b)
+    void encode(xson::boolean_type b)
     {
         if(b)
             encode(std::uint8_t{'\x01'});
@@ -39,14 +38,14 @@ public:
             encode(std::uint8_t{'\x00'});
     }
 
-    void encode(date_type d)
+    void encode(const xson::date_type& d)
     {
         using namespace std::chrono;
-        const std::int64_t i64 = duration_cast<milliseconds>(d.time_since_epoch()).count();
-        encode(i64);
+        const auto us = duration_cast<milliseconds>(d.time_since_epoch());
+        encode(static_cast<std::uint64_t>(us.count()));
     }
 
-    void encode(const object& ob)
+    void encode(const xson::object& ob)
     {
         switch(ob.type())
         {
@@ -62,27 +61,27 @@ public:
             break;
 
             case type::int32:
-            encode(static_cast<int32_type>(ob));
+            encode(static_cast<xson::int32_type>(ob));
             break;
 
             case type::int64:
-            encode(static_cast<int64_type>(ob));
+            encode(static_cast<xson::int64_type>(ob));
             break;
 
             case type::number:
-            encode(static_cast<double_type>(ob));
+            encode(static_cast<xson::double_type>(ob));
             break;
 
             case type::string:
-            encode(static_cast<string_type>(ob));
+            encode(static_cast<xson::string_type>(ob));
             break;
 
             case type::boolean:
-            encode(static_cast<boolean_type>(ob));
+            encode(static_cast<xson::boolean_type>(ob));
             break;
 
             case type::date:
-            encode(static_cast<date_type>(ob));
+            encode(static_cast<xson::date_type>(ob));
             break;
 
             case type::null:
@@ -92,8 +91,7 @@ public:
 
 };
 
-} // namespace fson
-} // namespace xson
+} // namespace xson::fson
 
 namespace std {
 
