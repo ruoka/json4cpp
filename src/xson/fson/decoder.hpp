@@ -3,8 +3,7 @@
 #include "xson/object.hpp"
 #include "xson/fast/decoder.hpp"
 
-namespace xson {
-namespace fson {
+namespace xson::fson {
 
 class decoder : public fast::decoder
 {
@@ -116,8 +115,7 @@ public:
 
 };
 
-} // namespace fson
-} // namespace xson
+} // namespace xson::fson
 
 namespace std {
 

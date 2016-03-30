@@ -3,8 +3,7 @@
 #include "xson/object.hpp"
 #include "xson/trace.hpp"
 
-namespace xson {
-namespace bson {
+namespace xson::bson {
 
 std::istream& operator >> (std::istream& os, object& ob);
 
@@ -156,5 +155,4 @@ inline std::istream& operator >> (std::istream& is, object& ob)
     return is;
 }
 
-} // namespace bson
-} // namespace xson
+} // namespace xson::bson

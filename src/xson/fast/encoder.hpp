@@ -4,8 +4,7 @@
 #include <iterator>
 #include "xson/trace.hpp"
 
-namespace xson {
-namespace fast {
+namespace xson::fast {
 
 class encoder
 {
@@ -135,5 +134,4 @@ inline void encoder::encode(const std::string& str)
     m_os.put(*tail | 0x80);
 }
 
-} // namespace fast
-} // namespace xson
+} // namespace xson::fast

@@ -4,8 +4,7 @@
 #include "xson/fson/encoder.hpp"
 #include "xson/fson/decoder.hpp"
 
-namespace xson {
-namespace fson {
+namespace xson::fson {
 
 using object = xson::object;
 
@@ -16,5 +15,4 @@ inline object parse(std::istream& is)
     return std::move(ob);
 }
 
-} // namespace fson
-} // namespace xson
+} // namespace xson::fson

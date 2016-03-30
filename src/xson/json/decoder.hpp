@@ -2,8 +2,7 @@
 
 #include "xson/object.hpp"
 
-namespace xson {
-namespace json {
+namespace xson::json {
 
 using namespace std::string_literals;
 
@@ -155,5 +154,4 @@ inline std::istream& operator >> (std::istream& is, object& ob)
     return is;
 }
 
-} // namespace json
-} // namespace xson
+} // namespace xson::json

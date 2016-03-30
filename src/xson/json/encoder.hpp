@@ -2,8 +2,7 @@
 
 #include "xson/object.hpp"
 
-namespace xson {
-namespace json {
+namespace xson::json {
 
 std::ostream& operator << (std::ostream& os, const object& ob);
 
@@ -55,5 +54,4 @@ inline std::ostream& operator << (std::ostream& os, const object& ob)
     return os;
 }
 
-} // namespace json
-} // namespace xson
+} // namespace xson::json

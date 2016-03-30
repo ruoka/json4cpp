@@ -2,8 +2,7 @@
 
 #include <istream>
 
-namespace xson {
-namespace fast {
+namespace xson::fast {
 
 class decoder
 {
@@ -89,5 +88,4 @@ inline void decoder::decode(std::string& str)
     }
 }
 
-} // namespace fast
-} // namespace xson
+} // namespace xson::fast

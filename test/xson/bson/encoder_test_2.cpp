@@ -51,7 +51,7 @@ TEST_F(XsonBsonEncoderTest2,String)
     ASSERT_EQ(size, p2 - p1);
 }
 
-TEST_F(XsonBsonEncoderTest2,bobument)
+TEST_F(XsonBsonEncoderTest2,Document)
 {
     bson::object bob
     {

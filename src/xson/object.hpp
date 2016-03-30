@@ -153,12 +153,13 @@ public:
 
     operator std::chrono::system_clock::time_point () const
     {
-        return std::chrono::system_clock::now(); // FIXME
+        return std::stotp(m_value);
     }
 
-    object& operator + (const object&)
+    object& operator + (const object& obj)
     {
-        return *this; // FIXME
+        m_objects.insert(obj.cbegin(), obj.cend());
+        return *this;
     }
 
     bool empty () const

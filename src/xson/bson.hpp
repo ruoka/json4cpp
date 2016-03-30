@@ -4,8 +4,7 @@
 #include "xson/bson/encoder.hpp"
 #include "xson/bson/decoder.hpp"
 
-namespace xson {
-namespace bson {
+namespace xson::bson {
 
 using object = xson::object;
 
@@ -22,5 +21,4 @@ inline std::string stringify(const object& ob)
     return std::string{e.data(), e.size()};
 }
 
-} // namespace bson
-} // namespace xson
+} // namespace xson::bson

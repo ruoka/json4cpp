@@ -61,7 +61,7 @@ TEST(XsonBsonEncoderTest1,Date)
     const auto val = system_clock::now();
     const auto ref = duration_cast<milliseconds>(val.time_since_epoch()).count();
     encoder e;
-    e.encode(val);
+    e.encode(ref);
     EXPECT_EQ(ref, *reinterpret_cast<int64_type*>(e.data()));
 }
 
