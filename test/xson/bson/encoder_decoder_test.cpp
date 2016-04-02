@@ -11,7 +11,7 @@ using namespace xson::bson;
 
 TEST(XsonBsonEncoderDecoderTest,Double)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"Double", 21.12};        // encode
 
     auto result = bson::parse(ss);              // decode
@@ -24,7 +24,7 @@ TEST(XsonBsonEncoderDecoderTest,Double)
 
 TEST(XsonBsonEncoderDecoderTest,String)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"String"s,"Aku Ankka"s}; // encode
 
     auto result = bson::parse(ss);              // decode
@@ -37,7 +37,7 @@ TEST(XsonBsonEncoderDecoderTest,String)
 
 TEST(XsonBsonEncoderDecoderTest,Array)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object {
         {"Inhabitants"s, std::vector<std::string>{"Mikki"s, "Hessu"s, "Roope"s, "Pelle"s}}
     };
@@ -67,7 +67,7 @@ TEST(XsonBsonEncoderDecoderTest,Array)
 TEST(XsonBsonEncoderDecoderTest,Date)
 {
     const auto now = system_clock::now();
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{{"Date1"s, now}, {"Date2"s, nullptr}};
 
     auto result = bson::parse(ss);
@@ -84,7 +84,7 @@ TEST(XsonBsonEncoderDecoderTest,Date)
 
 TEST(XsonBsonEncoderDecoderTest,Null)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"Null"s, nullptr};
 
     auto result = bson::parse(ss);
@@ -97,7 +97,7 @@ TEST(XsonBsonEncoderDecoderTest,Null)
 
 TEST(XsonBsonEncoderDecoderTest,Int32)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"MinInt32"s, numeric_limits<std::int32_t>::min()};
 
     auto result = bson::parse(ss);
@@ -110,7 +110,7 @@ TEST(XsonBsonEncoderDecoderTest,Int32)
 
 TEST(XsonBsonEncoderDecoderTest,Int64)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"MinInt64"s, numeric_limits<std::int64_t>::max()};
 
     auto result = bson::parse(ss);
@@ -123,7 +123,7 @@ TEST(XsonBsonEncoderDecoderTest,Int64)
 
 TEST(XsonBsonEncoderDecoderTest,SimplebsonObject)
 {
-    bson::object doc
+    auto doc = bson::object
     {
         {"Ruoka",true},
         {"Onni",false},
@@ -132,7 +132,7 @@ TEST(XsonBsonEncoderDecoderTest,SimplebsonObject)
         {"Jalppu",3}
     };
 
-    stringstream ss;
+    auto ss = stringstream{};
     ss << doc;
 
     auto result = bson::parse(ss);
@@ -147,7 +147,7 @@ TEST(XsonBsonEncoderDecoderTest,SimplebsonObject)
 
 TEST(XsonBsonEncoderDecoderTest,NestedbsonObject)
 {
-    bson::object doc
+    auto doc = bson::object
     {
         { "Ruoka",  true                          },
         { "Onni",   false                         },
@@ -157,7 +157,7 @@ TEST(XsonBsonEncoderDecoderTest,NestedbsonObject)
         { "Ages",   std::vector<int>{39,40,9,5,2} }
     };
 
-    stringstream ss;
+    auto ss = stringstream{};
     ss << doc;
 
     auto result = bson::parse(ss);

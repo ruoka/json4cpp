@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include "xson/fast/encoder.hpp"
 #include "xson/object.hpp"
 
@@ -57,7 +58,7 @@ public:
                 encode(o.first);         // name
                 encode(o.second);        // object
             }
-            encode(xson::eod);
+            encode(type::eod);
             break;
 
             case type::int32:
@@ -85,6 +86,10 @@ public:
             break;
 
             case type::null:
+            break;
+
+            case type::eod:
+            assert(false);
             break;
         }
     }

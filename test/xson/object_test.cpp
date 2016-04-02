@@ -11,7 +11,7 @@ using namespace json;
 
 TEST(XsonObjectTest,Object)
 {
-    object ob
+    auto ob = object
     {
         { "First",  "Tulppu"s },
         { "Second", "Elppu"s  },
@@ -32,7 +32,7 @@ TEST(XsonObjectTest,Mix)
     const int i1 = ob1["Integer"s];
     ASSERT_EQ(123456789, i1);
 
-    object ob2 =
+    auto ob2 = object
     {
         {"Integer"s, 987654321},
         {"Double"s,  21.12},
@@ -176,7 +176,7 @@ TEST(XsonObjectTest,ObjectWithArray)
 
 TEST(XsonObjectTest,ObjectWithVector1)
 {
-    object ob
+    auto ob = object
     {
         "Kids",
         vector<object>
@@ -214,7 +214,7 @@ TEST(XsonObjectTest,ObjectWithVector2)
 
 TEST(XsonObjectTest,Complex)
 {
-    object ob
+    auto ob = object
     {
         { "Ruoka",  true                         },
         { "Onni",   false                        },
@@ -242,7 +242,7 @@ TEST(XsonObjectTest,Complex)
 
 TEST(XsonObjectTest,Plus)
 {
-    object ob1
+    auto ob1 = object
     {
         { "A"s, 1},
         { "B"s, 2},
@@ -250,7 +250,7 @@ TEST(XsonObjectTest,Plus)
     ASSERT_EQ(static_cast<int>(ob1["A"s]), 1);
     ASSERT_EQ(static_cast<int>(ob1["B"s]), 2);
 
-    object ob2
+    auto ob2 = object
     {
         { "C"s, 3},
         { "D"s, 4},

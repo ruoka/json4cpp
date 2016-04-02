@@ -10,7 +10,7 @@ using object = xson::object;
 
 inline object parse(std::istream& is)
 {
-    object ob;
+    auto ob = object{};
     decoder{is}.decode(ob);
     return std::move(ob);
 }

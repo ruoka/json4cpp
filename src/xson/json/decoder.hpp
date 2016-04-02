@@ -24,17 +24,17 @@ private:
 
     void decode_string(object& ob)
     {
-        char next;
-        std::string value;
-        m_is >> next; // "
+        auto next = u8' ';
+        auto value = ""s;
+        m_is >> next;               // "
         getline(m_is, value, '\"'); // value"
         ob.value(value);
     }
 
     void decode_value(object& ob)
     {
-        char next;
-        std::string value;
+        auto next = u8' ';
+        auto value = ""s;
         m_is >> next;
         while (next != ',' && next != '}' && next != ']')
         {
@@ -68,15 +68,14 @@ private:
 
     void decode_array(object& parent)
     {
-        std::size_t idx{0};
-        char next;
+        auto idx = std::size_t{0};
+        auto next = u8' ';
         m_is >> next; // [
 
         while(next != ']' && m_is)
         {
-            const std::string name{std::to_string(idx++)};
+            const auto name = std::to_string(idx++);
             auto& child = parent[name];
-
             m_is >> std::ws;
             next = m_is.peek();
 
@@ -106,12 +105,12 @@ private:
 
     void decode_document(object& parent)
     {
-        char next;
+        auto next = u8' ';
         m_is >> next; // {
 
         while(next != '}' && m_is)
         {
-            std::string name;
+            auto name = ""s;
             m_is >> std::ws >> next; // "
             getline(m_is, name, '\"'); // name"
             m_is >> next; // :

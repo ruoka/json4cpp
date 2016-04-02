@@ -11,7 +11,7 @@ using namespace json;
 
 TEST(XsonJsonTest,String)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{"String", "1234567890"s};
     TRACE(ss.str());
 
@@ -25,7 +25,7 @@ TEST(XsonJsonTest,String)
 
 TEST(XsonJsonTest,Double)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{"Double", 21.12};
     TRACE(ss.str());
 
@@ -39,7 +39,7 @@ TEST(XsonJsonTest,Double)
 
 TEST(XsonJsonTest,Boolean)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{{"True", true},{"False", false}};
     TRACE(ss.str());
 
@@ -58,7 +58,7 @@ TEST(XsonJsonTest,Boolean)
 TEST(XsonJsonTest,Date2String)
 {
     auto now = system_clock::now();
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{"Date", now};
     TRACE(ss.str());
 
@@ -72,7 +72,7 @@ TEST(XsonJsonTest,Date2String)
 
 TEST(XsonJsonTest,Null)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{"Null", nullptr};
     TRACE(ss.str());
 
@@ -86,7 +86,7 @@ TEST(XsonJsonTest,Null)
 
 TEST(XsonJsonTest,Int32)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{
         {"Zero", int32_t{0}},
         {"Min", numeric_limits<int>::min()},
@@ -112,7 +112,7 @@ TEST(XsonJsonTest,Int32)
 
 TEST(XsonJsonTest,Int64)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << json::object{
         {"Zero", int64_t{0}},
         {"Min", numeric_limits<long long>::min()},
@@ -178,8 +178,8 @@ TEST(XsonJsonTest,Vector)
 
 TEST(XsonJsonTest,Complex)
 {
-    xson::object mix
-    {
+    auto mix = xson::object
+        {
         { "Ruoka",  true                     },
         { "Onni",   false                    },
         { "Tulppu", 1                        },
@@ -188,7 +188,7 @@ TEST(XsonJsonTest,Complex)
         { "Ages",   vector<int>{39,40,9,5,2} }
     };
 
-    stringstream ss;
+    auto ss = stringstream{};
     ss << mix;
     TRACE(ss.str());
 
@@ -212,10 +212,7 @@ TEST(XsonJsonTest,Complex)
 
 TEST(XsonJsonTest,ParseFile1)
 {
-    using namespace string_literals;
-    using namespace xson::json;
-
-    ifstream fs{"./test/xson/test1.json"};
+    auto fs = ifstream{"./test/xson/test1.json"};
     auto ob = json::parse(fs);
     TRACE("test1.json: "s << ob);
 
@@ -233,10 +230,7 @@ TEST(XsonJsonTest,ParseFile1)
 
 TEST(XsonJsonTest,ParseFile2)
 {
-    using namespace string_literals;
-    using namespace xson::json;
-
-    ifstream fs{"./test/xson/test2.json"};
+    auto fs = ifstream{"./test/xson/test2.json"};
     auto ob = json::parse(fs);
     TRACE("test2.json: "s << ob);
 

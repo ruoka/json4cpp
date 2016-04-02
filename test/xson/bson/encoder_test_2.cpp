@@ -21,7 +21,7 @@ protected:
 
 TEST_F(XsonBsonEncoderTest2,Double)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"Double"s, 12.55}
     };
@@ -37,7 +37,7 @@ TEST_F(XsonBsonEncoderTest2,Double)
 
 TEST_F(XsonBsonEncoderTest2,String)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"String"s, "B"s}
     };
@@ -53,7 +53,7 @@ TEST_F(XsonBsonEncoderTest2,String)
 
 TEST_F(XsonBsonEncoderTest2,Document)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"A"s, 1}, {"B"s,true}, {"C"s, 21.12}
     };
@@ -73,7 +73,7 @@ TEST_F(XsonBsonEncoderTest2,Document)
 //
 //     ASSERT_EQ(arr.size(), 4 * ( 4 + 1 + 1 + 4 +1 +1)); // 4 * (int32 + bytes*1 + \x00 + int32 + bytes*1  + \x00)
 //
-//     bson::object bob
+//    auto bob = bson::object
 //     {
 //       {"Array"s, arr}
 //     };
@@ -89,7 +89,7 @@ TEST_F(XsonBsonEncoderTest2,Document)
 
 TEST_F(XsonBsonEncoderTest2,BooleanTrue)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"Boolean"s, false}
     };
@@ -105,7 +105,7 @@ TEST_F(XsonBsonEncoderTest2,BooleanTrue)
 
 TEST_F(XsonBsonEncoderTest2,BooleanFalse)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"Boolean"s, false}
     };
@@ -121,7 +121,7 @@ TEST_F(XsonBsonEncoderTest2,BooleanFalse)
 
 TEST_F(XsonBsonEncoderTest2,Integer32)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"Integer"s, 9}
     };
@@ -137,7 +137,7 @@ TEST_F(XsonBsonEncoderTest2,Integer32)
 
 TEST_F(XsonBsonEncoderTest2,Long64)
 {
-    bson::object bob
+    auto bob = bson::object
     {
       {"Long"s, 2112ll}
     };
@@ -153,7 +153,7 @@ TEST_F(XsonBsonEncoderTest2,Long64)
 
 TEST_F(XsonBsonEncoderTest2,Mix)
 {
-    bson::object bob =
+    auto bob = bson::object
     {
       {"Double"s, 12.55},
       {"String"s, "B"s},

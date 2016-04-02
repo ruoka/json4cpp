@@ -8,29 +8,29 @@ using namespace xson::fast;
 
 TEST(XsonFastTest, Byte)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::uint8_t b1{'y'};
+    auto b1 = std::uint32_t{'y'};
     ncdr.encode(b1);
-    EXPECT_EQ(b1, ss.str()[0]);
 
-    std::uint8_t b2{'n'};
+    auto b2 =  std::uint32_t{'n'};
     dcdr.decode(b2);
+
     ASSERT_EQ(b1, b2);
 }
 
 TEST(XsonFastTest, UInteger32)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::uint32_t i1{1234567};
+    auto i1 = 1234567u;
     ncdr.encode(i1);
 
-    std::uint32_t i2{0};
+    auto i2 = 0u;
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -38,14 +38,14 @@ TEST(XsonFastTest, UInteger32)
 
 TEST(XsonFastTest, Integer32)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::int32_t i1{-1234567};
+    auto i1 = -1234567;
     ncdr.encode(i1);
 
-    std::int32_t i2{0};
+    auto i2 = 0;
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -53,14 +53,14 @@ TEST(XsonFastTest, Integer32)
 
 TEST(XsonFastTest, UInteger64)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::uint64_t i1{1234567};
+    auto i1 = 1234567ull;
     ncdr.encode(i1);
 
-    std::uint64_t i2{0};
+    auto i2 = 0ull;
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -68,14 +68,14 @@ TEST(XsonFastTest, UInteger64)
 
 TEST(XsonFastTest, Integer64)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::int64_t i1{-12345678987654321};
+    auto i1 = -12345678987654321ll;
     ncdr.encode(i1);
 
-    std::int64_t i2{0};
+    auto i2 = 01ll;
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -83,14 +83,14 @@ TEST(XsonFastTest, Integer64)
 
 TEST(XsonFastTest, String)
 {
-    std::stringstream ss;
-    encoder ncdr{ss};
-    decoder dcdr{ss};
+    auto ss= std::stringstream{};
+    auto ncdr = encoder{ss};
+    auto dcdr = decoder{ss};
 
-    const std::string s1{"1234567 Kaius Ruokonen \n\t x"};
+    const auto s1 = "1234567 Kaius Ruokonen \n\t x"s;
     ncdr.encode(s1);
 
-    std::string s2{};
+    auto s2 = ""s;
     dcdr.decode(s2);
 
     ASSERT_EQ(s1, s2);

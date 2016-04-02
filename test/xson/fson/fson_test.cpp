@@ -9,15 +9,15 @@ using namespace xson::fson;
 
 TEST(XsonFsonTest, Array)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s,  std::vector<std::string>{"A","B","C"}}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s][0].value(), o2["Test"s][0].value());
@@ -27,15 +27,15 @@ TEST(XsonFsonTest, Array)
 
 TEST(XsonFsonTest, Object)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s,  xson::fson::object{ {"A", 1}, {"B", 2.0}, {"C", false}}}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s]["A"s].value(), o2["Test"s]["A"s].value());
@@ -45,15 +45,15 @@ TEST(XsonFsonTest, Object)
 
 TEST(XsonFsonTest, Int32)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s, 57}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
@@ -61,15 +61,15 @@ TEST(XsonFsonTest, Int32)
 
 TEST(XsonFsonTest, Int64)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s,  57ll}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
@@ -77,30 +77,31 @@ TEST(XsonFsonTest, Int64)
 
 TEST(XsonFsonTest, Double)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s, 57.99999 }
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
 }
+
 TEST(XsonFsonTest, String)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s,  "Tulppu"s }
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
@@ -108,15 +109,15 @@ TEST(XsonFsonTest, String)
 
 TEST(XsonFsonTest, Boolean)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s, true}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
@@ -124,7 +125,7 @@ TEST(XsonFsonTest, Boolean)
 
 TEST(XsonFsonTest, Date)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s, std::chrono::system_clock::now()},
         { "A"s, true }
@@ -134,11 +135,11 @@ TEST(XsonFsonTest, Date)
     const std::chrono::system_clock::time_point us1 = o1["Test"s];
     ASSERT_EQ(xson::type::date, o1["Test"s].type());
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
     std::clog << xson::json::stringify(o1) << std::endl;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
     std::clog << xson::json::stringify(o2) << std::endl;
 
@@ -152,15 +153,15 @@ TEST(XsonFsonTest, Date)
 
 TEST(XsonFsonTest, Null)
 {
-    xson::fson::object o1
+    auto o1 = xson::fson::object
     {
         { "Test"s,  nullptr}
     };
 
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << o1;
 
-    xson::fson::object o2;
+    auto o2 = xson::fson::object{};
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
@@ -168,7 +169,7 @@ TEST(XsonFsonTest, Null)
 
 TEST(XsonFsonTest, Int32MinMax)
 {
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << xson::fson::object{
         {"Zero", std::int32_t{0}},
         {"Min", std::numeric_limits<std::int32_t>::min()},
@@ -178,21 +179,21 @@ TEST(XsonFsonTest, Int32MinMax)
     auto ob = xson::fson::parse(ss);
 
     EXPECT_EQ(xson::type::int32, ob["Zero"s].type());
-    int zero = ob["Zero"s];
+    const int zero = ob["Zero"s];
     EXPECT_EQ(0, zero);
 
     EXPECT_EQ(xson::type::int32, ob["Min"s].type());
-    int min = ob["Min"s];
+    const int min = ob["Min"s];
     EXPECT_EQ(std::numeric_limits<int>::min(), min);
 
     EXPECT_EQ(xson::type::int32, ob["Max"s].type());
-    int max = ob["Max"s];
+    const int max = ob["Max"s];
     EXPECT_EQ(std::numeric_limits<int>::max(), max);
 }
 
 TEST(XsonFsonTest, Int64MinMax1)
 {
-    xson::fson::object ob =
+    auto ob = xson::fson::object
     {
         {"Zero", std::int64_t{0}},
         {"Min", std::numeric_limits<std::int64_t>::min()},
@@ -214,7 +215,7 @@ TEST(XsonFsonTest, Int64MinMax1)
 
 TEST(XsonFsonTest, Int64MinMax2)
 {
-    std::stringstream ss;
+    auto ss = std::stringstream{};
     ss << xson::fson::object{
         {"Zero", std::int64_t{0}},
         {"Min", -36028797018963968ll}, // -2^56

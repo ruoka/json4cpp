@@ -7,6 +7,9 @@
 
 namespace xson {
 
+using namespace std::string_literals;
+using namespace std::chrono_literals;
+
 class object
 {
 public:
@@ -29,42 +32,42 @@ public:
               typename = std::enable_if_t<std::is_same<T,object>::value>>
     object(const std::string& name, const std::array<T,N>& array) : object()
     {
-        object& parent = m_objects[name];
-        parent.type(type::array);
-        std::size_t idx{0};
-        for(const auto& obj : array)
+        auto& parent = m_objects[name];
+        auto idx = std::size_t{0};
+        for(const auto& ob : array)
         {
-            parent.m_objects[std::to_string(idx)] = obj;
+            parent.m_objects[std::to_string(idx)] = ob;
             ++idx;
         }
+        parent.type(type::array);
     }
 
     template <typename T, typename A,
               typename = std::enable_if_t<std::is_same<T,object>::value>>
     object(const std::string& name, const std::vector<T,A>& array) : object()
     {
-        object& parent = m_objects[name];
-        parent.type(type::array);
-        std::size_t idx{0};
-        for(const auto& obj : array)
+        auto& parent = m_objects[name];
+        auto idx = std::size_t{0};
+        for(const auto& ob : array)
         {
-            parent.m_objects[std::to_string(idx)] = obj;
+            parent.m_objects[std::to_string(idx)] = ob;
             ++idx;
         }
+        parent.type(type::array);
     }
 
     template <typename T,
               typename = std::enable_if_t<is_array<T>::value>>
     object(const std::string& name, const T& array) : object()
     {
-        object& parent = m_objects[name];
-        parent.type(type::array);
-        std::size_t idx{0};
+        auto& parent = m_objects[name];
+        auto idx = std::size_t{0};
         for(const auto& value : array)
         {
             parent.m_objects[std::to_string(idx)].value(value);
             ++idx;
         }
+        parent.type(type::array);
     }
 
     object(std::initializer_list<object> il) : object()
@@ -167,7 +170,7 @@ public:
         return m_objects.empty();
     }
 
-    bool has (const std::string& name) const
+    bool has(const std::string& name) const
     {
         return m_objects.count(name) > 0;
     }
