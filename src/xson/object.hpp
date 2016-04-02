@@ -23,48 +23,32 @@ public:
         m_objects[name].value(value);
     }
 
-    object(const std::string& name, const object& obj) : object()
-    {
-        m_objects[name] = obj;
-    }
-
-    template <typename T, std::size_t N,
-              typename = std::enable_if_t<std::is_same<T,object>::value>>
-    object(const std::string& name, const std::array<T,N>& array) : object()
-    {
-        auto& parent = m_objects[name];
-        auto idx = std::size_t{0};
-        for(const auto& ob : array)
-        {
-            parent.m_objects[std::to_string(idx)] = ob;
-            ++idx;
-        }
-        parent.type(type::array);
-    }
-
-    template <typename T, typename A,
-              typename = std::enable_if_t<std::is_same<T,object>::value>>
-    object(const std::string& name, const std::vector<T,A>& array) : object()
-    {
-        auto& parent = m_objects[name];
-        auto idx = std::size_t{0};
-        for(const auto& ob : array)
-        {
-            parent.m_objects[std::to_string(idx)] = ob;
-            ++idx;
-        }
-        parent.type(type::array);
-    }
-
-    template <typename T,
-              typename = std::enable_if_t<is_array<T>::value>>
-    object(const std::string& name, const T& array) : object()
+    template <typename T>
+    object(const std::enable_if_t<is_value_array<T>::value,std::string>& name, const T& array) : object()
     {
         auto& parent = m_objects[name];
         auto idx = std::size_t{0};
         for(const auto& value : array)
         {
             parent.m_objects[std::to_string(idx)].value(value);
+            ++idx;
+        }
+        parent.type(type::array);
+    }
+
+    object(const std::string& name, const object& obj) : object()
+    {
+        m_objects[name] = obj;
+    }
+
+    template <typename T>
+    object(const std::enable_if_t<is_object_array<T>::value,std::string>& name, const T& array) : object()
+    {
+        auto& parent = m_objects[name];
+        auto idx = std::size_t{0};
+        for(const auto& ob : array)
+        {
+            parent.m_objects[std::to_string(idx)] = ob;
             ++idx;
         }
         parent.type(type::array);
