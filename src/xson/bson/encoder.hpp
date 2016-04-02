@@ -3,9 +3,10 @@
 #include "xson/object.hpp"
 #include "xson/trace.hpp"
 
-namespace xson::bson {
+namespace xson::bson
+{
 
-std::ostream& operator << (std::ostream& os, const object& obj);
+std::ostream& operator << (std::ostream& os, const object& ob);
 
 class encoder
 {
@@ -13,7 +14,7 @@ public:
 
     using const_iterator = std::vector<char>::const_iterator;
 
-    using pointer = std::vector<char>::pointer;
+    using const_pointer = std::vector<char>::const_pointer;
 
     using size_type = std::vector<char>::size_type;
 
@@ -40,7 +41,7 @@ public:
         return m_buffer.size();
     }
 
-    pointer data()
+    const_pointer data() const
     {
         return m_buffer.data();
     }
@@ -87,7 +88,8 @@ template <>
 inline void encoder::encode(double_type d)
 {
     TRACE("(double)");
-    union{
+    union
+    {
         double_type d64;
         int64_type i64;
     } d2i;
@@ -153,7 +155,7 @@ inline void encoder::encode(const object& obj)
     case type::object:
     case type::array:
     {
-        const int32_type head = size();
+        const auto head = size();
 
         // We'll leave the length field empty for the time being...
 
@@ -170,7 +172,7 @@ inline void encoder::encode(const object& obj)
 
         // Now we'll fix the length field...
 
-        const int32_type tail = size();
+        const auto tail = size();
         encoder bytes;
         bytes.encode<int32_type>(tail - head);
         std::copy(bytes.cbegin(), bytes.cend(), m_buffer.begin()+head);
@@ -215,10 +217,10 @@ inline void encoder::put(char b)
     TRACE("(byte)     " << setw(5) << m_buffer.size() << setw(5) << b << " " << setw(5) << hex << uppercase << (int)b << dec);
 }
 
-inline std::ostream& operator << (std::ostream& os, const object& obj)
+inline std::ostream& operator << (std::ostream& os, const object& ob)
 {
-    encoder dc{obj};
-    os.write(dc.data(), dc.size());
+    const auto e = encoder{ob};
+    os.write(e.data(), e.size());
     os.flush();
     return os;
 }

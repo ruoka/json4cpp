@@ -10,21 +10,21 @@ using namespace xson;
 
 TEST(Examples,Stringify)
 {
-    vector<object> kids
+    auto kids = vector<object>
     {
         { "Name"s, "Tulppu"s },
         { "Name"s, "Elppu"s  },
         { "Name"s, "Jalppu"s }
     };
 
-    object measures
+    auto measures = object
     {
         { "Height"s,   200   },
         { "Waist"s,    120.5 },
         { "ShoeSize"s, 47.5  }
     };
 
-    object papa
+    auto papa = object
     {
         { "Name",         "Cool Papa"s             },
         { "Age",          39                       },
@@ -41,15 +41,13 @@ TEST(Examples,Stringify)
 TEST(Examples,Parse)
 {
     using namespace json;
-
-    stringstream ss;
-    ss << "{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s;
+    auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]"s};
 
     clog << ss.str() << "\n";
 
     auto result = json::parse(ss);
 
-    clog << result << "\n\n";
+    clog << result << "\n";
 
     clog << "_id =            " << result["_id"s]               << "\n"
          << "Name =           " << result["Name"s]              << "\n"
@@ -65,12 +63,10 @@ TEST(Examples,Parse)
 
 TEST(Examples,BsonDump)
 {
-    using namespace bson;
     ifstream fs{"./test/xson/test3.bson"};
     while(fs && !fs.eof())
     {
-        auto ob = bson::parse(fs);
-        clog << json::stringify(ob) << endl;
+        clog << json::stringify(bson::parse(fs)) << endl;
         fs >> ws;
     }
 }

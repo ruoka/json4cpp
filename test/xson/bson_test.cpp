@@ -6,13 +6,13 @@
 #include "xson/trace.hpp"
 
 using namespace std;
-using namespace chrono;
+using namespace std::chrono;
 using namespace xson;
-using namespace bson;
+using namespace xson::bson;
 
 TEST(XsonBsonTest,String)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"String", "1234567890"s};
     TRACE(ss.str());
 
@@ -26,7 +26,7 @@ TEST(XsonBsonTest,String)
 
 TEST(XsonBsonTest,Double)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"Double", 21.12};
     TRACE(ss.str());
 
@@ -40,7 +40,7 @@ TEST(XsonBsonTest,Double)
 
 TEST(XsonBsonTest,Boolean)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{{"True", true},{"False", false}};
     TRACE(ss.str());
 
@@ -59,7 +59,7 @@ TEST(XsonBsonTest,Boolean)
 TEST(XsonBsonTest,Date2String)
 {
     auto now = system_clock::now();
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"Date", now};
     TRACE(ss.str());
 
@@ -73,7 +73,7 @@ TEST(XsonBsonTest,Date2String)
 
 TEST(XsonBsonTest,Null)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{"Null", nullptr};
     TRACE(ss.str());
 
@@ -81,15 +81,16 @@ TEST(XsonBsonTest,Null)
     TRACE(ob);
 
     ASSERT_EQ(type::null, ob["Null"s].type());
+
     string n = ob["Null"s];
     ASSERT_EQ("null"s, n);
 }
 
 TEST(XsonBsonTest,Int32)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{
-        {"Zero", int32_t{0}},
+        {"Zero", 0},
         {"Min", numeric_limits<int>::min()},
         {"Max", numeric_limits<int>::max()}
     };
@@ -113,7 +114,7 @@ TEST(XsonBsonTest,Int32)
 
 TEST(XsonBsonTest,Int64)
 {
-    stringstream ss;
+    auto ss = stringstream{};
     ss << bson::object{
         {"Zero", int64_t{0}},
         {"Min", numeric_limits<long long>::min()},
@@ -179,7 +180,7 @@ TEST(XsonBsonTest,Vector)
 
 TEST(XsonBsonTest,Complex)
 {
-    xson::object mix
+    auto mix = xson::object
     {
         { "Ruoka",  true                     },
         { "Onni",   false                    },
@@ -189,7 +190,7 @@ TEST(XsonBsonTest,Complex)
         { "Ages",   vector<int>{39,40,9,5,2} }
     };
 
-    stringstream ss;
+    auto ss = stringstream{};
     ss << mix;
     TRACE(ss.str());
 
@@ -213,8 +214,7 @@ TEST(XsonBsonTest,Complex)
 
 TEST(XsonJsonTest,ParseFile)
 {
-    using namespace bson;
-    ifstream fs{"./test/xson/test3.bson"};
+    auto fs = ifstream{"./test/xson/test3.bson"};
     while(fs && !fs.eof())
     {
         auto ob = bson::parse(fs);

@@ -3,7 +3,8 @@
 #include "xson/object.hpp"
 #include "xson/trace.hpp"
 
-namespace xson::bson {
+namespace xson::bson
+{
 
 std::istream& operator >> (std::istream& os, object& ob);
 
@@ -30,7 +31,7 @@ private:
 template <typename T>
 inline int32_type decoder::decode(object& ob)
 {
-    T val;
+    auto val = T{};
     m_is.read(reinterpret_cast<char*>(&val), sizeof(val));
     ob.value(val);
     TRACE("val: "  << ob.value() << "; size: " << sizeof(val));
@@ -41,7 +42,7 @@ template<>
 inline int32_type decoder::decode<std::chrono::system_clock::time_point>(object& ob)
 {
     using namespace std::chrono;
-    int64_type val1;
+    auto val1 = int64_type{};
     m_is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
     const auto val2 = system_clock::time_point{milliseconds{val1}};
     ob.value(val2);
@@ -52,7 +53,7 @@ inline int32_type decoder::decode<std::chrono::system_clock::time_point>(object&
 template<>
 inline int32_type decoder::decode<std::nullptr_t>(object& ob)
 {
-    std::nullptr_t val;
+    auto val = nullptr;
     ob.value(val);
     TRACE("val: "  << ob.value() << "; size: " << 0);
     return 0;
@@ -61,11 +62,11 @@ inline int32_type decoder::decode<std::nullptr_t>(object& ob)
 template<>
 inline int32_type decoder::decode<std::string>(object& ob)
 {
-    int32_type bytes;
+    auto bytes = int32_type{0};    
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     const auto length = sizeof(bytes) + bytes;
 
-    std::string val;
+    auto val = std::string{};
     while(--bytes)
         val += m_is.get();
 
@@ -80,7 +81,7 @@ inline int32_type decoder::decode<std::string>(object& ob)
 
 inline int32_type decoder::decode(object& parent)
 {
-    int32_type bytes;
+    auto bytes = int32_type{0};
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     const auto length = bytes;
     bytes -= sizeof(bytes);
@@ -90,13 +91,13 @@ inline int32_type decoder::decode(object& parent)
 
     while(bytes > 1)
     {
-        xson::type type;
+        auto type = xson::type{};
         m_is.read(reinterpret_cast<char*>(&type), sizeof(type));
         --bytes;
 
         TRACE("type: " << type);
 
-        std::string name;
+        auto name = std::string{};
         std::getline(m_is, name, '\x00');
         bytes -= name.size();
         --bytes;

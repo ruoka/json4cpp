@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include "xson/object.hpp"
 #include "xson/fast/decoder.hpp"
 
@@ -49,22 +50,21 @@ public:
 
     void decode(object& parent)
     {
-        std::uint8_t byte;
-        decode(byte);
+        auto type = xson::type{};
+        decode(type);
 
-        while(byte != xson::eod && m_is)
+        while(type != type::eod && m_is)
         {
-            xson::type type = static_cast<xson::type>(byte);
-            std::string name;
+            auto name = ""s;
             decode(name);
             auto& child = parent[name];
 
-            std::int32_t i32;
-            std::int64_t i64;
-            double d;
-            std::string str;
-            bool b;
-            std::chrono::system_clock::time_point tp;
+            auto i32 = 0;
+            auto i64 = 0ll;
+            auto d = 0.0;
+            auto str = ""s;
+            auto b = false;
+            auto tp = std::chrono::system_clock::time_point{};
 
             switch(type)
             {
@@ -107,9 +107,13 @@ public:
                 case type::null:
                 child.value(nullptr);
                 break;
+
+                case type::eod:
+                assert(false);
+                break;
             }
 
-            decode(byte);
+            decode(type);
         }
     }
 

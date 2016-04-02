@@ -29,10 +29,10 @@ using int32_type = std::int32_t;                            // \x10
 //using timestamp_type = timestamp;                         // \x11
 using int64_type = std::int64_t;                            // \x12
 
-const std::uint8_t eod    = '\x00';
-
 enum class type : std::uint8_t
 {
+    eod                   = '\x00',
+
     // json types
     number                = '\x01',
     string                = '\x02',
