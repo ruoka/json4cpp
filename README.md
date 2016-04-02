@@ -52,7 +52,7 @@ using namespace json;
 
 [...]
 
-auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]"s};
+auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s};
 
 clog << ss.str() << "\n";
 
