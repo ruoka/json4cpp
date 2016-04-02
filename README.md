@@ -53,7 +53,7 @@ using namespace json;
 [...]
 
 auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]"s};
-    
+
 clog << ss.str() << "\n";
 
 auto result = json::parse(ss);
@@ -70,4 +70,28 @@ clog << "_id =            " << result["_id"s]               << "\n"
 int id = result["_id"s];
 string name = result["Name"s];
 double number = result["Lucky Numbers"s][1];
+```
+
+##Syslog Stream Example
+
+```cpp
+#include "net/syslogstream.hpp"
+
+[...]
+
+slog.level(syslog::severity::info);
+slog.facility(syslog::facility::local0);
+slog.tag("example");
+
+auto clothes = "shirts"s; auto spouse = "wife"; auto wrong = false;
+
+slog << debug   << "... " << 3 << ' ' << 2 << ' ' << 1 << " Liftoff" << flush;
+
+slog << info    << "The papers want to know whose " << clothes << " you wear..." << flush;
+
+slog << notice  << "Tell my " << spouse << " I love her very much!" << flush;
+
+slog << warning << "Ground Control to Major Tom Your circuit's dead, there's something " << boolalpha << wrong << '?' << flush;
+
+slog << error   << "Planet Earth is blue and there's nothing I can do." << flush;
 ```
