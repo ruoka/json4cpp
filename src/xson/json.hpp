@@ -15,10 +15,10 @@ inline object parse(std::istream& is)
     return std::move(ob);
 }
 
-inline std::string stringify(const object& ob)
+inline std::string stringify(const object& ob, unsigned indent = 2)
 {
     auto ss = std::stringstream{};
-    encoder{ss}.encode(ob);
+    encoder{ss,indent}.encode(ob);
     return ss.str();
 }
 
