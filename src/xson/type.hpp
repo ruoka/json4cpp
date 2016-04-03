@@ -121,18 +121,26 @@ template <> struct is_value<std::chrono::system_clock::time_point> : std::true_t
 
 template <> struct is_value<std::nullptr_t> : std::true_type {};
 
+
 template <typename T> struct is_value_array : std::false_type {};
 
-template <typename T, std::size_t N> struct is_value_array<std::array<T,N>> : is_value<T> {};
+template <typename T> struct is_value_array<std::initializer_list<T>> : is_value<T> {};
 
 template <typename T> struct is_value_array<std::vector<T>> : is_value<T> {};
 
+template <typename T, std::size_t N> struct is_value_array<std::array<T,N>> : is_value<T> {};
+
 template <typename T, std::size_t N> struct is_value_array<T[N]> : is_value<T> {};
 
+
 template <typename T> struct is_object_array : std::false_type {};
+
+template <> struct is_object_array<std::initializer_list<object>> : std::true_type {};
 
 template <> struct is_object_array<std::vector<object>> : std::true_type {};
 
 template <std::size_t N> struct is_object_array<std::array<object,N>> : std::true_type {};
+
+template <std::size_t N> struct is_object_array<object[N]> : std::true_type {};;
 
 } // namespace xson

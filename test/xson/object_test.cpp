@@ -275,3 +275,38 @@ TEST(XsonObjectTest,Plus)
     ASSERT_EQ(static_cast<int>(ob4["array"s][3]),  5);
     ASSERT_EQ(static_cast<int>(ob4["array"s][4]),  2);
 }
+
+TEST(XsonObjectTest,InitializerList1)
+{
+    auto ob = object
+    {
+        "List", {1, 2, 3, 4, 5}
+    };
+    TRACE(ob);
+    clog << ob << endl;
+    ASSERT_EQ(type::array, ob["List"s].type());
+    ASSERT_EQ(type::int32, ob["List"s][0].type());
+    ASSERT_EQ(type::int32, ob["List"s][1].type());
+    ASSERT_EQ(type::int32, ob["List"s][2].type());
+    ASSERT_EQ(type::int32, ob["List"s][3].type());
+    ASSERT_EQ(type::int32, ob["List"s][4].type());
+}
+
+TEST(XsonObjectTest,InitializerList2)
+{
+    auto ob = object
+    {
+        "List", {{"A"s,1},{"B"s,2},{"C"s,3},{"D"s,4}}
+    };
+    clog << ob << endl;
+    TRACE(ob);
+    ASSERT_EQ(type::array, ob["List"s].type());
+    ASSERT_EQ(type::object, ob["List"s][0].type());
+    ASSERT_EQ(type::object, ob["List"s][1].type());
+    ASSERT_EQ(type::object, ob["List"s][2].type());
+    ASSERT_EQ(type::object, ob["List"s][3].type());
+    ASSERT_EQ(type::int32, ob["List"s][0]["A"s].type());
+    ASSERT_EQ(type::int32, ob["List"s][1]["B"s].type());
+    ASSERT_EQ(type::int32, ob["List"s][2]["C"s].type());
+    ASSERT_EQ(type::int32, ob["List"s][3]["D"s].type());
+}
