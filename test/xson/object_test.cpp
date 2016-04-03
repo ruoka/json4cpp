@@ -310,3 +310,16 @@ TEST(XsonObjectTest,InitializerList2)
     ASSERT_EQ(type::int32, ob["List"s][2]["C"s].type());
     ASSERT_EQ(type::int32, ob["List"s][3]["D"s].type());
 }
+
+TEST(XsonObjectTest,InitializerList3)
+{
+    auto ob = object
+    {
+        {"_id",  987654321},
+        {"object", {{"A"s,1},{"B"s,2},{"C"s,3},{"D"s,4}}},
+        {"array",  {1, 2, 3, 4, 5}},
+        {"bool", true},
+        {"name", "Hepokatti Maantiella"s}
+    };
+    clog << ob << endl;
+}
