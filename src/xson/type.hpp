@@ -105,6 +105,11 @@ template <> constexpr type to_type(const long long&)
     return type::int64;
 }
 
+template <typename T> struct is_object : std::false_type {};
+
+template <> struct is_object<object> : std::true_type {};
+
+
 template <typename T> struct is_value : std::false_type {};
 
 template <> struct is_value<std::int32_t> : std::true_type {};

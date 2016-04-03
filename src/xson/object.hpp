@@ -17,10 +17,14 @@ public:
     object() : m_type{type::object}, m_value{}, m_objects{}
     {}
 
-    template <typename T>
-    object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) :
+    template <typename T,
+              typename = std::enable_if_t<!is_object<T>::value       &&
+                                          !is_value_array<T>::value  &&
+                                          !is_object_array<T>::value >>
+    object(const std::string& name, const T& value) :
     object{}
     {
+        static_assert(is_value<T>::value, "Invalid type!");
         m_objects[name].value(value);
     }
 
