@@ -18,13 +18,15 @@ public:
     {}
 
     template <typename T>
-    object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) : object()
+    object(const std::enable_if_t<is_value<T>::value,std::string>& name, const T& value) :
+    object{}
     {
         m_objects[name].value(value);
     }
 
     template <typename T>
-    object(const std::enable_if_t<is_value_array<T>::value,std::string>& name, const T& array) : object()
+    object(const std::enable_if_t<is_value_array<T>::value,std::string>& name, const T& array) :
+    object{}
     {
         auto& parent = m_objects[name];
         auto idx = std::size_t{0};
@@ -36,13 +38,15 @@ public:
         parent.type(type::array);
     }
 
-    object(const std::string& name, const object& obj) : object()
+    object(const std::string& name, const object& obj) :
+        object{}
     {
         m_objects[name] = obj;
     }
 
     template <typename T>
-    object(const std::enable_if_t<is_object_array<T>::value,std::string>& name, const T& array) : object()
+    object(const std::enable_if_t<is_object_array<T>::value,std::string>& name, const T& array) :
+    object{}
     {
         auto& parent = m_objects[name];
         auto idx = std::size_t{0};
@@ -54,11 +58,21 @@ public:
         parent.type(type::array);
     }
 
-    object(std::initializer_list<object> il) : object()
+    object(std::initializer_list<object> il) :
+    object{}
     {
         for(const auto& i : il)
             m_objects.insert(i.cbegin(), i.cend());
     }
+
+    template <typename T>
+    object(const std::enable_if_t<is_value<T>::value,std::string>& name, std::initializer_list<T> array) :
+    object{name, std::vector<T>{array}}
+    {}
+
+    object(const std::string& name, std::initializer_list<object> array) :
+        object{name, std::vector<object>{array}}
+    {}
 
     object(const object& ob) :
     m_value{ob.m_value}, m_type{ob.m_type}, m_objects{ob.m_objects}
