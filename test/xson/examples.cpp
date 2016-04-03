@@ -17,7 +17,7 @@ TEST(Examples,Stringify)
         { "Name"s, "Jalppu"s }
     };
 
-    auto measures = object
+    auto sizes = object
     {
         { "Height"s,   200   },
         { "Waist"s,    120.5 },
@@ -26,12 +26,12 @@ TEST(Examples,Stringify)
 
     auto papa = object
     {
-        { "Name",         "Cool Papa"s             },
-        { "Age",          39                       },
-        { "Kids",         kids                     },
-        { "Measures",     measures                 },
-        { "LuckyNumbers", vector<int>{2, 22, 2112} },
-        { "Lucky",        false                    }
+        { "Name",         "Papa"s       },
+        { "Age",          40            },
+        { "Kids",         kids          },
+        { "Measures",     sizes         },
+        { "LuckyNumbers", {2, 22, 2112} },
+        { "Lucky",        false         }
     };
 
     clog << json::stringify(papa) << endl;
