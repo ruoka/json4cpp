@@ -2,7 +2,7 @@
 
 #include <initializer_list>
 #include <map>
-#include "std/utility.hpp"
+#include "std/extension.hpp"
 #include "xson/type.hpp"
 
 namespace xson {
@@ -13,6 +13,8 @@ using namespace std::chrono_literals;
 class object
 {
 public:
+
+    using const_iterator = std::map<std::string,object>::const_iterator;
 
     object() : m_type{type::object}, m_value{}, m_objects{}
     {}
@@ -42,8 +44,13 @@ public:
         parent.type(type::array);
     }
 
+    template <typename T>
+    object(const std::enable_if_t<is_value<T>::value,std::string>& name, std::initializer_list<T> array) :
+    object{name, std::vector<T>{array}}
+    {}
+
     object(const std::string& name, const object& obj) :
-        object{}
+    object{}
     {
         m_objects[name] = obj;
     }
@@ -62,21 +69,16 @@ public:
         parent.type(type::array);
     }
 
+    object(const std::string& name, std::initializer_list<object> array) :
+    object{name, std::vector<object>{array}}
+    {}
+
     object(std::initializer_list<object> il) :
     object{}
     {
         for(const auto& i : il)
             m_objects.insert(i.cbegin(), i.cend());
     }
-
-    template <typename T>
-    object(const std::enable_if_t<is_value<T>::value,std::string>& name, std::initializer_list<T> array) :
-    object{name, std::vector<T>{array}}
-    {}
-
-    object(const std::string& name, std::initializer_list<object> array) :
-        object{name, std::vector<object>{array}}
-    {}
 
     object(const object& ob) :
     m_value{ob.m_value}, m_type{ob.m_type}, m_objects{ob.m_objects}
@@ -177,22 +179,22 @@ public:
         return m_objects.count(name) > 0;
     }
 
-    std::map<std::string,object>::const_iterator begin() const
+    const_iterator begin() const
     {
         return m_objects.cbegin();
     }
 
-    std::map<std::string,object>::const_iterator end() const
+    const_iterator end() const
     {
         return m_objects.cend();
     }
 
-    std::map<std::string,object>::const_iterator cbegin() const
+    const_iterator cbegin() const
     {
         return m_objects.cbegin();
     }
 
-    std::map<std::string,object>::const_iterator cend() const
+    const_iterator cend() const
     {
         return m_objects.cend();
     }
