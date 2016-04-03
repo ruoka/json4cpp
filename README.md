@@ -29,12 +29,12 @@ auto sizes = object
 
 auto papa = object
 {
-    { "Name",         "Papa"s                  },
-    { "Age",          40                       },
-    { "Kids",         kids                     },
-    { "Measures",     sizes                    },
-    { "LuckyNumbers", vector<int>{2, 22, 2112} },
-    { "Lucky",        false                    }
+    { "Name",         "Papa"s       },
+    { "Age",          40            },
+    { "Kids",         kids          },
+    { "Measures",     sizes         },
+    { "LuckyNumbers", {2, 22, 2112} },
+    { "Lucky",        false         }
 };
 
 clog << json::stringify(papa) << endl;
