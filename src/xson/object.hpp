@@ -145,6 +145,7 @@ public:
 
     object& operator [] (std::size_t idx)
     {
+        type(type::array);
         return m_objects[std::to_string(idx)];
     }
 

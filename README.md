@@ -1,6 +1,26 @@
 # json4cpp
 JSON Library for C++14
 
+## JSON Object ##
+```cpp
+#include "xson/json.hpp"
+
+using namespace xson;
+
+[...]
+
+auto document = object{};
+
+document["papa"s]["name"s] = "Cool"s;
+document["papa"s]["age"s] = 40;
+document["papa"s]["married"s] = false;
+document["papa"s]["kids"s][1] = {"Name"s,"Tulppu"s};
+document["papa"s]["kids"s][2] = {"Name"s,"Elppu"s};
+document["papa"s]["kids"s][3] = {"Name"s,"Jalppu"s};
+
+clog << json::stringify(document) << endl;
+```
+
 ## JSON/BSON Object ##
 ```cpp
 #include <vector>
