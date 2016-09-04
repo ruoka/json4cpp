@@ -22,21 +22,21 @@ public:
 
 private:
 
-    void decode_string(object& ob)
+    void decode_string(object& obj)
     {
         auto next = u8' ';
         auto value = ""s;
-        m_is >> next;               // "
-        getline(m_is, value, '\"'); // value"
-        ob.value(value);
+        m_is >> next;                 // "
+        getline(m_is, value, u8'\"'); // value"
+        obj.value(value);
     }
 
-    void decode_value(object& ob)
+    void decode_value(object& obj)
     {
         auto next = u8' ';
         auto value = ""s;
         m_is >> next;
-        while (next != ',' && next != '}' && next != ']')
+        while (next != u8',' && next != u8'}' && next != u8']')
         {
             value += next;
             m_is >> next;
@@ -45,24 +45,24 @@ private:
 
         try
         {
-            if(value.find('.') != std::string::npos)
-                ob.value(std::stod(value));
+            if(value.find(u8'.') != std::string::npos)
+                obj.value(std::stod(value));
             else if(value == "true")
-                ob.value(true);
+                obj.value(true);
             else if(value == "false")
-                ob.value(false);
+                obj.value(false);
             else if(value == "null")
-                ob.value(nullptr);
+                obj.value(nullptr);
             else
-                ob.value(std::stoi(value));
+                obj.value(std::stoi(value));
         }
         catch(const std::out_of_range&)
         {
-            ob.value(std::stoll(value));
+            obj.value(std::stoll(value));
         }
         catch(const std::invalid_argument&)
         {
-            ob.value(value);
+            obj.value(value);
         }
     }
 
@@ -72,24 +72,24 @@ private:
         auto next = u8' ';
         m_is >> next; // [
 
-        while(next != ']' && m_is)
+        while(next != u8']' && m_is)
         {
             const auto name = std::to_string(idx++);
             auto& child = parent[name];
             m_is >> std::ws;
             next = m_is.peek();
 
-            if (next == '{')
+            if (next == u8'{')
             {
                 decode_document(child);
                 m_is >> next; // , or ]
             }
-            else if (next == '[')
+            else if (next == u8'[')
             {
                 decode_array(child);
                 m_is >> next; // , or ]
             }
-            else if (next == '\"')
+            else if (next == u8'\"')
             {
                 decode_string(child);
                 m_is >> next; // , or ]
@@ -108,29 +108,29 @@ private:
         auto next = u8' ';
         m_is >> next; // {
 
-        while(next != '}' && m_is)
+        while(next != u8'}' && m_is)
         {
             auto name = ""s;
-            m_is >> std::ws >> next; // "
-            getline(m_is, name, '\"'); // name"
-            m_is >> next; // :
+            m_is >> std::ws >> next;     // "
+            getline(m_is, name, u8'\"'); // name"
+            m_is >> next;                // :
 
             auto& child = parent[name];
 
             m_is >> std::ws;
             next = m_is.peek();
 
-            if(next == '{')
+            if(next == u8'{')
             {
                 decode_document(child);
                 m_is >> next; // , or }
             }
-            else if(next == '[')
+            else if(next == u8'[')
             {
                 decode_array(child);
                 m_is >> next; // , or }
             }
-            else if(next == '\"')
+            else if(next == u8'\"')
             {
                 decode_string(child);
                 m_is >> next; // , or }
@@ -147,9 +147,9 @@ private:
     std::istream& m_is;
 };
 
-inline std::istream& operator >> (std::istream& is, object& ob)
+inline std::istream& operator >> (std::istream& is, object& obj)
 {
-    decoder{is}.decode(ob);
+    decoder{is}.decode(obj);
     return is;
 }
 

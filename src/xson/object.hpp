@@ -61,17 +61,13 @@ public:
     {
         auto& parent = m_objects[name];
         auto idx = std::size_t{0};
-        for(const auto& ob : array)
+        for(const auto& obj : array)
         {
-            parent.m_objects[std::to_string(idx)] = ob;
+            parent.m_objects[std::to_string(idx)] = obj;
             ++idx;
         }
         parent.type(type::array);
     }
-
-    object(const std::string& name, std::initializer_list<object> array) :
-    object{name, std::vector<object>{array}}
-    {}
 
     object(std::initializer_list<object> il) :
     object{}
@@ -80,23 +76,34 @@ public:
             m_objects.insert(i.cbegin(), i.cend());
     }
 
-    object(const object& ob) :
-    m_value{ob.m_value}, m_type{ob.m_type}, m_objects{ob.m_objects}
+    object(const object& obj) :
+    m_value{obj.m_value}, m_type{obj.m_type}, m_objects{obj.m_objects}
     {}
 
-    object(object&& ob) :
-    m_value{std::move(ob.m_value)}, m_type{ob.m_type}, m_objects{std::move(ob.m_objects)}
+    object(object&& obj) :
+    m_value{std::move(obj.m_value)}, m_type{obj.m_type}, m_objects{std::move(obj.m_objects)}
     {}
 
-    object& operator = (const object& ob)
+    object& operator = (const object& obj)
     {
-        m_value= ob.m_value; m_type = ob.m_type; m_objects = ob.m_objects;
+        m_value= obj.m_value; m_type = obj.m_type; m_objects = obj.m_objects;
         return *this;
     }
 
-    object& operator = (object&& ob)
+    object& operator = (object&& obj)
     {
-        m_value = std::move(ob.m_value); m_type = ob.m_type; m_objects = std::move(ob.m_objects);
+        m_value = std::move(obj.m_value); m_type = obj.m_type; m_objects = std::move(obj.m_objects);
+        return *this;
+    }
+
+    template <typename T,
+              typename = std::enable_if_t<!is_object<T>::value       &&
+                                          !is_value_array<T>::value  &&
+                                          !is_object_array<T>::value >>
+    object& operator = (const T& val)
+    {
+        static_assert(is_value<T>::value, "Invalid type!");
+        value(val);
         return *this;
     }
 
@@ -118,6 +125,7 @@ public:
     template <typename T>
     const T& value(const T& value)
     {
+        static_assert(is_value<T>::value, "Invalid type!");
         m_type = xson::to_type(value);
         m_value = std::to_string(value);
         return value;
@@ -128,9 +136,24 @@ public:
         return m_objects[name];
     }
 
+    const object& operator [] (const std::string& name) const
+    {
+        if(!m_objects.count(name))
+            throw std::out_of_range("object has no element with name "s + name);
+        return m_objects.find(name)->second;
+    }
+
     object& operator [] (std::size_t idx)
     {
         return m_objects[std::to_string(idx)];
+    }
+
+    const object& operator [] (std::size_t idx) const
+    {
+        const auto name = std::to_string(idx);
+        if(!m_objects.count(name))
+            throw std::out_of_range("array has no index "s + name);
+        return m_objects.find(name)->second;
     }
 
     operator std::string () const
@@ -163,20 +186,76 @@ public:
         return std::stotp(m_value);
     }
 
-    object& operator + (const object& obj)
+    operator std::vector<std::string> () const
     {
-        m_objects.insert(obj.cbegin(), obj.cend());
+        auto values = std::vector<std::string>{};
+        for(const auto& obj : m_objects)
+            values.push_back(obj.second);
+        return values;
+    }
+
+    object& operator + (object&& obj)
+    {
+        if(m_type == type::object)
+            m_objects.insert(obj.cbegin(), obj.cend());
+        else if(m_type == type::array)
+            m_objects[std::to_string(m_objects.size())] = obj;
         return *this;
+    }
+
+    object& operator += (object&& obj)
+    {
+        *this = *this + std::move(obj);
+        return *this;
+    }
+
+    bool has_value () const
+    {
+        return !m_value.empty();
     }
 
     bool empty () const
     {
-        return m_objects.empty();
+        return m_value.empty() && m_objects.empty();
     }
 
     bool has(const std::string& name) const
     {
         return m_objects.count(name) > 0;
+    }
+
+    bool match(const object& subset) const
+    {
+        if(subset.empty())
+            return true;
+        if(subset.type() == type::object || subset.type() == type::array)
+        {
+            auto lf = m_objects.cbegin();
+            auto ll = m_objects.cend();
+            auto rf = subset.m_objects.cbegin();
+            auto rl = subset.m_objects.cend();
+            while(lf != ll && rf != rl)
+            {
+                if(lf->first < rf->first)
+                    ++lf;
+                else if(lf->first > rf->first)
+                    return false;
+                else if(lf->second.match(rf->second)) {
+                    ++lf;
+                    ++rf;
+                }
+                else
+                    return false;
+            }
+            return rf == rl;
+        }
+        else
+            return value() == subset.value();
+    }
+
+    std::size_t size() const
+    {
+        return m_objects.size();
     }
 
     const_iterator begin() const

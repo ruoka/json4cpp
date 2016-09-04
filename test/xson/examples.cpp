@@ -2,7 +2,6 @@
 #include <fstream>
 #include <gtest/gtest.h>
 #include "xson/json.hpp"
-#include "xson/bson.hpp"
 
 using namespace std;
 using namespace string_literals;
@@ -35,14 +34,27 @@ TEST(Examples,Stringify)
     };
 
     clog << json::stringify(papa) << endl;
-
-    clog << bson::stringify(papa) << endl;
 }
 
 TEST(Examples,Parse)
 {
     using namespace json;
-    auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s};
+
+    auto ss = stringstream{R"(
+        {
+            "_id" : 2,
+            "Name" : "Ruoka",
+            "Embedded" : {
+                "_id" : 5,
+                "Name" : "Tuma"
+            },
+            "Lucky Numbers" : [
+                2,
+                22,
+                2112
+            ]
+        }
+    )"};
 
     clog << ss.str() << "\n\n";
 
@@ -62,14 +74,4 @@ TEST(Examples,Parse)
     string name = result["Name"s];
 
     double number = result["Lucky Numbers"s][1];
-}
-
-TEST(Examples,BsonDump)
-{
-    ifstream fs{"./test/xson/test3.bson"};
-    while(fs && !fs.eof())
-    {
-        clog << json::stringify(bson::parse(fs), 4) << endl;
-        fs >> ws;
-    }
 }
