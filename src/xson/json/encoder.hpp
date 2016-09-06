@@ -4,8 +4,6 @@
 
 namespace xson::json {
 
-std::ostream& operator << (std::ostream& os, const object& ob);
-
 class encoder
 {
 public:
