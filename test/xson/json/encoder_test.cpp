@@ -17,6 +17,9 @@ TEST(XsonJsonEncoderTest, Ostream)
         { "Elppu",  2.0                      },
         { "Jalppu", 3.0                      },
         { "Ages",   vector<int>{39,40,9,5,2} },
+        { "EmptyV", vector<int>{}            },
+        { "EmptyO", object{}                 },
+        { "Null",   nullptr                  },
         { "Now",    system_clock::now()      }
     };
 
