@@ -4,6 +4,8 @@
 
 namespace xson::json {
 
+std::ostream& operator << (std::ostream& os, const object& ob);
+
 class encoder
 {
 public:
@@ -18,22 +20,21 @@ public:
             m_os << m_pretty('{');
             for(auto it = ob.cbegin(); it != ob.cend(); ++it)
             {
-                if (it != ob.cbegin()) m_os << ',';
-                m_os << m_pretty << '\"' << it->first << '\"' << m_pretty(':');
+                if(it == ob.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
+                m_os << '\"' << it->first << '\"' << m_pretty(':');
                 encode(it->second);
             }
-            m_os << m_pretty('}');
+            m_os << m_pretty('}', ob.empty());
         }
         else if(ob.type() == type::array)
         {
             m_os << m_pretty('[');
             for(auto it = ob.cbegin(); it != ob.cend(); ++it)
             {
-                if (it != ob.cbegin()) m_os << ',';
-                m_os << m_pretty;
+                if(it == ob.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
                 encode(it->second);
             }
-            m_os << m_pretty(']');
+            m_os << m_pretty(']', ob.empty());
         }
         else if(ob.value().empty())
             m_os << "null";
@@ -52,13 +53,24 @@ private:
         prettyprint(std::streamsize indent) : m_indent{indent}, m_level{0}
         {}
 
-        std::string operator () (char c)
+        std::string operator () ()
         {
             if(!m_indent)
-                return std::string{c};
+                return ""s;
+            else
+                return "\n"s + m_pretty;
+        }
+
+        std::string operator () (char c, bool empty = false)
+        {
+            if(!m_indent)
+                return ""s;
 
             if(c == ':')
-                return std::string{" : "};
+                return " : "s;
+
+            if(c == ',')
+                return  ",\n"s + m_pretty;
 
             if(c == '{' || c == '[')
                 ++m_level;
@@ -66,12 +78,12 @@ private:
             if(c == '}' || c == ']')
                 --m_level;
 
-            m_pretty = "\n"s + std::string(m_level * m_indent, ' ');
+            m_pretty = std::string(m_level * m_indent, ' ');
 
-            if (c == '}' || c == ']')
-                return m_pretty + std::string{c};
-            else
-                return std::string{c};
+            if(!empty && (c == '}' || c == ']'))
+                return  "\n"s + m_pretty + c;
+
+            return std::string{c};
         }
 
         friend std::ostream& operator << (std::ostream& os, const prettyprint& p)
