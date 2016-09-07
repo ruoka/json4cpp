@@ -4,16 +4,15 @@
 
 namespace xson::json {
 
-using namespace std;
 using namespace std::string_literals;
 
-istream& operator >> (istream& os, object& ob);
+std::istream& operator >> (std::istream& os, object& ob);
 
 class decoder
 {
 public:
 
-    decoder(istream& is) : m_is{is}
+    decoder(std::istream& is) : m_is{is}
     {}
 
     void decode(object& ob)
@@ -46,7 +45,7 @@ private:
 
         try
         {
-            if(value.find(u8'.') != string::npos)
+            if(value.find(u8'.') != std::string::npos)
                 obj = stod(value);
             else if(value == "true")
                 obj = true;
@@ -57,11 +56,11 @@ private:
             else
                 obj = stoi(value);
         }
-        catch(const out_of_range&)
+        catch(const std::out_of_range&)
         {
             obj = stoll(value);
         }
-        catch(const invalid_argument&)
+        catch(const std::invalid_argument&)
         {
             obj = value;
         }
@@ -74,12 +73,12 @@ private:
         m_is >> next;                         // [
         while(next != u8']' && m_is)
         {
-            m_is >> ws;
+            m_is >> std::ws;
             next = m_is.peek();               // ], {, [, " or empty
             if(next != u8']')
             {
                 object& child = parent[idx++];
-                m_is >> ws;
+                m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
                 if (next == u8'{')
                     decode_document(child);
@@ -101,7 +100,7 @@ private:
         m_is >> next;                         // {
         while(next != u8'}' && m_is)
         {
-            m_is >> ws;
+            m_is >> std::ws;
             next = m_is.peek();               // } or "
             if(next != u8'}')
             {
@@ -110,7 +109,7 @@ private:
                 getline(m_is, name, u8'\"');  // name"
                 m_is >> next;                 // :
                 object& child = parent[name];
-                m_is >> ws;
+                m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
                 if(next == u8'{')
                     decode_document(child);
@@ -126,10 +125,10 @@ private:
         parent.type(type::object);
     }
 
-    istream& m_is;
+    std::istream& m_is;
 };
 
-inline istream& operator >> (istream& is, object& obj)
+inline std::istream& operator >> (std::istream& is, object& obj)
 {
     decoder{is}.decode(obj);
     return is;
