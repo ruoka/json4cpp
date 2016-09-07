@@ -163,31 +163,43 @@ public:
 
     operator int () const
     {
+        if(m_type != type::int32 && m_type != type::number)
+            throw std::logic_error("object type has to be int32");
         return std::stoi(m_value);
     }
 
     operator long long () const
     {
+        if(m_type != type::int32 && m_type != type::int64 && m_type != type::number)
+            throw std::logic_error("object type has to be int64");
         return std::stol(m_value);;
     }
 
     operator double () const
     {
+        if(m_type != type::number && m_type != type::int32 && m_type != type::int64)
+            throw std::logic_error("object type has to be double");
         return std::stod(m_value);;
     }
 
     operator bool () const
     {
+        if(m_type != type::boolean)
+            throw std::logic_error("object type has to be an boolean");
         return std::stob(m_value);
     }
 
     operator std::chrono::system_clock::time_point () const
     {
+        if(m_type != type::date)
+            throw std::logic_error("object type has to be date");
         return std::stotp(m_value);
     }
 
     operator std::vector<std::string> () const
     {
+        if(m_type != type::array)
+            throw std::logic_error("object type has to be array");
         auto values = std::vector<std::string>{};
         for(const auto& obj : m_objects)
             values.push_back(obj.second);

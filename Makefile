@@ -17,9 +17,9 @@ GTESTDIR = ../googletest/googletest
 GTESTLIB = $(GTESTDIR)/make/gtest_main.a
 
 
-TARGETS = $(addprefix $(BINDIR)/, yarestdb shell)
+#TARGETS = $(addprefix $(BINDIR)/, )
 
-MAINS	= $(TARGETS:$(BINDIR)/%=$(SRCDIR)/%.cpp)
+#MAINS	= $(TARGETS:$(BINDIR)/%=$(SRCDIR)/%.cpp)
 
 SOURCES = $(filter-out $(MAINS), $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*/*.cpp $(SRCDIR)/*/*/*.cpp))
 
@@ -52,7 +52,7 @@ $(GTEST_TARGET): $(OBJECTS) $(GTEST_OBJECTS)
 DEPENDENCIES = $(MAINS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.d) $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.d) $(GTEST_SOURCES:$(TESTDIR)/%.cpp=$(OBJDIR)/%.d)
 
 .PHONY: all
-all: $(TARGETS)
+all: $(TARGETS) $(GTEST_TARGET)
 
 .PHONY: clean
 clean:
@@ -60,7 +60,7 @@ clean:
 	@rm -rf $(BINDIR)
 
 .PHONY: test
-test: $(GTEST_TARGET)
+test: $(TARGETS) $(GTEST_TARGET)
 	$(GTEST_TARGET) --gtest_filter=-XsonJsonTest.*
 
 .PHONY: dump

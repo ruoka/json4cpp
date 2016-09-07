@@ -5,8 +5,8 @@
 #include "xson/trace.hpp"
 
 using namespace std::chrono;
-using namespace xson::json;
 using namespace xson;
+using namespace json;
 
 TEST(XsonJsonTest,String)
 {
@@ -66,7 +66,7 @@ TEST(XsonJsonTest,Date2String)
 
     ASSERT_EQ(type::string, ob["Date"s].type());
     std::string d = ob["Date"s];
-    ASSERT_EQ(std::to_string(now), d);
+    ASSERT_EQ(to_string(now), d);
 }
 
 TEST(XsonJsonTest,Null)

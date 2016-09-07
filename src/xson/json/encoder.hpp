@@ -62,7 +62,7 @@ private:
         std::string operator () (char c, bool empty = false)
         {
             if(!m_indent)
-                return ""s;
+                return std::string{c};
 
             if(c == ':')
                 return " : "s;
@@ -71,15 +71,21 @@ private:
                 return  ",\n"s + m_pretty;
 
             if(c == '{' || c == '[')
+            {
                 ++m_level;
+                m_pretty = std::string(m_level * m_indent, ' ');
+                return std::string{c};
+            }
 
             if(c == '}' || c == ']')
+            {
                 --m_level;
-
-            m_pretty = std::string(m_level * m_indent, ' ');
-
-            if(!empty && (c == '}' || c == ']'))
-                return  "\n"s + m_pretty + c;
+                m_pretty = std::string(m_level * m_indent, ' ');
+                if(!empty)
+                    return  "\n"s + m_pretty + c;
+                else
+                    return std::string{c};
+            }
 
             return std::string{c};
         }
