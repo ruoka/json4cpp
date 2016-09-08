@@ -15,9 +15,17 @@ public:
     decoder(std::istream& is) : m_is{is}
     {}
 
-    void decode(object& ob)
+    void decode(object& obj)
     {
-        decode_document(ob);
+        auto next = u8' ';
+        m_is >> std::ws;
+        next = m_is.peek();
+        if(next == u8'{')
+            decode_object(obj);
+        else if(next == u8'[')
+            decode_array(obj);
+        else
+            throw std::invalid_argument{"Invalid JSON object "s + next};
     }
 
 private:
@@ -81,7 +89,7 @@ private:
                 m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
                 if (next == u8'{')
-                    decode_document(child);
+                    decode_object(child);
                 else if (next == u8'[')
                     decode_array(child);
                 else if (next == u8'\"')
@@ -94,7 +102,7 @@ private:
         parent.type(type::array);
     }
 
-    void decode_document(object& parent)
+    void decode_object(object& parent)
     {
         auto next = u8' ';
         m_is >> next;                         // {
@@ -112,7 +120,7 @@ private:
                 m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
                 if(next == u8'{')
-                    decode_document(child);
+                    decode_object(child);
                 else if(next == u8'[')
                     decode_array(child);
                 else if(next == u8'\"')
