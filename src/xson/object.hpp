@@ -206,12 +206,27 @@ public:
         return values;
     }
 
+    object& operator + (const object& obj)
+    {
+        if(m_type == type::object)
+            m_objects.insert(obj.cbegin(), obj.cend());
+        else if(m_type == type::array)
+            m_objects[std::to_string(m_objects.size())] = obj;
+        return *this;
+    }
+
     object& operator + (object&& obj)
     {
         if(m_type == type::object)
             m_objects.insert(obj.cbegin(), obj.cend());
         else if(m_type == type::array)
             m_objects[std::to_string(m_objects.size())] = obj;
+        return *this;
+    }
+
+    object& operator += (const object& obj)
+    {
+        *this = *this + obj;
         return *this;
     }
 
