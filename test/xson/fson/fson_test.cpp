@@ -144,8 +144,7 @@ TEST(XsonFsonTest, Date)
     ASSERT_EQ(xson::type::date, o1["Test"s].type());
     ASSERT_EQ(xson::type::boolean, o1["A"s].type());
 
-    const string expected = o1["Test"s];
-    const chrono::system_clock::time_point us1 = o1["Test"s];
+    const chrono::system_clock::time_point expected = o1["Test"s];
 
     auto ss = stringstream{};
     ss << o1;
@@ -158,12 +157,10 @@ TEST(XsonFsonTest, Date)
     ASSERT_EQ(xson::type::date, o2["Test"s].type());
     ASSERT_EQ(xson::type::boolean, o2["A"s].type());
 
-    const string actual = o2["Test"s];
-    const system_clock::time_point us2 = o2["Test"s];
+    const system_clock::time_point actual = o2["Test"s];
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
-    EXPECT_EQ(expected, actual);
+    EXPECT_EQ(std::to_string(expected), std::to_string(actual));
 }
 
 TEST(XsonFsonTest, Null)

@@ -74,12 +74,10 @@ TEST(XsonBsonEncoderDecoderTest,Date)
     TRACE(result);
 
     ASSERT_EQ(type::date, result["Date1"s].type());
-    string d1 = result["Date1"s];
-    EXPECT_EQ(to_string(now), d1);
+    EXPECT_EQ(std::to_string(now), xson::to_string(result["Date1"s]));
 
     ASSERT_EQ(type::null, result["Date2"s].type());
-    string d2 = result["Date2"s];
-    EXPECT_EQ("null"s, d2);
+    EXPECT_EQ("null"s, xson::to_string(result["Date2"s]));
 }
 
 TEST(XsonBsonEncoderDecoderTest,Null)
@@ -91,8 +89,7 @@ TEST(XsonBsonEncoderDecoderTest,Null)
     TRACE(result);
 
     ASSERT_EQ(type::null, result["Null"s].type());
-    string n = result["Null"s];
-    ASSERT_EQ("null"s, n);
+    ASSERT_EQ("null"s, xson::to_string(result["Null"s]));
 }
 
 TEST(XsonBsonEncoderDecoderTest,Int32)

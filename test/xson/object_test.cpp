@@ -138,8 +138,6 @@ TEST(XsonObjectTest,BooleanTrue)
     ASSERT_EQ(type::boolean, ob["True"s].type());
     const bool b = ob["True"s];
     ASSERT_EQ(true, b);
-    const string s = ob["True"s];
-    ASSERT_EQ("true"s, s);
 }
 
 TEST(XsonObjectTest,BooleanFalse)
@@ -151,8 +149,6 @@ TEST(XsonObjectTest,BooleanFalse)
     ASSERT_EQ(type::boolean, ob["False"s].type());
     const bool b = ob["False"s];
     ASSERT_EQ(false, b);
-    const string s = ob["False"s];
-    ASSERT_EQ("false"s, s);
 }
 
 TEST(XsonObjectTest,Null)
@@ -162,8 +158,8 @@ TEST(XsonObjectTest,Null)
     ASSERT_FALSE(ob.empty());
     ASSERT_TRUE(ob.has("Null"s));
     ASSERT_EQ(type::null, ob["Null"s].type());
-    const string s = ob["Null"s];
-    ASSERT_EQ("null"s, s);
+    std::nullptr_t n = ob["Null"s];
+    ASSERT_EQ(nullptr, n);
 }
 
 TEST(XsonObjectTest,Date)
@@ -174,8 +170,6 @@ TEST(XsonObjectTest,Date)
     ASSERT_FALSE(ob.empty());
     ASSERT_TRUE(ob.has("Date"s));
     ASSERT_EQ(type::date, ob["Date"s].type());
-    const string s = ob["Date"s];
-    ASSERT_EQ(std::to_string(now), s);
     const system_clock::time_point tp = ob["Date"s];
     ASSERT_EQ(duration_cast<milliseconds>(now.time_since_epoch()), duration_cast<milliseconds>(tp.time_since_epoch()));
     ASSERT_EQ(duration_cast<milliseconds>(now.time_since_epoch()).count(), duration_cast<milliseconds>(tp.time_since_epoch()).count());
@@ -350,7 +344,7 @@ TEST(XsonObjectTest,InitializerList3)
     clog << ob << endl;
 }
 
-TEST(XsonObjectTest,HasObject)
+TEST(XsonObjectTest,Match1)
 {
     auto ob = object
     {
@@ -360,6 +354,7 @@ TEST(XsonObjectTest,HasObject)
         {"bool", true},
         {"name", "Hepokatti Maantiella"s}
     };
+    TRACE(ob);
     ASSERT_TRUE(ob.match(object{"_id", 987654321}));
     ASSERT_FALSE(ob.match(object{"XXXX", 1}));
     ASSERT_FALSE(ob.match(object{"_id", 1}));
@@ -375,7 +370,7 @@ TEST(XsonObjectTest,HasObject)
     ASSERT_TRUE(ob.match(object{"name", object{}}));
 }
 
-TEST(XsonObjectTest,HasObject2)
+TEST(XsonObjectTest,Match2)
 {
     auto ob = object
     {
@@ -383,4 +378,16 @@ TEST(XsonObjectTest,HasObject2)
     };
     ASSERT_TRUE(ob.match(object{"_id", 987654321}));
     ASSERT_FALSE(ob.match(object{{"_id", 987654321}, {"fail", 1}}));
+}
+
+TEST(XsonObjectTest,Match3)
+{
+    auto o1 = object{{u8"_id"s, 1}, {u8"A"s, 1}},
+         o2 = object{{u8"_id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}},
+         o3 = object{{u8"_id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}, {u8"C"s, 3}},
+         s = object{u8"_id"s, 1};
+
+    ASSERT_TRUE(o1.match(s));
+    ASSERT_TRUE(o2.match(s));
+    ASSERT_TRUE(o3.match(s));
 }

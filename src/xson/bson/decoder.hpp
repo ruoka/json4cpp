@@ -6,11 +6,6 @@
 namespace xson::bson
 {
 
-std::istream& operator >> (std::istream& os, object& ob);
-
-using int32_type = std::int32_t;                           // \x10
-using int64_type = std::int64_t;                           // \x12
-
 class decoder
 {
 public:
@@ -18,18 +13,18 @@ public:
     decoder(std::istream& is) : m_is{is}
     {}
 
-    int32_type decode(object& ob);
+    std::int32_t decode(object& ob);
 
 private:
 
     template <typename T>
-    int32_type decode(object& ob);
+    std::int32_t decode(object& ob);
 
     std::istream& m_is;
 };
 
 template <typename T>
-inline int32_type decoder::decode(object& ob)
+inline std::int32_t decoder::decode(object& ob)
 {
     auto val = T{};
     m_is.read(reinterpret_cast<char*>(&val), sizeof(val));
@@ -39,10 +34,10 @@ inline int32_type decoder::decode(object& ob)
 }
 
 template<>
-inline int32_type decoder::decode<std::chrono::system_clock::time_point>(object& ob)
+inline std::int32_t decoder::decode<std::chrono::system_clock::time_point>(object& ob)
 {
     using namespace std::chrono;
-    auto val1 = int64_type{};
+    auto val1 = std::int64_t{};
     m_is.read(reinterpret_cast<char*>(&val1), sizeof(val1));
     const auto val2 = system_clock::time_point{milliseconds{val1}};
     ob.value(val2);
@@ -51,7 +46,7 @@ inline int32_type decoder::decode<std::chrono::system_clock::time_point>(object&
 }
 
 template<>
-inline int32_type decoder::decode<std::nullptr_t>(object& ob)
+inline std::int32_t decoder::decode<std::nullptr_t>(object& ob)
 {
     auto val = nullptr;
     ob.value(val);
@@ -60,13 +55,13 @@ inline int32_type decoder::decode<std::nullptr_t>(object& ob)
 }
 
 template<>
-inline int32_type decoder::decode<std::string>(object& ob)
+inline std::int32_t decoder::decode<std::string>(object& ob)
 {
-    auto bytes = int32_type{0};    
+    auto bytes = std::int32_t{0};
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     const auto length = sizeof(bytes) + bytes;
 
-    auto val = std::string{};
+    auto val = std::string_t{};
     while(--bytes)
         val += m_is.get();
 
@@ -79,9 +74,9 @@ inline int32_type decoder::decode<std::string>(object& ob)
     return length;
 }
 
-inline int32_type decoder::decode(object& parent)
+inline std::int32_t decoder::decode(object& parent)
 {
-    auto bytes = int32_type{0};
+    auto bytes = std::int32_t{0};
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     const auto length = bytes;
     bytes -= sizeof(bytes);
@@ -109,10 +104,10 @@ inline int32_type decoder::decode(object& parent)
         switch(type)
         {
         case type::number:
-            bytes -= decode<double>(child);
+            bytes -= decode<std::double_t>(child);
             break;
         case type::string:
-            bytes -= decode<std::string>(child);
+            bytes -= decode<std::string_t>(child);
             break;
         case type::object:
         case type::array:
@@ -120,10 +115,10 @@ inline int32_type decoder::decode(object& parent)
             child.type(type);
             break;
         case type::boolean:
-            bytes -= decode<bool>(child);
+            bytes -= decode<std::bool_t>(child);
             break;
         case type::date:
-            bytes -= decode<std::chrono::system_clock::time_point>(child);
+            bytes -= decode<std::datetime_t>(child);
             break;
         case type::null:
             bytes -= decode<std::nullptr_t>(child);
@@ -150,7 +145,7 @@ inline int32_type decoder::decode(object& parent)
     return length;
 }
 
-inline std::istream& operator >> (std::istream& is, object& ob)
+inline auto& operator >> (std::istream& is, object& ob)
 {
     decoder{is}.decode(ob);
     return is;
