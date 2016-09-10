@@ -242,7 +242,7 @@ public:
 
     operator std::int64_t () const
     {
-        return get<long long>(m_value);
+        return get<std::int64_t >(m_value);
     }
 
     operator std::vector<std::string> () const
