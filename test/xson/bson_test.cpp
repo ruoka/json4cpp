@@ -67,8 +67,7 @@ TEST(XsonBsonTest,Date2String)
     TRACE(ob);
 
     ASSERT_EQ(type::date, ob["Date"s].type());
-    string d = ob["Date"s];
-    ASSERT_EQ(to_string(now), d);
+    ASSERT_EQ(to_string(now), xson::to_string(ob["Date"s]));
 }
 
 TEST(XsonBsonTest,Null)
@@ -82,8 +81,7 @@ TEST(XsonBsonTest,Null)
 
     ASSERT_EQ(type::null, ob["Null"s].type());
 
-    string n = ob["Null"s];
-    ASSERT_EQ("null"s, n);
+    ASSERT_EQ("null"s, xson::to_string(ob["Null"s]));
 }
 
 TEST(XsonBsonTest,Int32)

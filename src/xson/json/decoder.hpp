@@ -6,8 +6,6 @@ namespace xson::json {
 
 using namespace std::string_literals;
 
-std::istream& operator >> (std::istream& os, object& ob);
-
 class decoder
 {
 public:
@@ -60,7 +58,7 @@ private:
             else if(value == "false")
                 obj = false;
             else if(value == "null")
-                obj= nullptr;
+                obj = nullptr;
             else
                 obj = stoi(value);
         }
@@ -136,9 +134,9 @@ private:
     std::istream& m_is;
 };
 
-inline std::istream& operator >> (std::istream& is, object& obj)
+inline auto& operator >> (std::istream& is, xson::object& obj)
 {
-    decoder{is}.decode(obj);
+    xson::json::decoder{is}.decode(obj);
     return is;
 }
 

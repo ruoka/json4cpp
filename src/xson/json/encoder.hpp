@@ -4,6 +4,25 @@
 
 namespace xson::json {
 
+inline std::ostream& operator << (std::ostream& os, const xson::value& val)
+{
+    if(holds_alternative<std::double_t>(val))
+        os << get<std::double_t>(val);
+    else if(holds_alternative<std::string_t>(val))
+        os << '"' << get<std::string_t>(val) << '"';
+    else if(holds_alternative<std::bool_t>(val))
+        os << std::boolalpha << get<std::bool_t>(val);
+    else if(holds_alternative<std::datetime_t>(val))
+        os << '"' << to_string(get<std::datetime_t>(val)) << '"';
+    else if(holds_alternative<std::nullptr_t>(val))
+        os << "null";
+    else if(holds_alternative<std::int32_t>(val))
+        os << get<std::int32_t>(val);
+    else if(holds_alternative<std::int64_t>(val))
+        os << get<std::int64_t>(val);
+    return os;
+}
+
 class encoder
 {
 public:
@@ -11,35 +30,31 @@ public:
     encoder(std::ostream& os, std::streamsize indent = 2) : m_pretty{indent}, m_os{os}
     {}
 
-    void encode(const object& ob)
+    void encode(const object& obj)
     {
-        if(ob.type() == type::object)
+        if(obj.type() == type::object)
         {
             m_os << m_pretty('{');
-            for(auto it = ob.cbegin(); it != ob.cend(); ++it)
+            for(auto it = obj.cbegin(); it != obj.cend(); ++it)
             {
-                if(it == ob.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
+                if(it == obj.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
                 m_os << '\"' << it->first << '\"' << m_pretty(':');
                 encode(it->second);
             }
-            m_os << m_pretty('}', ob.empty());
+            m_os << m_pretty('}', obj.empty());
         }
-        else if(ob.type() == type::array)
+        else if(obj.type() == type::array)
         {
             m_os << m_pretty('[');
-            for(auto it = ob.cbegin(); it != ob.cend(); ++it)
+            for(auto it = obj.cbegin(); it != obj.cend(); ++it)
             {
-                if(it == ob.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
+                if(it == obj.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
                 encode(it->second);
             }
-            m_os << m_pretty(']', ob.empty());
+            m_os << m_pretty(']', obj.empty());
         }
-        else if(ob.value().empty())
-            m_os << "null";
-        else if(ob.type() == type::string || ob.type() == type::date)
-            m_os << '\"' << ob.value() << '\"';
         else
-            m_os << ob.value();
+            m_os << obj.value();
     }
 
 private:
@@ -110,12 +125,12 @@ private:
     std::ostream& m_os;
 };
 
-inline std::ostream& operator << (std::ostream& os, const object& ob)
+inline auto& operator << (std::ostream& os, const xson::object& obj)
 {
     const auto indent = os.width();
-    auto e = encoder{os, indent};
+    auto e = xson::json::encoder{os, indent};
     os.width(0);
-    e.encode(ob);
+    e.encode(obj);
     os.width(indent);
     return os;
 }

@@ -85,5 +85,5 @@ TEST(Examples,Parse)
 
     string name = result["Name"s];
 
-    double number = result["Lucky Numbers"s][1];
+    int number = result["Lucky Numbers"s][1];
 }

@@ -192,4 +192,10 @@ inline std::string& trim(std::string& str, const std::string& delimiters = " \f\
       return trim_left(trim_right(str, delimiters ), delimiters);
 }
 
+using bool_t = bool;
+
+using datetime_t = std::chrono::system_clock::time_point;
+
+using string_t = std::string;
+
 } // namespace std
