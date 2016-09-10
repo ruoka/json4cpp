@@ -61,7 +61,7 @@ clean:
 
 .PHONY: test
 test: $(TARGETS) $(GTEST_TARGET)
-	$(GTEST_TARGET) --gtest_filter=-XsonJsonTest.*
+	$(GTEST_TARGET)
 
 .PHONY: dump
 dump:
