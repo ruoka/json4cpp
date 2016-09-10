@@ -1,5 +1,5 @@
 # json4cpp
-JSON Library for C++14
+JSON Library for C++17
 
 ## JSON Object ##
 ```cpp
