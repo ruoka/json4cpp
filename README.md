@@ -113,6 +113,7 @@ int number = result["Lucky Numbers"s][1];
 #include "xson/json.hpp"
 #include "xson/bson.hpp"
 
+using namespace std;
 using namespace xson;
 
 [...]
