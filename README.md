@@ -64,44 +64,48 @@ clog << bson::stringify(papa) << endl;
 
 ## JSON Parser ##
 ```cpp
-    using namespace std;
-    using namespace string_literals;
-    using namespace xson;
+#include "xson/json.hpp"
+    
+using namespace std;
+using namespace string_literals;
+using namespace xson;
 
-    auto ss = stringstream{R"(
-        {
-            "_id" : 2,
-            "Name" : "Ruoka",
-            "Embedded" : {
-                "_id" : 5,
-                "Name" : "Tuma"
-            },
-            "Lucky Numbers" : [
-                2,
-                22,
-                2112
-            ]
-        }
-    )"};
+[...]
 
-    clog << ss.str() << "\n\n";
+auto ss = stringstream{R"(
+    {
+        "_id" : 2,
+        "Name" : "Ruoka",
+        "Embedded" : {
+            "_id" : 5,
+            "Name" : "Tuma"
+        },
+        "Lucky Numbers" : [
+            2,
+            22,
+            2112
+        ]
+    }
+)"};
 
-    auto result = json::parse(ss);
+clog << ss.str() << "\n\n";
 
-    clog << setw(2) << result << "\n\n";
+auto result = json::parse(ss);
 
-    clog << "_id            = " << result["_id"s]               << "\n"
-         << "Name           = " << result["Name"s]              << "\n"
-         << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
-         << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
-         << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
-         << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
+clog << setw(2) << result << "\n\n";
 
-    int id = result["_id"s];
+clog << "_id            = " << result["_id"s]               << "\n"
+     << "Name           = " << result["Name"s]              << "\n"
+     << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
+     << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
+     << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
+     << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-    string name = result["Name"s];
+int id = result["_id"s];
 
-    int number = result["Lucky Numbers"s][1];
+string name = result["Name"s];
+
+int number = result["Lucky Numbers"s][1];
 ```
 
 ## BSON/JSON Dump ##
