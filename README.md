@@ -62,9 +62,11 @@ clog << json::stringify(papa) << endl;
 clog << bson::stringify(papa) << endl;
 ```
 
-## JSON/BSON Parser ##
+## JSON Parser ##
 ```cpp
-    using namespace json;
+    using namespace std;
+    using namespace string_literals;
+    using namespace xson;
 
     auto ss = stringstream{R"(
         {
@@ -102,7 +104,7 @@ clog << bson::stringify(papa) << endl;
     int number = result["Lucky Numbers"s][1];
 ```
 
-## BSON Dump ##
+## BSON/JSON Dump ##
 ```cpp
 #include "xson/json.hpp"
 #include "xson/bson.hpp"
