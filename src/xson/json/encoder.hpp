@@ -4,22 +4,22 @@
 
 namespace xson::json {
 
-inline std::ostream& operator << (std::ostream& os, const xson::value& val)
+inline std::ostream& operator << (std::ostream& os, const value& val)
 {
-    if(holds_alternative<std::double_t>(val))
-        os << get<std::double_t>(val);
-    else if(holds_alternative<std::string_t>(val))
-        os << '"' << get<std::string_t>(val) << '"';
-    else if(holds_alternative<std::bool_t>(val))
-        os << std::boolalpha << get<std::bool_t>(val);
-    else if(holds_alternative<std::datetime_t>(val))
-        os << '"' << to_string(get<std::datetime_t>(val)) << '"';
-    else if(holds_alternative<std::nullptr_t>(val))
+    if(holds_alternative<number_type>(val))
+        os << get<number_type>(val);
+    else if(holds_alternative<string_type>(val))
+        os << '"' << get<string_type>(val) << '"';
+    else if(holds_alternative<boolean_type>(val))
+        os << std::boolalpha << get<boolean_type>(val);
+    else if(holds_alternative<date_type>(val))
+        os << '"' << to_string(get<date_type>(val)) << '"';
+    else if(holds_alternative<null_type>(val))
         os << "null";
-    else if(holds_alternative<std::int32_t>(val))
-        os << get<std::int32_t>(val);
-    else if(holds_alternative<std::int64_t>(val))
-        os << get<std::int64_t>(val);
+    else if(holds_alternative<int32_type>(val))
+        os << get<int32_type>(val);
+    else if(holds_alternative<int64_type>(val))
+        os << get<int64_type>(val);
     return os;
 }
 
@@ -128,7 +128,7 @@ private:
 inline auto& operator << (std::ostream& os, const xson::object& obj)
 {
     const auto indent = os.width();
-    auto e = xson::json::encoder{os, indent};
+    auto e = json::encoder{os, indent};
     os.width(0);
     e.encode(obj);
     os.width(indent);

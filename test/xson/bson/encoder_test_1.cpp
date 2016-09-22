@@ -22,8 +22,8 @@ TEST(XsonBsonEncoderTest1,Int64)
 TEST(XsonBsonEncoderTest1,Double)
 {
     auto e = encoder{};
-    e.encode(std::double_t{4.0});
-    EXPECT_EQ(4.0, *reinterpret_cast<const std::double_t*>(e.data()));
+    e.encode(xson::number_type{4.0});
+    EXPECT_EQ(4.0, *reinterpret_cast<const xson::number_type*>(e.data()));
 }
 
 TEST(XsonBsonEncoderTest1,CString)
@@ -45,14 +45,14 @@ TEST(XsonBsonEncoderTest1,BooleanTrue)
 {
     auto e = encoder{};
     e.encode(true);
-    EXPECT_EQ(true, *reinterpret_cast<const std::bool_t*>(e.data()));
+    EXPECT_EQ(true, *reinterpret_cast<const xson::boolean_type*>(e.data()));
 }
 
 TEST(XsonBsonEncoderTest1,BooleanFalse)
 {
     auto e = encoder{};
     e.encode(false);
-    EXPECT_EQ(false, *reinterpret_cast<const std::bool_t*>(e.data()));
+    EXPECT_EQ(false, *reinterpret_cast<const xson::boolean_type*>(e.data()));
 }
 
 TEST(XsonBsonEncoderTest1,Date)
@@ -69,5 +69,5 @@ TEST(XsonBsonEncoderTest1,Null)
 {
     auto e = encoder{};
     e.encode(nullptr);
-    EXPECT_EQ(nullptr, *reinterpret_cast<const std::nullptr_t*>(e.data()));
+    EXPECT_EQ(nullptr, *reinterpret_cast<const xson::null_type*>(e.data()));
 }

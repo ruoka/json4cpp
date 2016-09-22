@@ -1,8 +1,9 @@
 #pragma once
 
+#include <iostream>
 #include <initializer_list>
+#include <functional>
 #include <map>
-#include <cmath>
 #include "std/variant.hpp"
 #include "std/extension.hpp"
 #include "xson/type.hpp"
@@ -13,41 +14,39 @@ using namespace std::string_literals;
 using namespace std::chrono_literals;
 using namespace std::experimental;
 
-using  value = variant<std::double_t,   // \x01
-                       std::string_t,   // \x02
-                       std::bool_t,     // \x08
-                       std::datetime_t, // \x09
-                       std::nullptr_t,  // \x0A
-                       std::int32_t,    // \x10
-                       std::int64_t     // \x12
+using  value = variant<number_type,  // \x01
+                       string_type,  // \x02
+                       boolean_type, // \x08
+                       date_type,    // \x09
+                       null_type,    // \x0A
+                       int32_type,   // \x10
+                       int64_type    // \x12
                        >;
 
 inline auto to_string(const value& val)
 {
-    if(holds_alternative<std::string_t>(val))
-        return get<std::string_t>(val);
-    if(holds_alternative<std::double_t>(val))
-        return std::to_string(get<std::double_t>(val));
-    if(holds_alternative<std::bool_t>(val))
-        return std::to_string(get<std::bool_t>(val));
-    if(holds_alternative<std::datetime_t>(val))
-        return std::to_string(get<std::datetime_t>(val));
-    if(holds_alternative<std::nullptr_t>(val))
-        return std::to_string(get<std::nullptr_t>(val));
-    if(holds_alternative<std::int32_t>(val))
-        return std::to_string(get<std::int32_t>(val));
-    if(holds_alternative<std::int64_t>(val))
-        return std::to_string(get<std::int64_t>(val));
+    if(holds_alternative<string_type>(val))
+        return get<string_type>(val);
+    if(holds_alternative<number_type>(val))
+        return std::to_string(get<number_type>(val));
+    if(holds_alternative<boolean_type>(val))
+        return std::to_string(get<boolean_type>(val));
+    if(holds_alternative<date_type>(val))
+        return std::to_string(get<date_type>(val));
+    if(holds_alternative<null_type>(val))
+        return std::to_string(get<null_type>(val));
+    if(holds_alternative<int32_type>(val))
+        return std::to_string(get<int32_type>(val));
+    if(holds_alternative<int64_type>(val))
+        return std::to_string(get<int64_type>(val));
     throw std::logic_error{"This type is not supported"};
 }
 
 struct less
 {
-    bool operator()(const std::string& lhs, const std::string& rhs) const
+    bool operator()(const string_type& lhs, const string_type& rhs) const
     {
-        const auto has_only_digits = lhs.find_first_not_of("0123456789") == std::string::npos &&
-                                     rhs.find_first_not_of("0123456789") == std::string::npos;
-        if(has_only_digits)
+        if(ext::numeric(lhs) && ext::numeric(rhs))
         {
             if(lhs.size() == rhs.size())
                 return lhs < rhs;
@@ -62,7 +61,7 @@ class object
 {
 public:
 
-    using const_iterator = std::map<std::string_t,object>::const_iterator;
+    using const_iterator = std::map<string_type,object>::const_iterator;
 
     object() : m_type{type::object}, m_value{}, m_objects{}
     {}
@@ -71,7 +70,7 @@ public:
               typename = std::enable_if_t<!is_object_v<T>      &&
                                           !is_value_array_v<T> &&
                                           !is_object_array_v<T>>>
-    object(const std::string_t& name, const T& val) :
+    object(const string_type& name, const T& val) :
     object{}
     {
         static_assert(is_value_v<T>, "This type is not supported");
@@ -79,7 +78,7 @@ public:
     }
 
     template <typename T>
-    object(const std::enable_if_t<is_value_array_v<T>,std::string_t>& name, const T& array) :
+    object(const std::enable_if_t<is_value_array_v<T>,string_type>& name, const T& array) :
     object{}
     {
         auto& parent = m_objects[name];
@@ -93,8 +92,8 @@ public:
     }
 
     template <typename T>
-    object(const std::enable_if_t<is_value_v<T>,std::string_t>& name, std::initializer_list<T> array) :
-    object{name, std::vector<T>{array}}
+    object(const std::enable_if_t<is_value_v<T>,string_type>& name, std::initializer_list<T> vil) :
+    object{name, std::vector<T>{vil}}
     {}
 
     object(const std::string& name, const object& obj) :
@@ -104,7 +103,7 @@ public:
     }
 
     template <typename T>
-    object(const std::enable_if_t<is_object_array_v<T>,std::string_t>& name, const T& array) :
+    object(const std::enable_if_t<is_object_array_v<T>,string_type>& name, const T& array) :
     object{}
     {
         auto& parent = m_objects[name];
@@ -117,11 +116,11 @@ public:
         parent.type(type::array);
     }
 
-    object(std::initializer_list<object> il) :
+    object(std::initializer_list<object> oil) :
     object{}
     {
-        for(const auto& i : il)
-            m_objects.insert(i.cbegin(), i.cend());
+        for(const auto& o : oil)
+            m_objects.insert(o.cbegin(), o.cend());
     }
 
     object(const object& obj) :
@@ -165,7 +164,7 @@ public:
         m_type = t;
     }
 
-    const value& value() const
+    const xson::value& value() const
     {
         return m_value;
     }
@@ -174,16 +173,16 @@ public:
     void value(const T& val)
     {
         static_assert(is_value_v<T>, "This type is not supported");
-        m_type = xson::to_type(val);
+        m_type = to_type(val);
         m_value = val;
     }
 
-    object& operator [] (const std::string_t& name)
+    object& operator [] (const string_type& name)
     {
         return m_objects[name];
     }
 
-    const object& operator [] (const std::string_t& name) const
+    const object& operator [] (const string_type& name) const
     {
         if(!m_objects.count(name))
             throw std::out_of_range("object has no field with name "s + name);
@@ -210,39 +209,39 @@ public:
         return m_value;
     }
 
-    operator std::double_t () const
+    operator number_type () const
     {
         return get<double>(m_value);
     }
 
-    operator const std::string_t& () const
+    operator const string_type& () const
     {
-        return get<std::string_t>(m_value);
+        return get<string_type>(m_value);
     }
 
-    operator std::bool_t () const
+    operator boolean_type () const
     {
-        return get<std::bool_t>(m_value);
+        return get<boolean_type>(m_value);
     }
 
-    operator std::datetime_t () const
+    operator date_type () const
     {
-        return get<std::datetime_t>(m_value);
+        return get<date_type>(m_value);
     }
 
-    operator std::nullptr_t () const
+    operator null_type () const
     {
-        return get<std::nullptr_t>(m_value);
+        return get<null_type>(m_value);
     }
 
-    operator std::int32_t () const
+    operator int32_type () const
     {
-        return get<std::int32_t>(m_value);
+        return get<int32_type>(m_value);
     }
 
-    operator std::int64_t () const
+    operator int64_type () const
     {
-        return get<std::int64_t >(m_value);
+        return get<int64_type >(m_value);
     }
 
     operator std::vector<std::string> () const
@@ -285,12 +284,17 @@ public:
         return *this;
     }
 
-    bool has_value () const
+    bool has_value() const
     {
         return m_value.index() != variant_npos;
     }
 
-    bool empty () const
+    bool has_objects() const
+    {
+        return m_objects.empty() != false;
+    }
+
+    bool empty() const
     {
         return m_objects.empty();
     }
@@ -300,23 +304,40 @@ public:
         return m_objects.count(name) > 0;
     }
 
-    bool match(const object& subset) const
+    bool match(const object& subset) const // FIXME This function is too complicated!
     {
-        if(subset.empty() && !subset.has_value())
+        if(!subset.has_value() && !subset.has_objects())
             return true;
         if(subset.type() == type::object || subset.type() == type::array)
         {
-            auto lf = m_objects.cbegin();
-            auto ll = m_objects.cend();
-            auto rf = subset.m_objects.cbegin();
-            auto rl = subset.m_objects.cend();
+            auto lf = std::cbegin(m_objects),
+                 rf = std::cbegin(subset.m_objects);
+            const auto ll = std::cend(m_objects),
+                       rl = std::cend(subset.m_objects);
+
+            while(lf == ll && rf != rl)
+            {
+                if(operators.count(rf->first))
+                    if(!operators.at(rf->first)(m_value,rf->second))
+                        return false;
+
+                if(rf->first[0] != '$')
+                    break;
+
+                ++rf;
+            }
+
+            if(rf != rl && rf->first[0] == '$')
+                ++rf;
+
             while(lf != ll && rf != rl)
             {
                 if(lf->first < rf->first)
                     ++lf;
                 else if(lf->first > rf->first)
                     return false;
-                else if(lf->second.match(rf->second)) {
+                else if(lf->second.match(rf->second))
+                {
                     ++lf;
                     ++rf;
                 }
@@ -326,7 +347,7 @@ public:
             return rf == rl;
         }
         else if(m_type == type::int64 && subset.m_type == type::int32)
-            return get<std::int64_t>(m_value) == get<std::int32_t>(subset.m_value);
+            return get<int64_type>(m_value) == get<int32_type>(subset.m_value);
         else
             return m_value == subset.m_value;
     }
@@ -358,11 +379,22 @@ public:
 
 private:
 
+    using operator_type = std::function<bool(const xson::value&,const xson::value&)>;
+
+    const std::map<string_type,operator_type> operators = std::map<string_type,operator_type>{
+        { "$eq"s,  std::equal_to<xson::value>{}       },
+        { "$ne"s,  std::not_equal_to<xson::value>{}   },
+        { "$lt"s,  std::less<xson::value>{}          },
+        { "$lte"s, std::less_equal<xson::value>{}    },
+        { "$gt"s,  std::greater<xson::value>{}       },
+        { "$gte"s, std::greater_equal<xson::value>{} }
+    };
+
     xson::type m_type;
 
     xson::value m_value;
 
-    std::map<std::string,object,less> m_objects;
+    std::map<string_type,object_type,less> m_objects;
 };
 
 } // namespace xson

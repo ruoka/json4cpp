@@ -51,7 +51,7 @@ public:
     template <typename T>
     void encode(T);
 
-    void encode(const std::string_t& str, bool csting = false);
+    void encode(const xson::string_type& str, bool csting = false);
 
     void encode(const object& obj);
 
@@ -85,12 +85,12 @@ inline void encoder::encode(std::int64_t i)
 }
 
 template <>
-inline void encoder::encode(std::double_t d)
+inline void encoder::encode(xson::number_type d)
 {
     TRACE("(double)");
     union
     {
-        std::double_t d64;
+        xson::number_type d64;
         std::int64_t i64;
     } d2i;
     d2i.d64 = d;
@@ -98,7 +98,7 @@ inline void encoder::encode(std::double_t d)
 }
 
 template <>
-inline void encoder::encode(std::bool_t b)
+inline void encoder::encode(xson::boolean_type b)
 {
     TRACE("(bool)");
     if(b) put('\x01');
@@ -106,7 +106,7 @@ inline void encoder::encode(std::bool_t b)
 }
 
 template <>
-inline void encoder::encode(std::datetime_t d)
+inline void encoder::encode(xson::date_type d)
 {
     TRACE("(date)");
     using namespace std::chrono;
@@ -115,13 +115,13 @@ inline void encoder::encode(std::datetime_t d)
 }
 
 template <>
-inline void encoder::encode(std::nullptr_t b)
+inline void encoder::encode(xson::null_type b)
 {
     TRACE("(null)");
 }
 
 template <>
-inline void encoder::encode(const std::string_t str)
+inline void encoder::encode(const xson::string_type str)
 {
     TRACE("(string)");
     encode(static_cast<std::int32_t>(str.size()+1)); // bytes
@@ -137,7 +137,7 @@ inline void encoder::encode(xson::type t)
     put(static_cast<char>(t));
 }
 
-inline void encoder::encode(const std::string_t& str, bool csting)
+inline void encoder::encode(const xson::string_type& str, bool csting)
 {
     TRACE("(string)    " << boolalpha << csting);
     if(!csting) encode(static_cast<std::int32_t>(str.size()+1)); // bytes
@@ -180,30 +180,30 @@ inline void encoder::encode(const object& obj)
         break;
 
     case type::number:
-        encode<std::double_t>(obj);
+        encode<xson::number_type>(obj);
         break;
 
     case type::string:
-        encode<std::string_t>(obj);
+        encode<xson::string_type>(obj);
         break;
 
     case type::boolean:
-        encode<std::bool_t>(obj);
+        encode<xson::boolean_type>(obj);
         break;
 
     case type::date:
-        encode<std::datetime_t>(obj);
+        encode<xson::date_type>(obj);
 
     case type::null:
-        encode<std::nullptr_t>(nullptr);
+        encode<xson::null_type>(nullptr);
         break;
 
     case type::int32:
-        encode<std::int32_t>(obj);
+        encode<xson::int32_type>(obj);
         break;
 
     case type::int64:
-        encode<std::int64_t>(obj);
+        encode<xson::int64_type>(obj);
         break;
 
     default:

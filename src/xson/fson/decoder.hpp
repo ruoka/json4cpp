@@ -33,7 +33,7 @@ public:
     {
         union {
             std::uint64_t i64;
-            std::double_t d64;
+            xson::number_type d64;
         } i2d;
         decode(i2d.i64);
         d = i2d.d64;
@@ -43,10 +43,10 @@ public:
     {
         std::uint8_t byte;
         decode(byte);
-        b = static_cast<std::bool_t>(byte);
+        b = static_cast<std::uint8_t>(byte);
     }
 
-    void decode(std::datetime_t& dt)
+    void decode(xson::date_type& dt)
     {
         using namespace std::chrono;
         std::uint64_t i64;
@@ -65,12 +65,12 @@ public:
             decode(name);
             auto& child = parent[name];
 
-            std::double_t    d;
-            std::string_t  str;
-            std::datetime_t dt;
-            std::bool_t      b;
-            std::int32_t   i32;
-            std::int64_t   i64;
+            xson::number_type   d;
+            xson::string_type str;
+            xson::date_type    dt;
+            xson::boolean_type  b;
+            xson::int32_type  i32;
+            xson::int64_type  i64;
 
             switch(type)
             {
@@ -125,10 +125,14 @@ public:
 
 };
 
+} // namespace xson::fson
+
+namespace std {
+
 inline auto& operator >> (std::istream& is, xson::object& ob)
 {
     xson::fson::decoder{is}.decode(ob);
     return is;
 }
 
-} // namespace xson::fson
+} // namespace std

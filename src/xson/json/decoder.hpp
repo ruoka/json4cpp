@@ -42,7 +42,7 @@ private:
         auto next = u8' ';
         auto value = ""s;
         m_is >> next;
-        while (next != u8',' && next != u8'}' && next != u8']')
+        while(next != u8',' && next != u8'}' && next != u8']')
         {
             value += next;
             m_is >> next;
@@ -51,7 +51,7 @@ private:
 
         try
         {
-            if(value.find(u8'.') != std::string::npos)
+            if(value.find(u8'.') != value.npos)
                 obj = stod(value);
             else if(value == "true")
                 obj = true;
@@ -60,11 +60,7 @@ private:
             else if(value == "null")
                 obj = nullptr;
             else
-                obj = stoi(value);
-        }
-        catch(const std::out_of_range&)
-        {
-            obj = stoll(value);
+                obj = stoll(value);
         }
         catch(const std::invalid_argument&)
         {

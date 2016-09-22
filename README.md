@@ -68,11 +68,11 @@ clog << "_id            = " << result["_id"s]               << "\n"
      << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
      << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-int id = result["_id"s];
+integer_type id = result["_id"s];
 
-string name = result["Name"s];
+string_type name = result["Name"s];
 
-double number = result["Lucky Numbers"s][1];
+number_type number = result["Lucky Numbers"s][1];
 ```
 
 ## BSON Dump ##

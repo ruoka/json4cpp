@@ -42,10 +42,10 @@ TEST(Examples,Parse)
 
     auto ss = stringstream{R"(
         {
-            "_id" : 2,
+            "id" : 2,
             "Name" : "Ruoka",
             "Embedded" : {
-                "_id" : 5,
+                "id" : 5,
                 "Name" : "Tuma"
             },
             "Lucky Numbers" : [
@@ -62,16 +62,16 @@ TEST(Examples,Parse)
 
     clog << setw(2) << result << "\n\n";
 
-    clog << "_id            = " << result["_id"s]               << "\n"
+    clog << "_id            = " << result["id"s]               << "\n"
          << "Name           = " << result["Name"s]              << "\n"
          << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
          << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
          << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
          << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-    int id = result["_id"s];
+    integer_type id = result["id"s];
 
-    string name = result["Name"s];
+    string_type name = result["Name"s];
 
-    int number = result["Lucky Numbers"s][1];
+    integer_type number = result["Lucky Numbers"s][1];
 }

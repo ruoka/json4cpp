@@ -5,7 +5,7 @@
 using namespace xson;
 
 using string = std::string;
-using nullptr_t = std::nullptr_t;
+using nullptr_t = xson::null_type;
 using date = std::chrono::system_clock::time_point;
 using array1 = std::array<int,3>;
 using vector1 = std::vector<string>;
@@ -73,5 +73,5 @@ TEST(XsonObjectTest,ToType)
     ASSERT_EQ(xson::to_type(date{}),         type::date);
     ASSERT_EQ(xson::to_type(nullptr),        type::null);
     ASSERT_EQ(xson::to_type(int{}),          type::int32);
-    ASSERT_EQ(xson::to_type(std::int64_t{}), type::int64);
+    ASSERT_EQ(xson::to_type(xson::int64_type{}), type::int64);
 }
