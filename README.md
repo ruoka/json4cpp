@@ -1,25 +1,5 @@
 # json4cpp
-JSON Library for C++17
-
-## JSON Object ##
-```cpp
-#include "xson/json.hpp"
-
-using namespace xson;
-
-[...]
-
-auto document = object{};
-
-document["papa"s]["name"s] = "Cool"s;
-document["papa"s]["age"s] = 40;
-document["papa"s]["married"s] = false;
-document["papa"s]["kids"s][1] = {"Name"s,"Tulppu"s};
-document["papa"s]["kids"s][2] = {"Name"s,"Elppu"s};
-document["papa"s]["kids"s][3] = {"Name"s,"Jalppu"s};
-
-clog << json::stringify(document) << endl;
-```
+JSON Library for C++14
 
 ## JSON/BSON Object ##
 ```cpp
@@ -62,31 +42,18 @@ clog << json::stringify(papa) << endl;
 clog << bson::stringify(papa) << endl;
 ```
 
-## JSON Parser ##
+## JSON/BSON Parser ##
 ```cpp
 #include "xson/json.hpp"
-    
+
 using namespace std;
 using namespace string_literals;
 using namespace xson;
+using namespace json;
 
 [...]
 
-auto ss = stringstream{R"(
-    {
-        "_id" : 2,
-        "Name" : "Ruoka",
-        "Embedded" : {
-            "_id" : 5,
-            "Name" : "Tuma"
-        },
-        "Lucky Numbers" : [
-            2,
-            22,
-            2112
-        ]
-    }
-)"};
+auto ss = stringstream{"{\"_id\":2,\"Name\":\"Ruoka\", \"Embedded\":{\"_id\":5,\"Name\":\"Tuma\"}, \"Lucky Numbers\":[2,22,2112]}"s};
 
 clog << ss.str() << "\n\n";
 
@@ -101,19 +68,18 @@ clog << "_id            = " << result["_id"s]               << "\n"
      << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
      << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-int id = result["_id"s];
+integer_type id = result["_id"s];
 
-string name = result["Name"s];
+string_type name = result["Name"s];
 
-int number = result["Lucky Numbers"s][1];
+number_type number = result["Lucky Numbers"s][1];
 ```
 
-## BSON/JSON Dump ##
+## BSON Dump ##
 ```cpp
 #include "xson/json.hpp"
 #include "xson/bson.hpp"
 
-using namespace std;
 using namespace xson;
 
 [...]

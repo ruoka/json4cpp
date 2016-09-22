@@ -158,7 +158,7 @@ TEST(XsonObjectTest,Null)
     ASSERT_FALSE(ob.empty());
     ASSERT_TRUE(ob.has("Null"s));
     ASSERT_EQ(type::null, ob["Null"s].type());
-    std::nullptr_t n = ob["Null"s];
+    xson::null_type n = ob["Null"s];
     ASSERT_EQ(nullptr, n);
 }
 
@@ -335,7 +335,7 @@ TEST(XsonObjectTest,InitializerList3)
 {
     auto ob = object
     {
-        {"_id",  987654321},
+        {"id",  987654321},
         {"object", {{"A"s,1},{"B"s,2},{"C"s,3},{"D"s,4}}},
         {"array",  {1, 2, 3, 4, 5}},
         {"bool", true},
@@ -348,16 +348,16 @@ TEST(XsonObjectTest,Match1)
 {
     auto ob = object
     {
-        {"_id",  987654321},
+        {"id",  987654321},
         {"object", {{"A"s,1},{"B"s,2},{"C"s,3},{"D"s,4}}},
         {"array",  {1, 2, 3, 4, 5}},
         {"bool", true},
         {"name", "Hepokatti Maantiella"s}
     };
     TRACE(ob);
-    ASSERT_TRUE(ob.match(object{"_id", 987654321}));
+    ASSERT_TRUE(ob.match(object{"id", 987654321}));
     ASSERT_FALSE(ob.match(object{"XXXX", 1}));
-    ASSERT_FALSE(ob.match(object{"_id", 1}));
+    ASSERT_FALSE(ob.match(object{"id", 1}));
     ASSERT_TRUE(ob.match(object{}));
     ASSERT_FALSE(ob.match(object{"bool", false}));
     ASSERT_TRUE(ob.match(object{"bool", true}));
@@ -374,18 +374,18 @@ TEST(XsonObjectTest,Match2)
 {
     auto ob = object
     {
-        {"_id",  987654321},
+        {"id",  987654321},
     };
-    ASSERT_TRUE(ob.match(object{"_id", 987654321}));
-    ASSERT_FALSE(ob.match(object{{"_id", 987654321}, {"fail", 1}}));
+    ASSERT_TRUE(ob.match(object{"id", 987654321}));
+    ASSERT_FALSE(ob.match(object{{"id", 987654321}, {"fail", 1}}));
 }
 
 TEST(XsonObjectTest,Match3)
 {
-    auto o1 = object{{u8"_id"s, 1}, {u8"A"s, 1}},
-         o2 = object{{u8"_id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}},
-         o3 = object{{u8"_id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}, {u8"C"s, 3}},
-         s = object{u8"_id"s, 1};
+    auto o1 = object{{u8"id"s, 1}, {u8"A"s, 1}},
+         o2 = object{{u8"id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}},
+         o3 = object{{u8"id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}, {u8"C"s, 3}},
+         s = object{u8"id"s, 1};
 
     ASSERT_TRUE(o1.match(s));
     ASSERT_TRUE(o2.match(s));

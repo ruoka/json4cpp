@@ -27,17 +27,17 @@ public:
         encode(static_cast<std::uint8_t>(e));
     }
 
-    void encode(std::double_t d)
+    void encode(xson::number_type d)
     {
         union {
-            std::double_t d64;
+            xson::number_type d64;
             std::uint64_t i64;
         } d2i;
         d2i.d64 = d;
         encode(d2i.i64);
     }
 
-    void encode(std::bool_t b)
+    void encode(xson::boolean_type b)
     {
         if(b)
             encode(std::uint8_t{'\x01'});
@@ -45,10 +45,10 @@ public:
             encode(std::uint8_t{'\x00'});
     }
 
-    void encode(const std::datetime_t dt)
+    void encode(const xson::date_type d)
     {
         using namespace std::chrono;
-        const auto us = duration_cast<milliseconds>(dt.time_since_epoch());
+        const auto us = duration_cast<milliseconds>(d.time_since_epoch());
         encode(static_cast<std::uint64_t>(us.count()));
     }
 
@@ -68,27 +68,27 @@ public:
             break;
 
             case type::int32:
-            encode(get<std::int32_t>(obj.value()));
+            encode(get<xson::int32_type>(obj.value()));
             break;
 
             case type::int64:
-            encode(get<std::int64_t>(obj.value()));
+            encode(get<xson::int64_type>(obj.value()));
             break;
 
             case type::number:
-            encode(get<std::double_t>(obj.value()));
+            encode(get<xson::number_type>(obj.value()));
             break;
 
             case type::string:
-            encode(get<std::string_t>(obj.value()));
+            encode(get<xson::string_type>(obj.value()));
             break;
 
             case type::boolean:
-            encode(get<std::bool_t>(obj.value()));
+            encode(get<xson::boolean_type>(obj.value()));
             break;
 
             case type::date:
-            encode(get<std::datetime_t>(obj.value()));
+            encode(get<xson::date_type>(obj.value()));
             break;
 
             case type::null:
@@ -102,10 +102,14 @@ public:
 
 };
 
+} // namespace xson::fson
+
+namespace std {
+
 inline auto& operator << (std::ostream& os, const xson::object& ob)
 {
     xson::fson::encoder{os}.encode(ob);
     return os;
 }
 
-} // namespace xson::fson
+}

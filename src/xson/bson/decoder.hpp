@@ -46,7 +46,7 @@ inline std::int32_t decoder::decode<std::chrono::system_clock::time_point>(objec
 }
 
 template<>
-inline std::int32_t decoder::decode<std::nullptr_t>(object& ob)
+inline std::int32_t decoder::decode<xson::null_type>(object& ob)
 {
     auto val = nullptr;
     ob.value(val);
@@ -61,7 +61,7 @@ inline std::int32_t decoder::decode<std::string>(object& ob)
     m_is.read(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     const auto length = sizeof(bytes) + bytes;
 
-    auto val = std::string_t{};
+    auto val = xson::string_type{};
     while(--bytes)
         val += m_is.get();
 
@@ -104,10 +104,10 @@ inline std::int32_t decoder::decode(object& parent)
         switch(type)
         {
         case type::number:
-            bytes -= decode<std::double_t>(child);
+            bytes -= decode<xson::number_type>(child);
             break;
         case type::string:
-            bytes -= decode<std::string_t>(child);
+            bytes -= decode<xson::string_type>(child);
             break;
         case type::object:
         case type::array:
@@ -115,19 +115,19 @@ inline std::int32_t decoder::decode(object& parent)
             child.type(type);
             break;
         case type::boolean:
-            bytes -= decode<std::bool_t>(child);
+            bytes -= decode<xson::boolean_type>(child);
             break;
         case type::date:
-            bytes -= decode<std::datetime_t>(child);
+            bytes -= decode<xson::date_type>(child);
             break;
         case type::null:
-            bytes -= decode<std::nullptr_t>(child);
+            bytes -= decode<xson::null_type>(child);
             break;
         case type::int32:
-            bytes -= decode<std::int32_t>(child);
+            bytes -= decode<xson::int32_type>(child);
             break;
         case type::int64:
-            bytes -= decode<std::int64_t>(child);
+            bytes -= decode<xson::int64_type>(child);
             break;
         default:
             assert(false && "FIXME");

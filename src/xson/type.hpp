@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ostream>
+#include <cmath>
 #include <string>
 #include <chrono>
 #include <array>
@@ -10,7 +11,19 @@ namespace xson {
 
 class object;
 
-enum class type : std::uint8_t
+using byte_type    = std::uint8_t;
+using number_type  = std::double_t;
+using string_type  = std::string;
+using object_type  = object;
+using array_type   = object;
+using boolean_type = bool;
+using null_type    = std::nullptr_t;
+using date_type    = std::chrono::system_clock::time_point;
+using int32_type   = std::int32_t;
+using int64_type   = std::int64_t;
+using integer_type = std::int64_t;
+
+enum class type : xson::byte_type
 {
     eod                   = '\x00',
 
@@ -51,37 +64,37 @@ template <typename T> constexpr type to_type(const T&)
     return type::null;
 }
 
-template <> constexpr type to_type(const std::double_t&)
+template <> constexpr type to_type(const xson::number_type&)
 {
     return type::number;
 }
 
-template <> constexpr type to_type(const std::string_t&)
+template <> constexpr type to_type(const xson::string_type&)
 {
     return type::string;
 }
 
-template <> constexpr type to_type(const std::bool_t&)
+template <> constexpr type to_type(const xson::boolean_type&)
 {
     return type::boolean;
 }
 
-template <> constexpr type to_type(const std::nullptr_t&)
+template <> constexpr type to_type(const xson::null_type&)
 {
     return type::null;
 }
 
-template <> constexpr type to_type(const std::datetime_t&)
+template <> constexpr type to_type(const xson::date_type&)
 {
     return type::date;
 }
 
-template <> constexpr type to_type(const std::int32_t&)
+template <> constexpr type to_type(const xson::int32_type&)
 {
     return type::int32;
 }
 
-template <> constexpr type to_type(const std::int64_t&)
+template <> constexpr type to_type(const xson::int64_type&)
 {
     return type::int64;
 }
@@ -96,19 +109,19 @@ template <typename T> constexpr bool is_object_v = is_object<T>::value;
 
 template <typename T> struct is_value : std::false_type {};
 
-template <> struct is_value<std::int32_t> : std::true_type {};
+template <> struct is_value<xson::number_type> : std::true_type {};
 
-template <> struct is_value<std::int64_t> : std::true_type {};
+template <> struct is_value<xson::string_type> : std::true_type {};
 
-template <> struct is_value<std::double_t> : std::true_type {};
+template <> struct is_value<xson::boolean_type> : std::true_type {};
 
-template <> struct is_value<std::bool_t> : std::true_type {};
+template <> struct is_value<xson::null_type> : std::true_type {};
 
-template <> struct is_value<std::string_t> : std::true_type {};
+template <> struct is_value<xson::date_type> : std::true_type {};
 
-template <> struct is_value<std::datetime_t> : std::true_type {};
+template <> struct is_value<xson::int32_type> : std::true_type {};
 
-template <> struct is_value<std::nullptr_t> : std::true_type {};
+template <> struct is_value<xson::int64_type> : std::true_type {};
 
 template <typename T> constexpr bool is_value_v = is_value<T>::value;
 
