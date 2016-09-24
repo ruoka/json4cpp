@@ -14,11 +14,11 @@ using namespace std::string_literals;
 using namespace std::chrono_literals;
 using namespace std::experimental;
 
-using  value = variant<number_type,  // \x01
+using  value = variant<null_type,    // \x0A
+                       number_type,  // \x01
                        string_type,  // \x02
                        boolean_type, // \x08
                        date_type,    // \x09
-                       null_type,    // \x0A
                        int32_type,   // \x10
                        int64_type    // \x12
                        >;
@@ -286,17 +286,17 @@ public:
 
     bool has_value() const
     {
-        return m_value.index() != variant_npos;
+        return m_value.index();
     }
 
     bool has_objects() const
     {
-        return m_objects.empty() != false;
+        return !m_objects.empty();
     }
 
     bool empty() const
     {
-        return m_objects.empty();
+        return !(has_value() || has_objects());
     }
 
     bool has(const std::string& name) const
@@ -304,30 +304,27 @@ public:
         return m_objects.count(name) > 0;
     }
 
-    bool match(const object& subset) const // FIXME This function is too complicated!
+    bool match(const object& subset) const
     {
-        if(!subset.has_value() && !subset.has_objects())
+        if(subset.empty())
             return true;
-        if(subset.type() == type::object || subset.type() == type::array)
+
+        if(has_value() && subset.has_objects())
+            return std::all_of(subset.cbegin(), subset.cend(),
+                [&](const auto& node)
+                {
+                    if(operators.count(node.first))
+                        return operators.at(node.first)(m_value, node.second);
+                    else
+                        return node.first[0] == '$';
+                });
+
+        if(has_objects() && subset.has_objects())
         {
-            auto lf = std::cbegin(m_objects),
-                 rf = std::cbegin(subset.m_objects);
-            const auto ll = std::cend(m_objects),
-                       rl = std::cend(subset.m_objects);
+            auto lf = cbegin(), rf = subset.cbegin();
+            const auto ll = cend(), rl = subset.cend();
 
-            while(lf == ll && rf != rl)
-            {
-                if(operators.count(rf->first))
-                    if(!operators.at(rf->first)(m_value,rf->second))
-                        return false;
-
-                if(rf->first[0] != '$')
-                    break;
-
-                ++rf;
-            }
-
-            if(rf != rl && rf->first[0] == '$')
+            while(rf != rl && rf->first[0] == '$')
                 ++rf;
 
             while(lf != ll && rf != rl)
@@ -346,10 +343,8 @@ public:
             }
             return rf == rl;
         }
-        else if(m_type == type::int64 && subset.m_type == type::int32)
-            return get<int64_type>(m_value) == get<int32_type>(subset.m_value);
-        else
-            return m_value == subset.m_value;
+
+        return m_value == subset.m_value;
     }
 
     std::size_t size() const
@@ -382,8 +377,8 @@ private:
     using operator_type = std::function<bool(const xson::value&,const xson::value&)>;
 
     const std::map<string_type,operator_type> operators = std::map<string_type,operator_type>{
-        { "$eq"s,  std::equal_to<xson::value>{}       },
-        { "$ne"s,  std::not_equal_to<xson::value>{}   },
+        { "$eq"s,  std::equal_to<xson::value>{}      },
+        { "$ne"s,  std::not_equal_to<xson::value>{}  },
         { "$lt"s,  std::less<xson::value>{}          },
         { "$lte"s, std::less_equal<xson::value>{}    },
         { "$gt"s,  std::greater<xson::value>{}       },

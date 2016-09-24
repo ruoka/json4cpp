@@ -30,7 +30,7 @@ public:
     void encode(xson::number_type d)
     {
         union {
-            xson::number_type d64;
+            std::double_t d64;
             std::uint64_t i64;
         } d2i;
         d2i.d64 = d;
