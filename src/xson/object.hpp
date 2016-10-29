@@ -310,14 +310,25 @@ public:
             return true;
 
         if(has_value() && subset.has_objects())
-            return std::all_of(subset.cbegin(), subset.cend(),
+        {
+            auto test = std::all_of(subset.cbegin(), subset.cend(),
                 [&](const auto& node)
                 {
                     if(operators.count(node.first))
-                        return operators.at(node.first)(m_value, node.second);
+                        return operators.at(node.first)(value(), node.second.value());
                     else
                         return node.first[0] == '$';
                 });
+
+            if(subset.has("$in"s))
+                test = test && std::any_of(subset["$in"s].cbegin(), subset["$in"s].cend(),
+                    [&](const auto& node)
+                    {
+                        return value() == node.second.value();
+                    });
+
+            return test;
+        }
 
         if(has_objects() && subset.has_objects())
         {

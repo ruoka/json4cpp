@@ -8,11 +8,19 @@ namespace xson::json {
 
 using object = xson::object;
 
+// inline object parse(std::istream& is)
+// {
+//     auto ob = object{};
+//     _1::decoder{is}.decode(ob);
+//     return std::move(ob);
+// }
+
 inline object parse(std::istream& is)
 {
-    auto ob = object{};
-    decoder{is}.decode(ob);
-    return std::move(ob);
+    auto b = xson::json::_2::builder{};
+    auto p = xson::json::_2::parser{&b};
+    p.parse(is);
+    return b.get();
 }
 
 inline std::string stringify(const object& ob, unsigned indent = 2)
