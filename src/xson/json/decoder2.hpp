@@ -411,7 +411,7 @@ public:
             m_state_machine.top()(c);
         }
         if(!m_state_machine.empty())
-            throw std::runtime_error{"parser failed: "s};
+            throw std::runtime_error{"Invalid JSON object"s};
     }
 
 }; // class parser

@@ -1,15 +1,11 @@
 #pragma once
 
 #include <cassert>
-#include <experimental/type_traits>
+#include <type_traits>
 #include "xson/object.hpp"
 #include "xson/fast/decoder.hpp"
 
 namespace xson::fson {
-
-using std::enable_if_t;
-
-using std::experimental::is_enum_v;
 
 class decoder : public fast::decoder
 {
@@ -21,7 +17,7 @@ public:
     using fast::decoder::decode;
 
     template<typename T,
-             typename = enable_if_t<is_enum_v<T>>>
+             typename = std::enable_if_t<std::is_enum_v<T>>>
     void decode(T& e)
     {
         std::uint8_t byte;

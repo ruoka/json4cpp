@@ -14,14 +14,14 @@ using namespace std::string_literals;
 using namespace std::chrono_literals;
 using namespace std::experimental;
 
-using  value = variant<null_type,    // \x0A
-                       number_type,  // \x01
-                       string_type,  // \x02
-                       boolean_type, // \x08
-                       date_type,    // \x09
-                       int32_type,   // \x10
-                       int64_type    // \x12
-                       >;
+using value = variant<null_type,    // \x0A
+                      number_type,  // \x01
+                      string_type,  // \x02
+                      boolean_type, // \x08
+                      date_type,    // \x09
+                      int32_type,   // \x10
+                      int64_type    // \x12
+                      >;
 
 inline auto to_string(const value& val)
 {
@@ -67,9 +67,9 @@ public:
     {}
 
     template <typename T,
-             std::enable_if_t<!is_object_v<T>      &&
-                              !is_value_array_v<T> &&
-                              !is_object_array_v<T>,bool> = true>
+             std::enable_if_t<std::conjunction_v<std::negation<is_object<T>>,
+                                                 std::negation<is_value_array<T>>,
+                                                 std::negation<is_object_array<T>>>,bool> = true>
     object(const string_type& name, const T& val) :
     object{}
     {
@@ -147,9 +147,9 @@ public:
     }
 
     template <typename T,
-              typename = std::enable_if_t<!is_object_v<T>      &&
-                                          !is_value_array_v<T> &&
-                                          !is_object_array_v<T>>>
+              std::enable_if_t<std::conjunction_v<std::negation<is_object<T>>,
+                                                  std::negation<is_value_array<T>>,
+                                                  std::negation<is_object_array<T>>>,bool> = true>
     object& operator = (const T& val)
     {
         static_assert(is_value_v<T>, "This type is not supported");
