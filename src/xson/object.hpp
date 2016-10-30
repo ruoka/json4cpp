@@ -67,9 +67,9 @@ public:
     {}
 
     template <typename T,
-              typename = std::enable_if_t<!is_object_v<T>      &&
-                                          !is_value_array_v<T> &&
-                                          !is_object_array_v<T>>>
+             std::enable_if_t<!is_object_v<T>      &&
+                              !is_value_array_v<T> &&
+                              !is_object_array_v<T>,bool> = true>
     object(const string_type& name, const T& val) :
     object{}
     {
@@ -77,8 +77,9 @@ public:
         m_objects[name].value(val);
     }
 
-    template <typename T>
-    object(const std::enable_if_t<is_value_array_v<T>,string_type>& name, const T& array) :
+    template <typename T,
+              std::enable_if_t<is_value_array_v<T>,bool> = true>
+    object(const string_type& name, const T& array) :
     object{}
     {
         auto& parent = m_objects[name];
@@ -91,8 +92,9 @@ public:
         parent.type(type::array);
     }
 
-    template <typename T>
-    object(const std::enable_if_t<is_value_v<T>,string_type>& name, std::initializer_list<T> vil) :
+    template <typename T,
+              std::enable_if_t<is_value_v<T>,bool> = true>
+    object(const string_type& name, std::initializer_list<T> vil) :
     object{name, std::vector<T>{vil}}
     {}
 
@@ -102,8 +104,9 @@ public:
         m_objects[name] = obj;
     }
 
-    template <typename T>
-    object(const std::enable_if_t<is_object_array_v<T>,string_type>& name, const T& array) :
+    template <typename T,
+              std::enable_if_t<is_object_array_v<T>,bool> = true>
+    object(const string_type& name, const T& array) :
     object{}
     {
         auto& parent = m_objects[name];
