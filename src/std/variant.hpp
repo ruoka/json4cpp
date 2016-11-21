@@ -1202,8 +1202,8 @@ public:
             class _T,
             class _Tj = __imaginary_function_argument_t<_T, _Types...>,
             enable_if_t<conjunction_v<negation<is_same<decay_t<_T>,variant>>,
-                                             is_constructible<_Tj, _T>,
-                                             __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
+                                      is_constructible<_Tj, _T>,
+                                      __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
             >
   inline
   variant(allocator_arg_t, const _Alloc& __a, _T&&  __t) :
