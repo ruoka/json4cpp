@@ -1,10 +1,189 @@
-#pragma once
+// -*- C++ -*-
+#ifndef _RUOKA_VARIANT
+#define _RUOKA_VARIANT
+
+/*
+
+// Header <variant> synopsis
+
+namespace std {
+// 20.7.2, variant of value types
+template <class... Types>
+class variant;
+// 20.7.3, variant helper classes
+template <class T>
+struct variant_size; // undefined
+template <class T>
+struct variant_size<const T>;
+template <class T>
+struct variant_size<volatile T>;
+template <class T>
+struct variant_size<const volatile T>;
+template <class T>
+constexpr size_t variant_size_v = variant_size<T>::value;
+template <class... Types>
+struct variant_size<variant<Types...>>;
+template <size_t I, class T>
+struct variant_alternative; // undefined
+template <size_t I, class T>
+struct variant_alternative<I, const T>;
+template <size_t I, class T>
+struct variant_alternative<I, volatile T>;
+template <size_t I, class T>
+struct variant_alternative<I, const volatile T>;
+template <size_t I, class T>
+using variant_alternative_t = typename variant_alternative<I, T>::type;
+template <size_t I, class... Types>
+struct variant_alternative<I, variant<Types...>>;
+constexpr size_t variant_npos = -1;
+// 20.7.4, value access
+template <class T, class... Types>
+constexpr bool holds_alternative(const variant<Types...>&) noexcept;
+template <size_t I, class... Types>
+constexpr variant_alternative_t<I, variant<Types...>>&
+get(variant<Types...>&);
+template <size_t I, class... Types>
+constexpr variant_alternative_t<I, variant<Types...>>&&
+get(variant<Types...>&&);
+template <size_t I, class... Types>
+constexpr variant_alternative_t<I, variant<Types...>> const&
+get(const variant<Types...>&);
+template <size_t I, class... Types>
+constexpr variant_alternative_t<I, variant<Types...>>
+const&& get(const variant<Types...>&&);
+template <class T, class... Types>
+constexpr T& get(variant<Types...>&);
+template <class T, class... Types>
+constexpr T&& get(variant<Types...>&&);
+template <class T, class... Types>
+constexpr const T& get(const variant<Types...>&);
+template <class T, class... Types>
+constexpr const T&& get(const variant<Types...>&&);
+template <size_t I, class... Types>
+constexpr add_pointer_t<variant_alternative_t<I, variant<Types...>>>
+get_if(variant<Types...>*) noexcept;
+template <size_t I, class... Types>
+constexpr add_pointer_t<const variant_alternative_t<I, variant<Types...>>>
+get_if(const variant<Types...>*) noexcept;
+template <class T, class... Types>
+constexpr add_pointer_t<T>
+get_if(variant<Types...>*) noexcept;
+template <class T, class... Types>
+constexpr add_pointer_t<const T>
+get_if(const variant<Types...>*) noexcept;
+// 20.7.5, relational operators
+template <class... Types>
+constexpr bool operator==(const variant<Types...>&,
+                          const variant<Types...>&);
+template <class... Types>
+constexpr bool operator!=(const variant<Types...>&,
+                          const variant<Types...>&);
+template <class... Types>
+constexpr bool operator<(const variant<Types...>&,
+                         const variant<Types...>&);
+template <class... Types>
+constexpr bool operator>(const variant<Types...>&,
+                         const variant<Types...>&);
+template <class... Types>
+constexpr bool operator<=(const variant<Types...>&,
+                          const variant<Types...>&);
+template <class... Types>
+constexpr bool operator>=(const variant<Types...>&,
+                          const variant<Types...>&);
+// 20.7.6, visitation
+// template <class Visitor, class... Variants>
+// constexpr see below visit(_Visitor&&, Variants&&...);
+// 20.7.7, class monostate
+struct monostate;
+// 20.7.8, monostate relational operators
+constexpr bool operator<(monostate, monostate) noexcept;
+constexpr bool operator>(monostate, monostate) noexcept;
+constexpr bool operator<=(monostate, monostate) noexcept;
+constexpr bool operator>=(monostate, monostate) noexcept;
+constexpr bool operator==(monostate, monostate) noexcept;
+constexpr bool operator!=(monostate, monostate) noexcept;
+// 20.7.9, specialized algorithms
+template <class... Types>
+void swap(variant<Types...>&, variant<Types...>&) noexcept; //(see below)
+// 20.7.10, class bad_variant_access
+class bad_variant_access;
+// 20.7.11, hash support
+// template <class T> struct hash;
+template <class... Types> struct hash<variant<Types...>>;
+template <> struct hash<monostate>;
+// 20.7.12, allocator-related traits
+// template <class T, class Alloc> struct uses_allocator;
+template <class... Types, class Alloc>
+struct uses_allocator<variant<Types...>, Alloc>;
+} // namespace std
+
+namespace std {
+template <class... Types>
+class variant {
+public:
+  // 20.7.2.1, constructors
+  constexpr variant() noexcept; //(see below)
+  variant(const variant&);
+  variant(variant&&) noexcept; //(see below)
+  template <class T>
+  constexpr variant(_T&&) noexcept; //(see below)
+  template <class T, class... Args>
+  constexpr explicit variant(in_place_type_t<T>, Args&&...);
+  template <class T, class U, class... Args>
+  constexpr explicit variant(in_place_type_t<T>, initializer_list<U>, Args&&...);
+  template <size_t I, class... Args>
+  constexpr explicit variant(in_place_index_t<I>, Args&&...);
+  template <size_t I, class U, class... Args>
+  constexpr explicit variant(in_place_index_t<I>, initializer_list<U>, Args&&...);
+  // allocator-extended constructors
+  template <class Alloc>
+  variant(allocator_arg_t, const Alloc&);
+  template <class Alloc>
+  variant(allocator_arg_t, const Alloc&, const variant&);
+  template <class Alloc>
+  variant(allocator_arg_t, const Alloc&, variant&&);
+  template <class Alloc, class T>
+  variant(allocator_arg_t, const Alloc&, T&&);
+  template <class Alloc, class T, class... Args>
+  variant(allocator_arg_t, const Alloc&, in_place_type_t<T>, Args&&...);
+  template <class Alloc, class T, class U, class... Args>
+  variant(allocator_arg_t, const Alloc&, in_place_type_t<T>, initializer_list<U>, Args&&...);
+  template <class Alloc, size_t I, class... Args>
+  variant(allocator_arg_t, const Alloc&, in_place_index_t<I>, Args&&...);
+  template <class Alloc, size_t I, class U, class... Args>
+  variant(allocator_arg_t, const Alloc&, in_place_index_t<I>, initializer_list<U>, Args&&...);
+  // 20.7.2.2, destructor
+  ~variant();
+  // 20.7.2.3, assignment
+  variant& operator=(const variant&);
+  variant& operator=(variant&&) noexcept; //(see below)
+  template <class T> variant& operator=(_T&&) noexcept; //(see below)
+  // 20.7.2.4, modifiers
+  template <class T, class... Args>
+  void emplace(_Args&&...);
+  template <class T, class U, class... Args>
+  void emplace(initializer_list<U>, Args&&...);
+  template <size_t I, class... Args>
+  void emplace(_Args&&...);
+  template <size_t I, class U, class... Args>
+  void emplace(initializer_list<U>, Args&&...);
+  // 20.7.2.5, value status
+  constexpr bool valueless_by_exception() const noexcept;
+  constexpr size_t index() const noexcept;
+  // 20.7.2.6, swap
+  void swap(variant&) noexcept; //(see below)
+  };
+} // namespace std
+
+*/
 
 #include <tuple>
 #include <array>
 #include <utility>
 #include <functional>
 #include <cassert>
+
+// UNSUPPORTED: c++98, c++03, c++11, c++14
 
 namespace std {
 
@@ -540,6 +719,8 @@ protected:
   using __base::__m_index;
 
   __variant_base& operator=(const __variant_base& __rhs)
+    noexcept(conjunction_v<is_nothrow_copy_constructible<_Types>...,
+                           is_nothrow_copy_assignable<_Types>...   >)
   {
     static_assert(conjunction_v<is_copy_constructible<_Types>...,
                                 is_move_constructible<_Types>...,
@@ -574,7 +755,8 @@ protected:
   using __base::__move;
   using __base::__m_index;
 
-  __variant_base(__variant_base&& __v) :
+  __variant_base(__variant_base&& __v)
+    noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...>) :
       __base{}
   {
     static_assert(conjunction_v<is_copy_constructible<_Types> ...>,
@@ -609,7 +791,8 @@ protected:
   using __base::__base;
   using __base::__copy;
 
-  __variant_base(const __variant_base& __v) :
+  __variant_base(const __variant_base& __v)
+      noexcept(conjunction_v<is_nothrow_copy_constructible<_Types> ...>) :
       __base{}
   {
     static_assert(conjunction_v<is_move_constructible<_Types> ...>,
@@ -719,7 +902,7 @@ template <size_t _I, class... _Types>
 struct variant_alternative<_I, variant<_Types...>>
 {
   static_assert(_I < sizeof...(_Types), "variant_alternative index out of range");
-  using type = tuple_element_t<_I, tuple<_Types...>>;
+  using type = tuple_element_t<_I, tuple<_Types...>>; // FIXME doesn't work for volatile types
 };
 
 // 20.7.4, value access
@@ -1032,8 +1215,8 @@ constexpr bool operator!=(monostate, monostate) noexcept {return false;};
 template <class... _Types>
 inline
 void swap(variant<_Types...>& __lhs, variant<_Types...>& __rhs)
-  noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...> &&
-           conjunction_v<is_nothrow_swappable<_Types> ...>)
+  noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...,
+                         is_nothrow_swappable<_Types> ...>)
 {
   __lhs.swap(__rhs);
 };
@@ -1052,6 +1235,7 @@ class variant : public __variant_base<conjunction_v<is_copy_constructible<_Types
                                 conjunction_v<is_move_assignable<_Types>...>,
                                 conjunction_v<is_trivially_destructible<_Types>...>,
                                 _Types...>;
+
   using __base::__copy;
   using __base::__move;
   using __base::__construct;
@@ -1079,7 +1263,7 @@ public:
             >
   inline
   constexpr
-  variant() noexcept(is_nothrow_default_constructible_v<_T0>) = delete;
+  variant() = delete;
 
   // We'll inherit the copy and move constructors from the __base
 
@@ -1379,6 +1563,14 @@ public:
   }
 };
 
+template<>
+class variant<>
+{
+  variant() = delete;
+  variant(const variant&) = delete;
+  variant(variant&&) = delete;
+};
+
 // 20.7.11, hash support
 // template <class _T> struct hash;
 template <class... _Types>
@@ -1409,3 +1601,5 @@ template <class... _Types, class _Alloc>
 struct uses_allocator<variant<_Types...>, _Alloc> : true_type {};
 
 } // namespace std
+
+#endif // _RUOKA_VARIANT
