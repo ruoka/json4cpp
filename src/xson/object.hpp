@@ -12,7 +12,11 @@ namespace xson {
 
 using namespace std::string_literals;
 using namespace std::chrono_literals;
-using namespace std::experimental;
+
+using std::variant;
+using std::monostate;
+using std::holds_alternative;
+using std::get;
 
 using value = variant<null_type,    // \x0A
                       number_type,  // \x01
@@ -23,23 +27,9 @@ using value = variant<null_type,    // \x0A
                       int64_type    // \x12
                       >;
 
-inline auto to_string(const value& val)
+inline std::string to_string(const value& val)
 {
-    if(holds_alternative<string_type>(val))
-        return get<string_type>(val);
-    if(holds_alternative<number_type>(val))
-        return std::to_string(get<number_type>(val));
-    if(holds_alternative<boolean_type>(val))
-        return std::to_string(get<boolean_type>(val));
-    if(holds_alternative<date_type>(val))
-        return std::to_string(get<date_type>(val));
-    if(holds_alternative<null_type>(val))
-        return std::to_string(get<null_type>(val));
-    if(holds_alternative<int32_type>(val))
-        return std::to_string(get<int32_type>(val));
-    if(holds_alternative<int64_type>(val))
-        return std::to_string(get<int64_type>(val));
-    throw std::logic_error{"This type is not supported"};
+    return visit([](const auto& arg){return std::to_string(arg);}, val);
 }
 
 struct less

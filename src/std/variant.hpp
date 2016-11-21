@@ -1,2210 +1,1411 @@
-// -*- C++ -*-
-// Copyright (c) 2015, Just Software Solutions Ltd
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or
-// without modification, are permitted provided that the
-// following conditions are met:
-//
-// 1. Redistributions of source code must retain the above
-// copyright notice, this list of conditions and the following
-// disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following
-// disclaimer in the documentation and/or other materials
-// provided with the distribution.
-//
-// 3. Neither the name of the copyright holder nor the names of
-// its contributors may be used to endorse or promote products
-// derived from this software without specific prior written
-// permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-// CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-// INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-// EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#ifndef _JSS_EXPERIMENTAL_VARIANT_HEADER
-#define _JSS_EXPERIMENTAL_VARIANT_HEADER
-#include <stddef.h>
-#include <stdexcept>
-#include <string>
-#include <type_traits>
-#include <new>
+#pragma once
+
+#include <tuple>
+#include <array>
 #include <utility>
-#include <limits.h>
-#include <memory>
+#include <functional>
+#include <cassert>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4521)
-#pragma warning(disable:4522)
-#endif
+namespace std {
 
-namespace std{
-namespace experimental{
-
-struct __in_place_private{
-    template<typename>
-    struct __type_holder;
-
-    template<size_t>
-    struct __value_holder;
-};
-
-
-struct in_place_tag {
-    in_place_tag() = delete;
-};
-
-using in_place_t = in_place_tag(&)(__in_place_private&);
-
-template <class _Type>
-using in_place_type_t = in_place_tag(&)(__in_place_private::__type_holder<_Type>&);
-
-template <size_t _Index>
-using in_place_index_t = in_place_tag(&)(__in_place_private::__value_holder<_Index>&);
-
-in_place_tag in_place(__in_place_private&);
-
-template <class _Type>
-in_place_tag in_place(__in_place_private::__type_holder<_Type> &) {
-    throw __in_place_private();
-}
-
-template <size_t _Index>
-in_place_tag in_place(__in_place_private::__value_holder<_Index> &) {
-    throw __in_place_private();
-}
-
-class bad_variant_access: public std::logic_error{
+// 20.7.10, class bad_variant_access
+class bad_variant_access : logic_error {
 public:
-    explicit bad_variant_access(const std::string& what_arg):
-        std::logic_error(what_arg)
-    {}
-    explicit bad_variant_access(const char* what_arg):
-        std::logic_error(what_arg)
-    {}
+  bad_variant_access() : logic_error{"Bad variant Access"} {};
+  virtual ~bad_variant_access() noexcept {};
 };
 
-template<ptrdiff_t _Offset,typename _Type,typename ... _Types>
-struct __type_index_helper;
+constexpr size_t variant_npos = -1;
 
-template<ptrdiff_t _Offset,typename _Type,typename _Head,typename ... _Rest>
-struct __type_index_helper<_Offset,_Type,_Head,_Rest...>{
-    static constexpr ptrdiff_t __value=
-        __type_index_helper<_Offset+1,_Type,_Rest...>::__value;
+template <class _Type, class... _Types>
+union __variant_storage; // undefined
+
+struct __trivial{};
+
+struct __non_trivial{};
+
+template <class _Type>
+union __variant_storage<_Type,__trivial>
+{
+  _Type m_type;
+
+  constexpr __variant_storage() : m_type{}
+  {}
+
+  template<class... _Args>
+  constexpr __variant_storage(in_place_type_t<_Type>, _Args&&... __args) :
+    m_type{forward<_Args>(__args)...}
+  {}
 };
 
-template<ptrdiff_t _Offset,typename _Type,typename ... _Rest>
-struct __type_index_helper<_Offset,_Type,_Type,_Rest...>{
-    static constexpr ptrdiff_t __value=_Offset;
+template <class _Type>
+union __variant_storage<_Type,__non_trivial>
+{
+  aligned_storage_t<sizeof(_Type), alignof(_Type)> __m_storage;
+
+  constexpr __variant_storage() : __m_storage{}
+  {}
+
+  template<class... _Args>
+  __variant_storage(in_place_type_t<_Type>, _Args&&... __args) :
+    __m_storage{}
+  {
+    new(&__m_storage)_Type(forward<_Args>(__args)...);
+  }
 };
 
-template<typename _Type,typename ... _Types>
-struct __type_index{
-    static constexpr ptrdiff_t __value=
-        __type_index_helper<0,_Type,_Types...>::__value;
+template <>
+union __variant_storage<void,__trivial>
+{
+  constexpr __variant_storage() = default;
 };
 
-template<ptrdiff_t _Index,typename ... _Types>
-struct __indexed_type;
+template <class _Type>
+union __variant_storage<_Type&,__trivial>
+{
+  reference_wrapper<remove_reference_t<_Type>> m_type;
 
-template<typename _Head,typename ... _Rest>
-struct __indexed_type<0,_Head,_Rest...>{
-    typedef _Head __type;
+  constexpr __variant_storage() : m_type{}
+  {}
+
+  template<class... _Args>
+  constexpr __variant_storage(in_place_type_t<_Type&>, _Args&&... __args) :
+    m_type{forward<_Args>(__args)...}
+  {}
 };
 
-template<typename _Head,typename ... _Rest>
-struct __indexed_type<-1,_Head,_Rest...>{
-    typedef void __type;
+template <class _Type>
+union __variant_storage<_Type>
+{
+  static constexpr bool trivial = is_trivially_destructible_v<_Type> ||
+                                  is_same_v<_Type,void>;
+
+  __variant_storage<_Type, conditional_t<trivial, __trivial, __non_trivial>>
+  m_head;
+
+  constexpr __variant_storage() : m_head{}
+  {}
+
+  template <class _T,
+            class... _Args,
+            enable_if_t<is_same_v<_T,_Type>, int> = 0
+            >
+  constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
+    m_head{in_place_type<_T>, forward<_Args>(__args)...}
+  {}
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
+  constexpr _T& get()
+  {
+    return m_head.m_type;
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
+  constexpr const _T& get() const
+  {
+    return m_head.m_type;
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
+  constexpr _T& get()
+  {
+    return *reinterpret_cast<_T*>(&m_head.__m_storage);
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
+  constexpr const _T& get() const
+  {
+    return *reinterpret_cast<const _T*>(&m_head.__m_storage);
+  }
 };
 
-template<ptrdiff_t _Index,typename _Head,typename ... _Rest>
-struct __indexed_type<_Index,_Head,_Rest...>{
-    typedef typename __indexed_type<_Index-1,_Rest...>::__type __type;
+template <class _Type, class... _Types>
+union __variant_storage
+{
+  static constexpr bool trivial = is_trivially_destructible_v<_Type> ||
+                                  is_same_v<_Type,void>;
+
+  __variant_storage<_Type, conditional_t<trivial, __trivial, __non_trivial>>
+  m_head;
+
+  __variant_storage<_Types...>
+  m_tail;
+
+  __variant_storage()
+  {}
+
+  template <class _T,
+            class... _Args,
+            enable_if_t<is_same_v<_T,_Type>, int> = 0
+            >
+  constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
+    m_head{in_place_type<_T>, forward<_Args>(__args)...}
+  {}
+
+  template <class _T,
+            class... _Args,
+            enable_if_t<!is_same_v<_T,_Type>, int> = 0
+            >
+  constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
+    m_tail{in_place_type<_T>, forward<_Args>(__args)...}
+  {}
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
+  constexpr _T& get()
+  {
+    return m_head.m_type;
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
+  constexpr const _T& get() const
+  {
+    return m_head.m_type;
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
+  constexpr _T& get()
+  {
+    return *reinterpret_cast<_T*>(&m_head.__m_storage);
+  }
+
+  template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
+  constexpr const _T& get() const
+  {
+    return *reinterpret_cast<const _T*>(&m_head.__m_storage);
+  }
+
+  template <class _T, enable_if_t<!is_same_v<_T,_Type>, int> = 0>
+  constexpr _T& get()
+  {
+    return m_tail.template get<_T>();
+  }
+
+  template <class _T, enable_if_t<!is_same_v<_T,_Type>, int> = 0>
+  constexpr const _T& get() const
+  {
+    return m_tail.template get<_T>();
+  }
 };
 
-template<ptrdiff_t _Index,typename ..._Types>
-struct __next_index{
-    static constexpr ptrdiff_t __value=
-        (_Index>=ptrdiff_t(sizeof...(_Types)-1))?-1:_Index+1;
+template <class _T, class... _Types>
+struct __variant_index; // undefined
+
+template <class _T, class... _Types>
+constexpr size_t __variant_index_v = __variant_index<_T, _Types...>::value;
+
+template <class _T>
+struct __variant_index<_T> :
+  integral_constant<size_t, 1> {};
+
+template <class _T, class... _Types>
+struct __variant_index<_T, _T, _Types...> :
+  integral_constant<size_t, 0> {};
+
+template <class _T, class _U, class... _Types>
+struct __variant_index<_T, _U, _Types...> :
+  integral_constant<size_t, 1 + __variant_index_v<_T, _Types...>> {};
+
+// Variant Base Class
+
+template <bool _CopyConstructible,
+          bool _MoveConstructible,
+          bool _CopyAssignable,
+          bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base; // undefined
+
+// Non_TiviallyDestructible Specialisation
+
+template <class... _Types>
+class __variant_base<false,false,false,false,false, _Types...>
+{
+public:
+
+  __variant_storage<_Types...> __m_storage;
+
+protected:
+
+  size_t __m_index = variant_npos;
+
+  __variant_base(const __variant_base&) = delete;
+  __variant_base(__variant_base&&) = delete;
+  __variant_base& operator=(const __variant_base&) = delete;
+  __variant_base& operator=(__variant_base&&) = delete;
+
+  __variant_base() :
+    __m_storage{},
+    __m_index{variant_npos}
+  {}
+
+  template <class _T, class... _Args>
+  __variant_base(in_place_type_t<_T>, _Args&&... __args) :
+    __m_storage{},
+    __m_index{variant_npos}
+  {
+    __construct(in_place_type<_T>, forward<_Args>(__args) ...);
+  }
+
+  template <class _Alloc, class _T, class... _Args>
+  __variant_base(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args) :
+    __m_storage{},
+    __m_index{variant_npos}
+  {
+    __construct(allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...);
+  }
+
+  ~__variant_base()
+  {
+    if(__m_index != variant_npos)
+      __destroy();
+  }
+
+  template <class _T,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T,_Args...>,int> = 0
+            >
+  void __construct(in_place_type_t<_T>, _Args&&... __args)
+  {
+    assert(__m_index == variant_npos);
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...};
+    __m_index = __variant_index_v<_T, _Types...>;
+  };
+
+  template <class _Alloc,
+            class _T,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args...>,int> = 0
+            >
+  void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
+  {
+    assert(__m_index == variant_npos);
+    new(&__m_storage) decay_t<_T>{allocator_arg, __a, forward<_Args>(__args) ...};
+    __m_index = __variant_index_v<_T, _Types...>;
+  };
+
+  template <class _Alloc,
+            class _T,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T,_Args...,const _Alloc&>,int> = 0
+            >
+  void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
+  {
+    assert(__m_index == variant_npos);
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...,  __a};
+    __m_index = __variant_index_v<_T, _Types...>;
+  };
+
+  template <class _Alloc,
+            class _T,
+            class... _Args,
+            enable_if_t<!is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args...> &&
+                        !is_constructible_v<_T,_Args...,const _Alloc&>,int> = 0
+            >
+  void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
+  {
+    assert(__m_index == variant_npos);
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...};
+    __m_index = __variant_index_v<_T, _Types...>;
+  };
+
+private:
+
+  template<class _T>
+  void __private_copy(const __variant_base& __v)
+  {
+    __construct(in_place_type<_T>, __v.__m_storage.template get<_T>());
+  }
+
+  template <class _Alloc,
+            class _T
+            >
+  void __private_copy(allocator_arg_t, const _Alloc& __a, const __variant_base& __v)
+  {
+    __construct(allocator_arg, __a, in_place_type<_T>, __v.__m_storage.template get<_T>());
+  }
+
+protected:
+
+  void __copy(const __variant_base& __v)
+  {
+    assert(__v.__m_index != variant_npos);
+    assert(__v.__m_index < sizeof...(_Types));
+    assert(__m_index == variant_npos);
+    using function = void(__variant_base::*)(const __variant_base&);
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types> ...};
+    (this->*__array[__v.__m_index])(__v);
+  }
+
+  template <class _Alloc>
+  void __copy(allocator_arg_t, const _Alloc& __a, const __variant_base& __v)
+  {
+    assert(__v.__m_index != variant_npos);
+    assert(__v.__m_index < sizeof...(_Types));
+    assert(__m_index == variant_npos);
+    using function = void(__variant_base::*)(allocator_arg_t, const _Alloc&, const __variant_base&);
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Alloc, _Types> ...};
+    (this->*__array[__v.__m_index])(allocator_arg, __a, __v);
+  }
+
+private:
+
+  template<class _T>
+  void __private_move(__variant_base&& __v)
+  {
+    __construct(in_place_type<_T>, move(__v.__m_storage.template get<_T>()));
+  }
+
+  template <class _Alloc,
+            class _T
+            >
+  void __private_move(allocator_arg_t, const _Alloc& __a, __variant_base&& __v)
+  {
+    __construct(allocator_arg, __a, in_place_type<_T>, move(__v.__m_storage.template get<_T>()));
+  }
+
+protected:
+
+  void __move(__variant_base&& __v)
+  {
+    assert(__v.__m_index != variant_npos);
+    assert(__v.__m_index < sizeof...(_Types));
+    assert(__m_index == variant_npos);
+    using function = void(__variant_base::*)(__variant_base&&);
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Types> ...};
+    (this->*__array[__v.__m_index])(forward<__variant_base>(__v));
+    __v.__m_index = variant_npos;
+  }
+
+  template <class _Alloc>
+  void __move(allocator_arg_t, const _Alloc& __a, __variant_base&& __v)
+  {
+    assert(__v.__m_index != variant_npos);
+    assert(__v.__m_index < sizeof...(_Types));
+    assert(__m_index == variant_npos);
+    using function = void(__variant_base::*)(allocator_arg_t, const _Alloc&, __variant_base&&);
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Alloc, _Types> ...};
+    (this->*__array[__v.__m_index])(allocator_arg, __a, forward<__variant_base>(__v));
+    __v.__m_index = variant_npos;
+  }
+
+private:
+
+  template<class _T, enable_if_t<is_class_v<decay_t<_T>>,int> = 0>
+  void __private_destroy()
+  {
+    assert(__m_index != variant_npos);
+    reinterpret_cast<add_pointer_t<_T>>(&__m_storage)->~_T();
+    __m_index = variant_npos;
+  };
+
+  template<class _T, enable_if_t<!is_class_v<decay_t<_T>>,int> = 0>
+  void __private_destroy()
+  {
+    assert(__m_index != variant_npos);
+    __m_index = variant_npos;
+  };
+
+protected:
+
+  void __destroy()
+  {
+    assert(__m_index != variant_npos);
+    assert(__m_index < sizeof...(_Types));
+    using function = void(__variant_base::*)();
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_destroy<_Types> ...};
+    (this->*__array[__m_index])();
+  };
 };
 
-template<typename ... _Types>
+// _TiviallyDestructible Specialisation
+
+template <class... _Types>
+class __variant_base<false,false,false,false,true, _Types...>
+{
+public:
+
+  __variant_storage<_Types...> __m_storage;
+
+protected:
+
+  size_t __m_index = variant_npos;
+
+  __variant_base(const __variant_base&) = delete;
+  __variant_base(__variant_base&&) = delete;
+  __variant_base& operator=(const __variant_base&) = delete;
+  __variant_base& operator=(__variant_base&&) = delete;
+  ~__variant_base() = default;
+
+  __variant_base() :
+    __m_storage{},
+    __m_index{variant_npos}
+  {}
+
+  template <class _T, class... _Args>
+  constexpr __variant_base(in_place_type_t<_T>, _Args&&... __args) :
+    __m_storage{in_place_type<_T>, forward<_Args>(__args) ...},
+    __m_index{__variant_index_v<_T, _Types...>}
+  {}
+
+  template <class _T, class... _Args>
+  void __construct(in_place_type_t<_T>, _Args&&... __args)
+  {
+    assert(__m_index == variant_npos);
+    new(&__m_storage) remove_reference_t<_T>{forward<_Args>(__args) ...};
+    __m_index = __variant_index_v<_T, _Types...>;
+  };
+
+private:
+
+  template<class _T>
+  void __private_copy(const __variant_base& __v)
+  {
+    __construct(in_place_type<_T>, __v.__m_storage.template get<_T>());
+  }
+
+protected:
+
+  void __copy(const __variant_base& __v)
+  {
+    assert(__v.__m_index != variant_npos && __v.__m_index < sizeof...(_Types));
+    assert(__m_index == variant_npos);
+    using __function = void(__variant_base::*)(const __variant_base&);
+    constexpr __function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types> ...};
+    (this->*__array[__v.__m_index])(__v);
+  }
+
+  void __move(__variant_base&& __v)
+  {
+    __copy(__v);
+    __v.__m_index = variant_npos;
+  }
+
+  void __destroy()
+  {
+    assert(__m_index != variant_npos);
+    __m_index = variant_npos;
+  };
+};
+
+// _MoveAssignable Specialisation
+
+template <bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<false,false,false,true,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,false,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,false,false,false,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+  using __base::__move;
+  using __base::__destroy;
+  using __base::__m_index;
+
+  __variant_base&
+  operator=(__variant_base&& __rhs)
+    noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...,
+                           is_nothrow_move_assignable<_Types>...   >)
+  {
+    static_assert(conjunction_v<is_move_constructible<_Types> ...> &&
+                  conjunction_v<is_move_assignable   <_Types> ...> ,
+      R"(This function shall not participate in overload resolution
+      unless is_move_constructible_v<_Ti> && s_move_assignable_v<_Ti> is true for all i.)");
+    if(__m_index != variant_npos)
+      __destroy();
+    if(__rhs.__m_index != variant_npos)
+      __move(move(__rhs));
+    return *this;
+  }
+};
+
+// _CopyAssignable Specialisation
+
+template <bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<false,false,true,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+  using __base::__copy;
+  using __base::__destroy;
+  using __base::__m_index;
+
+  __variant_base& operator=(const __variant_base& __rhs)
+  {
+    static_assert(conjunction_v<is_copy_constructible<_Types>...,
+                                is_move_constructible<_Types>...,
+                                is_copy_assignable   <_Types>...>,
+      R"(This function shall not participate in overload resolution
+      unless is_copy_constructible_v<_Ti> && is_move_constructible_v<_Ti> &&
+      is_copy_assignable_v<_Ti> is true for all i.)");
+    if(__m_index != variant_npos)
+      __destroy();
+    if(__rhs.__m_index != variant_npos)
+      __copy(__rhs);
+    return *this;
+  }
+  __variant_base& operator=(__variant_base&&) = default;
+};
+
+// _MoveConstructible Specialisation
+
+template <bool _CopyAssignable,
+          bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<false,true,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+  using __base::__move;
+  using __base::__m_index;
+
+  __variant_base(__variant_base&& __v) :
+      __base{}
+  {
+    static_assert(conjunction_v<is_copy_constructible<_Types> ...>,
+      R"(This function shall not participate in overload resolution
+      unless is_copy_constructible_v<_Ti> is true for all i.)");
+    if(__v.__m_index != variant_npos)
+    {
+      __move(forward<__variant_base>(__v));
+      __v.__m_index = variant_npos;
+    }
+  }
+
+  __variant_base& operator=(const __variant_base&) = default;
+  __variant_base& operator=(__variant_base&&) = default;
+};
+
+// _CopyConstructible Specialisation
+
+template <bool _MoveConstructible,
+          bool _CopyAssignable,
+          bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<true,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+  using __base::__copy;
+
+  __variant_base(const __variant_base& __v) :
+      __base{}
+  {
+    static_assert(conjunction_v<is_move_constructible<_Types> ...>,
+      R"(This function shall not participate in overload resolution
+      unless is_move_constructible_v<_Ti> is true for all i.)");
+    if(__v.__m_index != variant_npos)
+      __copy(__v);
+  }
+
+  __variant_base(__variant_base&&) = default;
+  __variant_base& operator=(const __variant_base&) = default;
+  __variant_base& operator=(__variant_base&&) = default;
+};
+
+// Some helper templates
+
+template < template <class> class _Test, class... _Types>
+struct __first_or_last;
+
+template < template <class> class _Test, class... _Types>
+using __first_or_last_t = typename __first_or_last<_Test, _Types...>::type;
+
+template < template <class> class _Test, class _T>
+struct __first_or_last<_Test, _T> {using type = _T;};
+
+template < template <class> class _Test, class _T, class... _Types>
+struct __first_or_last<_Test, _T, _Types...>
+{
+  static constexpr _Test<_T> test;
+  using type = conditional_t<!test, _T, __first_or_last_t<_Test, _Types...>>;
+};
+
+template <typename _T>
+struct __argument {using type = _T;};
+
+template <typename... _Ts>
+struct __imaginary_function; // undefined
+
+template <>
+struct __imaginary_function<> {constexpr void operator()() const noexcept;};
+
+template <typename... _Ts>
+struct __imaginary_function<void, _Ts...> : __imaginary_function<_Ts...>
+{
+  using __imaginary_function<_Ts...>::operator();
+  constexpr __argument<void> operator()() const noexcept;
+};
+
+template <typename _T, typename... _Ts>
+struct __imaginary_function<_T, _Ts...> : __imaginary_function<_Ts...>
+{
+  using __imaginary_function<_Ts...>::operator();
+  constexpr __argument<_T> operator()(_T) const noexcept;
+};
+
+template <class _T, class... _Types>
+using __imaginary_function_argument_t =
+  typename result_of_t<__imaginary_function<_Types...>(_T)>::type;
+
+template <class _T, class... _Types>
+struct __count; // undefined
+
+template <class _T, class... _Types>
+constexpr size_t __count_v = __count<_T, _Types...>::value;
+
+template <class _T,class _U>
+struct __count<_T,_U> :
+  integral_constant<size_t, is_same_v<_T,_U >> {};
+
+template <class _T, class _U, class... _Types>
+struct __count<_T, _U, _Types...> :
+  integral_constant<size_t, is_same_v<_T,_U > + __count_v<_T, _Types...>> {};
+
+template <class _T, class... _Types>
+struct __is_imaginary_function_well_formed :
+  bool_constant<(__count_v<_T, _Types...> == 1)> {};
+
+template <class _T, class... _Types>
+constexpr bool __is_imaginary_function_well_formed_v =
+  __is_imaginary_function_well_formed<_T, _Types...>::value;
+
+// 20.7.2, variant of value types
+template <class... _Types>
 class variant;
 
-template<typename>
-struct variant_size;
-
-template <typename _Type>
-struct variant_size<const _Type> : variant_size<_Type> {};
-
-template <typename _Type>
-struct variant_size<volatile _Type> : variant_size<_Type> {};
-
-template <typename _Type>
-struct variant_size<const volatile _Type> : variant_size<_Type> {};
-
-template <typename... _Types>
-struct variant_size<variant<_Types...>>
-    : std::integral_constant<size_t, sizeof...(_Types)> {};
-
-template<size_t _Index,typename _Type>
-struct variant_alternative;
-
-template<size_t _Index,typename _Type>
-using variant_alternative_t=typename variant_alternative<_Index,_Type>::type;
-
-template <size_t _Index, typename _Type>
-struct variant_alternative<_Index, const _Type>{
-    using type=std::add_const_t<variant_alternative_t<_Index,_Type>>;
-};
-
-template <size_t _Index, typename _Type>
-struct variant_alternative<_Index, volatile _Type>{
-    using type=std::add_volatile_t<variant_alternative_t<_Index,_Type>>;
-};
-
-template <size_t _Index, typename _Type>
-struct variant_alternative<_Index, volatile const _Type>{
-    using type=std::add_volatile_t<std::add_const_t<variant_alternative_t<_Index,_Type>>>;
-};
-
-template<size_t _Index,typename ... _Types>
-struct variant_alternative<_Index,variant<_Types...>>{
-    using type=typename __indexed_type<_Index,_Types...>::__type;
-};
-
-constexpr size_t variant_npos=-1;
-
-template<typename _Type,typename ... _Types>
-constexpr _Type& get(variant<_Types...>&);
-
-template<typename _Type,typename ... _Types>
-constexpr _Type const& get(variant<_Types...> const&);
-
-template<typename _Type,typename ... _Types>
-constexpr _Type&& get(variant<_Types...>&&);
-
-template<typename _Type,typename ... _Types>
-constexpr const _Type&& get(variant<_Types...> const&&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type& get(variant<_Types...>&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type&& get(variant<_Types...>&&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type const& get(
-    variant<_Types...> const&);
-
-template <ptrdiff_t _Index, typename... _Types>
-constexpr const typename __indexed_type<_Index, _Types...>::__type &&
-get(variant<_Types...> const &&);
-
-template<typename _Type,typename ... _Types>
-constexpr std::add_pointer_t<_Type> get_if(variant<_Types...>&);
-
-template<typename _Type,typename ... _Types>
-constexpr std::add_pointer_t<_Type const> get_if(variant<_Types...> const&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr std::add_pointer_t<typename __indexed_type<_Index,_Types...>::__type> get_if(variant<_Types...>&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr std::add_pointer_t<typename __indexed_type<_Index,_Types...>::__type const> get_if(
-    variant<_Types...> const&);
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __variant_accessor;
-
-template<size_t __count,
-         bool __larger_than_char=(__count>SCHAR_MAX),
-    bool __larger_than_short=(__count>SHRT_MAX),
-    bool __larger_than_int=(__count>INT_MAX)>
-struct __discriminator_type{
-    typedef signed char __type;
-};
-
-template<size_t __count>
-struct __discriminator_type<__count,true,false,false>{
-    typedef signed short __type;
-};
-
-template<size_t __count>
-struct __discriminator_type<__count,true,true,false>{
-    typedef int __type;
-};
-template<size_t __count>
-struct __discriminator_type<__count,true,true,true>{
-    typedef signed long __type;
-};
-
-template<typename _Type>
-struct __stored_type{
-    typedef _Type __type;
-};
-
-template<typename _Type>
-struct __stored_type<_Type&>{
-    typedef _Type* __type;
-};
-
-template<typename ... _Types>
-struct __all_trivially_destructible;
-
-template<>
-struct __all_trivially_destructible<> {
-    static constexpr bool __value=true;
-};
-
-template<typename _Type>
-struct __all_trivially_destructible<_Type> {
-    static constexpr bool __value=
-        std::is_trivially_destructible<typename __stored_type<_Type>::__type>::value;
-};
-
-template<typename _Head,typename ... _Rest>
-struct __all_trivially_destructible<_Head,_Rest...> {
-    static constexpr bool __value=
-        __all_trivially_destructible<_Head>::__value &&
-        __all_trivially_destructible<_Rest...>::__value;
-};
-
-template<typename _Target,typename ... _Args>
-struct __storage_nothrow_constructible{
-    static const bool __value=
-        noexcept(_Target(std::declval<_Args>()...));
-};
-
-template<typename ... _Types>
-struct __storage_nothrow_move_constructible;
-
-template<>
-struct __storage_nothrow_move_constructible<> {
-    static constexpr bool __value=true;
-};
-
-template<typename _Type>
-struct __storage_nothrow_move_constructible<_Type> {
-    static constexpr bool __value=
-        std::is_nothrow_move_constructible<
-        typename __stored_type<_Type>::__type>::value;
-};
-
-template<typename _Head,typename ... _Rest>
-struct __storage_nothrow_move_constructible<_Head,_Rest...> {
-    static constexpr bool __value=
-        __storage_nothrow_move_constructible<_Head>::__value &&
-        __storage_nothrow_move_constructible<_Rest...>::__value;
-};
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __other_storage_nothrow_move_constructible;
-
-template<typename _Head,typename ... _Rest>
-struct __other_storage_nothrow_move_constructible<0,_Head,_Rest...>{
-    static const bool __value=__storage_nothrow_move_constructible<_Rest...>::__value;
-};
-
-template<typename _Head,typename ... _Rest>
-struct __other_storage_nothrow_move_constructible<-1,_Head,_Rest...>{
-    static const bool __value=
-        __storage_nothrow_move_constructible<_Head,_Rest...>::__value;
-};
-
-template<ptrdiff_t _Index,typename _Head,typename ... _Rest>
-struct __other_storage_nothrow_move_constructible<_Index,_Head,_Rest...>{
-    static const bool __value=
-        __storage_nothrow_move_constructible<_Head>::__value &&
-        __other_storage_nothrow_move_constructible<_Index-1,_Rest...>::__value;
-};
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __backup_storage_required{
-    static const bool __value=
-        !__storage_nothrow_move_constructible<
-        typename __indexed_type<_Index,_Types...>::__type>::__value &&
-        !__other_storage_nothrow_move_constructible<_Index,_Types...>::__value;
-};
-
-template<ptrdiff_t _Index,ptrdiff_t _Count,typename ... _Types>
-struct __any_backup_storage_required_impl{
-    static const bool __value=
-        __backup_storage_required<_Index,_Types...>::__value ||
-        __any_backup_storage_required_impl<_Index+1,_Count-1,_Types...>::__value;
-};
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __any_backup_storage_required_impl<_Index,0,_Types...>{
-    static const bool __value=false;
-};
-
-template<typename _Variant>
-struct __any_backup_storage_required;
-
-template<typename ... _Types>
-struct __any_backup_storage_required<variant<_Types...> >{
-    static const bool __value=
-        __any_backup_storage_required_impl<0,sizeof...(_Types),_Types...>::__value;
-};
-
-template<typename ... _Types>
-union __variant_data;
-
-template<typename _Type,bool=std::is_literal_type<_Type>::value>
-struct __variant_storage{
-    typedef _Type __type;
-
-    static constexpr _Type& __get(__type& __val){
-        return __val;
-    }
-    static constexpr _Type&& __get_rref(__type& __val){
-        return std::move(__val);
-    }
-    static constexpr const _Type& __get(__type const& __val){
-        return __val;
-    }
-    static constexpr const _Type&& __get_rref(__type const& __val){
-        return std::move(__val);
-    }
-    static void __destroy(__type&){}
-};
-
-template<typename _Type>
-struct __storage_wrapper{
-    typename std::aligned_storage<sizeof(_Type),alignof(_Type)>::type __storage;
-
-    template<typename ... _Args>
-    static constexpr void __construct(void* __p,_Args&& ... __args){
-        new (__p) _Type(std::forward<_Args>(__args)...);
-    }
-
-    template <typename _Dummy = _Type>
-    __storage_wrapper(
-        typename std::enable_if<std::is_default_constructible<_Dummy>::value,
-        void (__storage_wrapper::*)()>::type = nullptr) {
-      __construct(&__storage);
-    }
-
-    template <typename _Dummy = _Type>
-    __storage_wrapper(
-        typename std::enable_if<!std::is_default_constructible<_Dummy>::value,
-        void (__storage_wrapper::*)()>::type = nullptr) {
-    }
-
-    template<typename _First,typename ... _Args>
-    __storage_wrapper(_First&& __first,_Args&& ... __args){
-        __construct(&__storage,std::forward<_First>(__first),std::forward<_Args>(__args)...);
-    }
-
-    _Type& __get(){
-        return *static_cast<_Type*>(static_cast<void*>(&__storage));
-    }
-    constexpr _Type const& __get() const{
-        return *static_cast<_Type const*>(static_cast<void const*>(&__storage));
-    }
-    void __destroy(){
-        __get().~_Type();
-    }
-};
-
-template<typename _Type>
-struct __storage_wrapper<_Type&>{
-    _Type* __storage;
-
-    template<typename _Arg>
-    constexpr __storage_wrapper(_Arg& __arg):
-        __storage(&__arg){}
-
-    _Type& __get(){
-        return *__storage;
-    }
-    constexpr _Type const& __get() const{
-        return *__storage;
-    }
-};
-
-template<typename _Type>
-struct __variant_storage<_Type,false>{
-    typedef __storage_wrapper<_Type> __type;
-
-    static constexpr _Type& __get(__type& __val){
-        return __val.__get();
-    }
-    static constexpr _Type&& __get_rref(__type& __val){
-        return std::move(__val.__get());
-    }
-    static constexpr const _Type& __get(__type const& __val){
-        return __val.__get();
-    }
-    static constexpr const _Type&& __get_rref(__type const& __val){
-        return std::move(__val.__get());
-    }
-    static void __destroy(__type& __val){
-        __val.__destroy();
-    }
-};
-
-template<typename _Type,bool __b>
-struct __variant_storage<_Type&,__b>{
-    typedef _Type* __type;
-
-    static constexpr _Type& __get(__type& __val){
-        return *__val;
-    }
-    static constexpr _Type& __get_rref(__type& __val){
-        return *__val;
-    }
-    static constexpr _Type& __get(__type const& __val){
-        return *__val;
-    }
-    static constexpr _Type& __get_rref(__type const& __val){
-        return *__val;
-    }
-    static void __destroy(__type&){}
-};
-
-template<typename _Type,bool __b>
-struct __variant_storage<_Type&&,__b>{
-    typedef _Type* __type;
-
-    static constexpr _Type&& __get(__type& __val){
-        return static_cast<_Type&&>(*__val);
-    }
-    static constexpr _Type&& __get_rref(__type& __val){
-        return static_cast<_Type&&>(*__val);
-    }
-    static constexpr _Type&& __get(__type const& __val){
-        return static_cast<_Type&&>(*__val);
-    }
-    static constexpr _Type&& __get_rref(__type const& __val){
-        return static_cast<_Type&&>(*__val);
-    }
-    static void __destroy(__type&){}
-};
-
-template<>
-union __variant_data<>{
-    constexpr __variant_data(){}
-};
-
-template<typename _Type>
-union __variant_data<_Type>{
-    typename __variant_storage<_Type>::__type __val;
-    struct __dummy_type{} __dummy;
-
-    constexpr __variant_data():__dummy(){}
-
-    template<typename ... _Args>
-    constexpr __variant_data(in_place_index_t<0>,_Args&& ... __args):
-        __val(std::forward<_Args>(__args)...){}
-
-    template<typename _Alloc,typename ... _Args>
-        constexpr __variant_data(
-            typename std::conditional<
-            !std::uses_allocator<_Type,_Alloc>::value,
-            in_place_index_t<0>,
-            __dummy_type>::type,
-            std::allocator_arg_t,_Alloc const&,
-            _Args&& ... __args):
-        __val(std::forward<_Args>(__args)...){}
-
-    template <typename _Alloc, typename... _Args>
-    __variant_data(
-        typename std::conditional<
-            std::uses_allocator<_Type, _Alloc>::value &&
-                !std::is_constructible<_Type, std::allocator_arg_t,
-                                       _Alloc const &, _Args...>::value,
-            in_place_index_t<0>, __dummy_type>::type,
-        std::allocator_arg_t, _Alloc const &__alloc, _Args &&... __args)
-        : __val(std::forward<_Args>(__args)..., __alloc) {}
-
-    _Type& __get(in_place_index_t<0>){
-        return __variant_storage<_Type>::__get(__val);
-    }
-    constexpr _Type&& __get_rref(in_place_index_t<0>){
-        return __variant_storage<_Type>::__get_rref(__val);
-    }
-    constexpr const _Type& __get(in_place_index_t<0>) const{
-        return __variant_storage<_Type>::__get(__val);
-    }
-    constexpr const _Type&& __get_rref(in_place_index_t<0>) const{
-        return __variant_storage<_Type>::__get_rref(__val);
-    }
-    void __destroy(in_place_index_t<0>){
-        __variant_storage<_Type>::__destroy(__val);
-    }
-};
-
-template<typename _Type>
-union __variant_data<_Type&>{
-    typename __variant_storage<_Type&>::__type __val;
-    struct __dummy_type{} __dummy;
-
-    constexpr __variant_data():__dummy(){}
-
-    template<typename ... _Args>
-    constexpr __variant_data(in_place_index_t<0>,_Args&& ... __args):
-        __val(&std::forward<_Args>(__args)...){}
-
-    _Type& __get(in_place_index_t<0>){
-        return __variant_storage<_Type&>::__get(__val);
-    }
-    constexpr _Type& __get(in_place_index_t<0>) const{
-        return __variant_storage<_Type&>::__get(__val);
-    }
-
-    _Type& __get_rref(in_place_index_t<0>){
-        return __variant_storage<_Type&>::__get_rref(__val);
-    }
-    constexpr _Type& __get_rref(in_place_index_t<0>) const{
-        return __variant_storage<_Type&>::__get_rref(__val);
-    }
-
-    void __destroy(in_place_index_t<0>){
-        __variant_storage<_Type&>::__destroy(__val);
-    }
-};
-
-template<typename _Type>
-union __variant_data<_Type&&>{
-    typename __variant_storage<_Type&&>::__type __val;
-    struct __dummy_type{} __dummy;
-
-    constexpr __variant_data():__dummy(){}
-
-    template<typename _Arg>
-    __variant_data(in_place_index_t<0>,_Arg&& __arg):
-        __val(&__arg){}
-
-    _Type&& __get(in_place_index_t<0>){
-        return __variant_storage<_Type&&>::__get(__val);
-    }
-    constexpr _Type&& __get(in_place_index_t<0>) const{
-        return __variant_storage<_Type&&>::__get(__val);
-    }
-    _Type&& __get_rref(in_place_index_t<0>){
-        return __variant_storage<_Type&&>::__get_rref(__val);
-    }
-    constexpr _Type&& __get_rref(in_place_index_t<0>) const{
-        return __variant_storage<_Type&&>::__get_rref(__val);
-    }
-    void __destroy(in_place_index_t<0>){
-        __variant_storage<_Type&&>::__destroy(__val);
-    }
-};
-
-template<typename _Head,typename ... _Rest>
-union __variant_data<_Head,_Rest...>{
-    __variant_data<_Head> __head;
-    __variant_data<_Rest...> __rest;
-
-    constexpr __variant_data():
-        __head(){}
-
-    template<typename ... _Args>
-    constexpr __variant_data(in_place_index_t<0>,_Args&& ... __args):
-        __head(in_place<0>,std::forward<_Args>(__args)...){}
-    template<size_t _Index,typename ... _Args>
-    constexpr __variant_data(in_place_index_t<_Index>,_Args&& ... __args):
-        __rest(in_place<_Index-1>,std::forward<_Args>(__args)...){}
-
-    _Head& __get(in_place_index_t<0>){
-        return __head.__get(in_place<0>);
-    }
-
-    constexpr _Head&& __get_rref(in_place_index_t<0>){
-        return __head.__get_rref(in_place<0>);
-    }
-
-    constexpr const _Head& __get(in_place_index_t<0>) const{
-        return __head.__get(in_place<0>);
-    }
-
-    constexpr const _Head&& __get_rref(in_place_index_t<0>) const{
-        return __head.__get_rref(in_place<0>);
-    }
-
-    template<size_t _Index>
-    typename __indexed_type<_Index-1,_Rest...>::__type& __get(
-        in_place_index_t<_Index>){
-        return __rest.__get(in_place<_Index-1>);
-    }
-
-    template<size_t _Index>
-    constexpr typename __indexed_type<_Index-1,_Rest...>::__type&& __get_rref(
-        in_place_index_t<_Index>){
-        return __rest.__get_rref(in_place<_Index-1>);
-    }
-
-    template<size_t _Index>
-    constexpr const typename __indexed_type<_Index-1,_Rest...>::__type& __get(
-        in_place_index_t<_Index>) const{
-        return __rest.__get(in_place<_Index-1>);
-    }
-
-    template<size_t _Index>
-    constexpr const typename __indexed_type<_Index-1,_Rest...>::__type&& __get_rref(
-        in_place_index_t<_Index>) const{
-        return __rest.__get_rref(in_place<_Index-1>);
-    }
-
-
-    void __destroy(in_place_index_t<0>){
-        __head.__destroy(in_place<0>);
-    }
-    template<size_t _Index>
-    void __destroy(in_place_index_t<_Index>){
-        __rest.__destroy(in_place<_Index-1>);
-    }
-};
-
-
-template<ptrdiff_t... _Indices>
-struct __index_sequence{
-    typedef __index_sequence<_Indices...,sizeof...(_Indices)> __next;
-    static constexpr size_t __length=sizeof...(_Indices);
-};
-
-template<typename ... _Types>
-struct __type_indices;
-
-template<>
-struct __type_indices<>{
-    typedef __index_sequence<> __type;
-};
-
-template<typename _Type>
-struct __type_indices<_Type>{
-    typedef __index_sequence<0> __type;
-};
-
-template<typename _Type,typename ... _Rest>
-struct __type_indices<_Type,_Rest...>{
-    typedef typename __type_indices<_Rest...>::__type::__next __type;
-};
-
-template<typename _Variant>
-struct __variant_indices;
-
-template<typename ... _Types>
-struct __variant_indices<variant<_Types...>>{
-    typedef typename __type_indices<_Types...>::__type __type;
-};
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __move_construct_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __move_construct_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Variant&);
-
-    template<ptrdiff_t _Index>
-    static void __move_construct_func(
-        _Variant * __lhs,_Variant& __rhs){
-        __lhs->template __emplace_construct<_Index>(
-            std::move(get<_Index>(__rhs)));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __move_construct_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__move_construct_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__move_construct_func<_Indices>...
-    };
-
-template<typename _Variant,typename _Alloc,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __move_construct_alloc_op_table;
-
-template<typename _Variant,typename _Alloc,ptrdiff_t ... _Indices>
-struct __move_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Alloc const&,_Variant&);
-
-    template<ptrdiff_t _Index>
-    static void __move_construct_func(
-        _Variant * __lhs,_Alloc const& __alloc,_Variant& __rhs){
-        __lhs->template __emplace_construct<_Index>(
-            std::allocator_arg_t(),__alloc,
-            std::move(get<_Index>(__rhs)));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,typename _Alloc,ptrdiff_t ... _Indices>
-const typename __move_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>::
-__func_type
-__move_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__move_construct_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __move_assign_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __move_assign_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Variant&);
-
-    template<ptrdiff_t _Index>
-    static void __move_assign_func(
-        _Variant * __lhs,_Variant& __rhs){
-        get<_Index>(*__lhs)=std::move(get<_Index>(__rhs));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __move_assign_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__move_assign_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__move_assign_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __copy_construct_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __copy_construct_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static void __copy_construct_func(
-        _Variant * __lhs,_Variant const& __rhs){
-        __lhs->template __emplace_construct<_Index>(
-            get<_Index>(__rhs));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __copy_construct_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__copy_construct_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__copy_construct_func<_Indices>...
-    };
-
-template<typename _Variant,typename _Alloc,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __copy_construct_alloc_op_table;
-
-template<typename _Variant,typename _Alloc,ptrdiff_t ... _Indices>
-struct __copy_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Alloc const&,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static void __copy_construct_func(
-        _Variant * __lhs,_Alloc const& __alloc,_Variant const& __rhs){
-        __lhs->template __emplace_construct<_Index>(
-            std::allocator_arg_t(),__alloc,
-            get<_Index>(__rhs));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,typename _Alloc,ptrdiff_t ... _Indices>
-const typename __copy_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>::
-__func_type
-__copy_construct_alloc_op_table<_Variant,_Alloc,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__copy_construct_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __copy_assign_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __copy_assign_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static void __copy_assign_func(
-        _Variant * __lhs,_Variant const& __rhs){
-        get<_Index>(*__lhs)=get<_Index>(__rhs);
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __copy_assign_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__copy_assign_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__copy_assign_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __destroy_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __destroy_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant*);
-
-    template<ptrdiff_t _Index>
-    static void __destroy_func(
-        _Variant * __self){
-        if(__self->__index>=0){
-            __self->__storage.__destroy(in_place<_Index>);
-        }
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __destroy_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__destroy_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__destroy_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __swap_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __swap_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __func_type)(_Variant&,_Variant&);
-
-    template<ptrdiff_t _Index>
-    static void __swap_func(
-        _Variant & __lhs,_Variant & __rhs){
-        swap(get<_Index>(__lhs),get<_Index>(__rhs));
-    }
-
-    static const __func_type __apply[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __swap_op_table<_Variant,__index_sequence<_Indices...>>::
-__func_type
-__swap_op_table<_Variant,__index_sequence<_Indices...>>::__apply[
-    sizeof...(_Indices)]={
-        &__swap_func<_Indices>...
-    };
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __equality_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __equality_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef bool(* const __compare_func_type)(_Variant const&,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static constexpr bool __equality_compare_func(
-        _Variant const& __lhs,_Variant const& __rhs){
-        return get<_Index>(__lhs)==get<_Index>(__rhs);
-    }
-
-    static constexpr __compare_func_type __equality_compare[sizeof...(_Indices)]={
-        &__equality_compare_func<_Indices>...
-    };
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-constexpr typename __equality_op_table<_Variant,__index_sequence<_Indices...>>::
-__compare_func_type
-__equality_op_table<_Variant,__index_sequence<_Indices...>>::__equality_compare[
-    sizeof...(_Indices)];
-
-template<typename _Variant,
-         typename _Indices=typename __variant_indices<_Variant>::__type>
-struct __less_than_op_table;
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __less_than_op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef bool(* const __compare_func_type)(_Variant const&,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static constexpr bool __less_than_compare_func(
-        _Variant const& __lhs,_Variant const& __rhs){
-        return get<_Index>(__lhs)<get<_Index>(__rhs);
-    }
-
-    static constexpr __compare_func_type __less_than_compare[sizeof...(_Indices)]={
-        &__less_than_compare_func<_Indices>...
-    };
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-constexpr typename __less_than_op_table<_Variant,__index_sequence<_Indices...>>::
-__compare_func_type
-__less_than_op_table<_Variant,__index_sequence<_Indices...>>::__less_than_compare[
-    sizeof...(_Indices)];
-
-template<typename _Variant>
-struct __variant_storage_type;
-
-template<typename _Derived,bool __trivial_destructor>
-struct __variant_base
+// 20.7.3, variant helper classes
+template <class _T> struct variant_size; // undefined
+template <class _T> struct variant_size<const _T>;
+template <class _T> struct variant_size<volatile _T>;
+template <class _T> struct variant_size<const volatile _T>;
+
+template <class _T> constexpr size_t variant_size_v = variant_size<_T>::value;
+
+template <class... _Types>
+struct variant_size<variant<_Types...>> :
+  integral_constant<size_t, sizeof...(_Types)> {};
+
+template <size_t _I, class _T> struct variant_alternative; // undefined
+template <size_t _I, class _T> struct variant_alternative<_I, const _T>;
+template <size_t _I, class _T> struct variant_alternative<_I, volatile _T>;
+template <size_t _I, class _T> struct variant_alternative<_I, const volatile _T>;
+
+template <size_t _I, class _T>
+using variant_alternative_t = typename variant_alternative<_I, _T>::type;
+
+template <size_t _I, class... _Types>
+struct variant_alternative<_I, variant<_Types...>>
 {
-    ~__variant_base(){
-        static_cast<_Derived*>(this)->__destroy_self();
-    }
+  static_assert(_I < sizeof...(_Types), "variant_alternative index out of range");
+  using type = tuple_element_t<_I, tuple<_Types...>>;
 };
 
-template<typename _Derived>
-struct __variant_base<_Derived,true>{
-};
-
-
-template<ptrdiff_t _Offset,typename _CurrentSequence,
-         typename _Type,typename ... _Types>
-struct __all_indices_helper;
-
-template<ptrdiff_t _Offset,ptrdiff_t ... _Indices,
-         typename _Type,typename ... _Rest>
-struct __all_indices_helper<
-    _Offset,__index_sequence<_Indices...>,
-    _Type,_Type,_Rest...>{
-    typedef typename __all_indices_helper<
-        _Offset+1,__index_sequence<_Indices...,_Offset>,_Type,_Rest...>::__type
-        __type;
-};
-
-template<ptrdiff_t _Offset,typename _CurrentSequence,
-         typename _Type,typename _Head,typename ... _Rest>
-struct __all_indices_helper<_Offset,_CurrentSequence,_Type,_Head,_Rest...>{
-    typedef typename __all_indices_helper<
-        _Offset+1,_CurrentSequence,_Type,_Rest...>::__type __type;
-};
-
-template<ptrdiff_t _Offset,typename _CurrentSequence,typename _Type>
-struct __all_indices_helper<_Offset,_CurrentSequence,_Type>{
-    typedef _CurrentSequence __type;
-};
-
-template<typename _Type,typename ... _Types>
-struct __all_indices{
-    typedef typename __all_indices_helper<
-        0,__index_sequence<>,_Type,_Types...>::__type __type;
-};
-
-template<typename ... _Sequences>
-struct __combine_sequences;
-
-template<ptrdiff_t ... _Indices1,ptrdiff_t ... _Indices2>
-struct __combine_sequences<
-    __index_sequence<_Indices1...>,__index_sequence<_Indices2...>>{
-    typedef __index_sequence<_Indices1...,_Indices2...> __type;
-};
-
-template<typename _Sequence,typename ... _Rest>
-struct __combine_sequences<_Sequence,_Rest...>{
-    typedef typename __combine_sequences<
-        _Sequence,
-        typename __combine_sequences<_Rest...>::__type>::__type __type;
-};
-
-template<typename _Indices>
-struct __first_index;
-
-template<ptrdiff_t _FirstIndex,ptrdiff_t ... _Rest>
-struct __first_index<__index_sequence<_FirstIndex,_Rest...>>{
-    static constexpr ptrdiff_t __value=_FirstIndex;
-};
-
-template<ptrdiff_t _Offset,typename _CurrentSequence,
-         typename _Type,typename ... _Types>
-struct __constructible_matches_helper;
-
-template<ptrdiff_t _Offset,typename _Sequence,typename _Type>
-struct __constructible_matches_helper<
-    _Offset,_Sequence,_Type>{
-    typedef _Sequence __type;
-};
-
-template<bool _Accept,ptrdiff_t _Entry>
-struct __sequence_or_empty{
-    typedef __index_sequence<> __type;
-};
-
-template<ptrdiff_t _Entry>
-struct __sequence_or_empty<true,_Entry>{
-    typedef __index_sequence<_Entry> __type;
-};
-
-template<ptrdiff_t _Offset,typename _CurrentSequence,
-         typename _Type,typename _Head,typename ... _Rest>
-struct __constructible_matches_helper<
-    _Offset,_CurrentSequence,_Type,_Head,_Rest...>{
-    typedef
-    typename __constructible_matches_helper<
-        _Offset+1,
-        typename __combine_sequences<
-            _CurrentSequence,
-            typename __sequence_or_empty<
-                std::is_constructible<_Head,_Type>::value,
-                _Offset>::__type>::__type,
-        _Type,_Rest...>::__type __type;
-};
-
-template<typename _Type,typename ... _Types>
-struct __constructible_matches{
-    typedef typename __constructible_matches_helper<
-        0,__index_sequence<>,_Type,_Types...>::__type __type;
-};
-
-template<typename _Type,typename ... _Types>
-struct __type_index_to_construct{
-    typedef typename __all_indices<_Type,_Types...>::__type __direct_matches;
-    typedef typename __all_indices<
-        typename std::remove_const<
-            typename std::remove_reference<_Type>::type
-            >::type,_Types...>::__type __value_matches;
-    typedef typename __all_indices<
-        _Type,
-        typename std::remove_const<
-            typename std::remove_reference<_Types>::type
-            >::type...>::__type __rref_matches;
-
-    typedef typename __constructible_matches<_Type,_Types...>::__type
-    __constructibles;
-
-    static_assert(
-        (__direct_matches::__length>0) ||
-        (__value_matches::__length>0) ||
-        (__rref_matches::__length>0) ||
-        (__constructibles::__length==1),
-        "For conversion construction of variants, exactly one type must be constructible");
-
-    typedef typename __combine_sequences<
-        __direct_matches,__value_matches,__rref_matches,
-        __constructibles>::__type __all_matches;
-
-    static constexpr ptrdiff_t __value=__first_index<__all_matches>::__value;
-};
-
-struct __replace_construct_helper{
-    template<
-        ptrdiff_t _Index,
-        bool __construct_directly,
-        bool __indexed_type_has_nothrow_move,
-        bool __other_types_have_nothrow_move>
-    struct __helper;
-
-    template<typename _Variant,
-             typename _Indices=typename __variant_indices<_Variant>::__type>
-    struct __op_table;
-};
-
-template<
-    ptrdiff_t _Index,
-    bool __other_types_have_nothrow_move>
-struct __replace_construct_helper::__helper<
-    _Index,false,true,__other_types_have_nothrow_move>{
-
-    template<typename _Variant,typename ... _Args>
-    static void __trampoline(_Variant& __v,_Args&& ... __args){
-        __v.template __two_stage_replace<_Index>(__args...);
-    }
-};
-
-template<
-    ptrdiff_t _Index,
-    bool __indexed_type_has_nothrow_move,
-    bool __other_types_have_nothrow_move>
-struct __replace_construct_helper::__helper<
-    _Index,true,__indexed_type_has_nothrow_move,
-    __other_types_have_nothrow_move>{
-
-    template<typename _Variant,typename ... _Args>
-    static void __trampoline(_Variant& __v,_Args&& ... __args){
-        __v.template __direct_replace<_Index>(std::forward<_Args>(__args)...);
-    }
-};
-
-
-template<
-    ptrdiff_t _Index>
-struct __replace_construct_helper::__helper<
-    _Index,false,false,true>{
-
-    template<typename _Variant,typename ... _Args>
-    static void __trampoline(_Variant& __v,_Args&& ... __args){
-        __v.template __local_backup_replace<_Index>(std::forward<_Args>(__args)...);
-    }
-};
-
-template<
-    ptrdiff_t _Index>
-struct __replace_construct_helper::__helper<
-    _Index,false,false,false>{
-
-    template<typename _Variant,typename ... _Args>
-    static void __trampoline(_Variant& __v,_Args&& ... __args){
-        __v.template __direct_replace<_Index>(std::forward<_Args>(__args)...);
-    }
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-struct __replace_construct_helper::__op_table<_Variant,__index_sequence<_Indices...>>{
-    typedef void(* const __move_func_type)(_Variant*,_Variant&);
-    typedef void(* const __copy_func_type)(_Variant*,_Variant const&);
-
-    template<ptrdiff_t _Index>
-    static void __move_assign_func(
-        _Variant * __lhs,_Variant& __rhs){
-        __lhs->template __replace_construct<_Index>(std::move(get<_Index>(__rhs)));
-        __rhs.__destroy_self();
-    }
-
-    template<ptrdiff_t _Index>
-    static void __copy_assign_func(
-        _Variant * __lhs,_Variant const& __rhs){
-        __lhs->template __replace_construct<_Index>(get<_Index>(__rhs));
-    }
-
-    static const __move_func_type __move_assign[sizeof...(_Indices)];
-    static const __copy_func_type __copy_assign[sizeof...(_Indices)];
-};
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __replace_construct_helper::__op_table<
-    _Variant,__index_sequence<_Indices...>>::__move_func_type
-__replace_construct_helper::__op_table<
-    _Variant,__index_sequence<_Indices...>>::__move_assign[
-    sizeof...(_Indices)]={
-        &__move_assign_func<_Indices>...
-    };
-
-template<typename _Variant,ptrdiff_t ... _Indices>
-const typename __replace_construct_helper::__op_table<
-    _Variant,__index_sequence<_Indices...>>::__copy_func_type
-__replace_construct_helper::__op_table<
-    _Variant,__index_sequence<_Indices...>>::__copy_assign[
-    sizeof...(_Indices)]={
-        &__copy_assign_func<_Indices>...
-    };
-
-template<ptrdiff_t _Index,ptrdiff_t _MaskIndex,typename _Storage>
-struct __backup_storage_ops{
-    static void __move_construct_func(
-        _Storage * __dest,_Storage& __source){
-        new(__dest) _Storage(
-            in_place<_Index>,
-            std::move(__source.__get(in_place<_Index>)));
-    }
-    static void __destroy_func(_Storage * __obj){
-        __obj->__destroy(in_place<_Index>);
-    };
-};
-
-template<ptrdiff_t _Index,typename _Storage>
-struct __backup_storage_ops<_Index,_Index,_Storage>{
-    static void __move_construct_func(
-        _Storage * __dest,_Storage& __source){
-        throw std::bad_alloc();
-    };
-    static void __destroy_func(_Storage * __obj){
-        throw std::bad_alloc();
-    };
-};
-
-template<ptrdiff_t _MaskIndex,typename _Storage,typename _Indices>
-struct __backup_storage_op_table;
-
-template<ptrdiff_t _MaskIndex,typename _Storage,ptrdiff_t ... _Indices>
-struct __backup_storage_op_table<
-    _MaskIndex,_Storage,__index_sequence<_Indices...> >
+// 20.7.4, value access
+template <class _T, class... _Types>
+inline
+constexpr bool holds_alternative(const variant<_Types...>& __v) noexcept
 {
-    typedef void (*__move_func_type)(_Storage * __dest,_Storage& __source);
-    typedef void (*__destroy_func_type)(_Storage * __obj);
-
-    template<size_t _Index>
-    struct __helper{
-        typedef __backup_storage_ops<_Index,_MaskIndex,_Storage> __ops;
-    };
-
-    static const __move_func_type __move_ops[sizeof...(_Indices)];
-    static const __destroy_func_type __destroy_ops[sizeof...(_Indices)];
+  return __variant_index_v<_T, _Types...> == __v.index();
 };
 
-template<ptrdiff_t _MaskIndex,typename _Storage,ptrdiff_t ... _Indices>
-const typename __backup_storage_op_table<
-    _MaskIndex,_Storage,__index_sequence<_Indices...> >::__move_func_type
-__backup_storage_op_table<
-    _MaskIndex,_Storage,__index_sequence<_Indices...> >::__move_ops[
-        sizeof...(_Indices)]={
-        &__helper<_Indices>::__ops::__move_construct_func...
-    };
-
-template<ptrdiff_t _MaskIndex,typename _Storage,ptrdiff_t ... _Indices>
-const typename __backup_storage_op_table<
-    _MaskIndex,_Storage,__index_sequence<_Indices...> >::__destroy_func_type
-__backup_storage_op_table<
-    _MaskIndex,_Storage,__index_sequence<_Indices...> >::__destroy_ops[
-    sizeof...(_Indices)]={
-        &__helper<_Indices>::__ops::__destroy_func...
-    };
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __backup_storage{
-    typedef __variant_data<_Types...> __storage_type;
-
-    typedef __backup_storage_op_table<
-        _Index,__storage_type,typename __type_indices<_Types...>::__type>
-    __op_table_type;
-
-    ptrdiff_t __backup_index;
-    __storage_type& __live_storage;
-    __storage_type __backup;
-
-    __backup_storage(ptrdiff_t __live_index_,__storage_type& __live_storage_):
-        __backup_index(__live_index_),__live_storage(__live_storage_){
-        if(__backup_index>=0){
-            __op_table_type::__move_ops[__backup_index](
-                &__backup,__live_storage);
-            __op_table_type::__destroy_ops[__backup_index](
-                &__live_storage);
-        }
-    }
-    void __destroy(){
-        if(__backup_index>=0)
-            __op_table_type::__destroy_ops[__backup_index](
-                &__backup);
-        __backup_index=-1;
-    }
-
-    ~__backup_storage(){
-        if(__backup_index>=0){
-            __op_table_type::__move_ops[__backup_index](
-                &__live_storage,__backup);
-            __destroy();
-        }
-    }
-};
-
-template<typename ... _Types>
-struct __all_move_constructible;
-
-template<typename _Head,typename ... _Rest>
-struct __all_move_constructible<_Head,_Rest...>
+template <size_t _I, class... _Types>
+inline
+constexpr variant_alternative_t<_I, variant<_Types...>>&
+get(variant<_Types...>& __v)
 {
-    static constexpr bool value=std::is_move_constructible<_Head>::value && __all_move_constructible<_Rest...>::value;
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return get<_T>(__v);
 };
 
-template<>
-struct __all_move_constructible<>:
-    std::true_type{};
-
-template<typename ... _Types>
-struct __all_move_assignable;
-
-template<typename _Head,typename ... _Rest>
-struct __all_move_assignable<_Head,_Rest...>
+template <size_t _I, class... _Types>
+inline
+constexpr variant_alternative_t<_I, variant<_Types...>>&&
+get(variant<_Types...>&& __v)
 {
-    static constexpr bool value=std::is_move_assignable<_Head>::value && __all_move_assignable<_Rest...>::value;
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return move(get<_T>(__v));
 };
 
-template<>
-struct __all_move_assignable<>:
-    std::true_type{};
-
-template<typename ... _Types>
-struct __all_copy_assignable;
-
-template<typename _Head,typename ... _Rest>
-struct __all_copy_assignable<_Head,_Rest...>
+template <size_t _I, class... _Types>
+inline
+constexpr variant_alternative_t<_I, variant<_Types...>> const&
+get(const variant<_Types...>& __v)
 {
-    static constexpr bool value=std::is_copy_assignable<_Head>::value && __all_copy_assignable<_Rest...>::value;
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return get<_T>(__v);
 };
 
-template<>
-struct __all_copy_assignable<>:
-    std::true_type{};
+template <size_t _I, class... _Types>
+inline
+constexpr variant_alternative_t<_I, variant<_Types...>> const&&
+get(const variant<_Types...>&& __v)
+{
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return move(get<_T>(__v));
+};
 
-namespace __swap_test_detail{
-using std::swap;
+template <class _T, class... _Types>
+inline
+constexpr _T&
+get(variant<_Types...>& __v)
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(__v))
+  return __v.__m_storage.template get<_T>();
+  throw bad_variant_access{};
+};
 
-template<typename _Other>
-struct __swap_result{};
+template <class _T, class... _Types>
+inline
+constexpr _T&&
+get(variant<_Types...>&& __v)
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(__v))
+  return __v.__m_storage.template get<_T>();
+  throw bad_variant_access{};
+};
 
-template<typename>
-static char __test(...);
-template <typename _Other>
-static std::pair<char, std::pair<char, __swap_result<decltype(
-    swap(std::declval<_Other &>(),std::declval<_Other &>()))>>>
-__test(_Other *);
+template <class _T, class... _Types>
+inline
+constexpr const _T&
+get(const variant<_Types...>& __v)
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(__v))
+  return __v.__m_storage.template get<_T>();
+  throw bad_variant_access{};
+};
+
+template <class _T, class... _Types>
+inline
+constexpr const _T&&
+get(const variant<_Types...>&& __v)
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(__v))
+  return __v.__m_storage.template get<_T>();
+  throw bad_variant_access{};
+};
+
+template <size_t _I, class... _Types>
+inline
+constexpr add_pointer_t<variant_alternative_t<_I, variant<_Types...>>>
+get_if(variant<_Types...>* __v) noexcept
+{
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return get_if<_T>(__v);
+};
+
+template <size_t _I, class... _Types>
+inline
+constexpr add_pointer_t<const variant_alternative_t<_I, variant<_Types...>>>
+get_if(const variant<_Types...>* __v) noexcept
+{
+  using _T = variant_alternative_t<_I, variant<_Types...>>;
+  return get_if<_T>(__v);
+};
+
+template <class _T, class... _Types>
+inline
+constexpr add_pointer_t<_T>
+get_if(variant<_Types...>* __v) noexcept
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(*__v))
+  return &(__v->__m_storage.template get<_T>());
+  return nullptr;
+};
+
+template <class _T, class... _Types>
+inline
+constexpr add_pointer_t<const _T>
+get_if(const variant<_Types...>* __v) noexcept
+{
+  static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+  if(holds_alternative<_T>(*__v))
+  return &(__v->__m_storage.template get<_T>());
+  return nullptr;
+};
+
+template <class... _Types>
+using __comparison_function_type =
+  bool(*)(const variant<_Types...>&, const variant<_Types...>&);
+
+template <class _T, class... _Types>
+constexpr bool
+__variant_equal_to(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return get<_T>(__v) == get<_T>(__w);
 }
 
-template <typename _Type> struct __is_swappable {
-    static constexpr bool value =
-        sizeof(__swap_test_detail::__test<_Type>(0)) != 1;
-};
-
-template<typename ... _Types>
-struct __all_swappable;
-
-template<typename _Head,typename ... _Rest>
-struct __all_swappable<_Head,_Rest...>
+template <class... _Types>
+constexpr array<__comparison_function_type<_Types...>, sizeof...(_Types)>
+__make_equal_to_array()
 {
-    static constexpr bool value=__is_swappable<_Head>::value && __all_swappable<_Rest...>::value;
-};
+  return { __variant_equal_to<_Types, _Types...> ... };
+}
 
-template<>
-struct __all_swappable<>:
-    std::true_type{};
-
-template<bool _MoveConstructible,typename ... _Types>
-struct __noexcept_variant_move_construct_impl{};
-
-template<typename _Head,typename ... _Rest>
-struct __noexcept_variant_move_construct_impl<true,_Head,_Rest...>{
-    static constexpr bool value=noexcept(_Head(std::declval<_Head&&>())) && __noexcept_variant_move_construct_impl<true,_Rest...>::value;
-};
-
-template<>
-struct __noexcept_variant_move_construct_impl<true>{
-    static constexpr bool value=true;
-};
-
-template<typename ... _Types>
-struct __noexcept_variant_move_construct:
-__noexcept_variant_move_construct_impl<__all_move_constructible<_Types...>::value,_Types...>
-{};
-
-template<bool _MoveAssignable,typename ... _Types>
-struct __noexcept_variant_move_assign_impl{};
-
-template <typename _Head, typename... _Rest>
-struct __noexcept_variant_move_assign_impl<true, _Head, _Rest...> {
-    static constexpr bool value =
-        std::is_nothrow_move_assignable<_Head>::value &&
-        std::is_nothrow_move_constructible<_Head>::value &&
-        __noexcept_variant_move_assign_impl<true, _Rest...>::value;
-};
-
-template<>
-struct __noexcept_variant_move_assign_impl<true>{
-    static constexpr bool value=true;
-};
-
-template <typename... _Types>
-struct __noexcept_variant_move_assign
-    : __noexcept_variant_move_assign_impl<
-          __all_move_assignable<_Types...>::value &&
-              __all_move_constructible<_Types...>::value,
-          _Types...> {};
-
-template<typename ... _Types>
-struct __all_copy_constructible;
-
-template<typename _Head,typename ... _Rest>
-struct __all_copy_constructible<_Head,_Rest...>
+template <class _T, class... _Types>
+constexpr bool
+__variant_less(const variant<_Types...>& __v, const variant<_Types...>& __w)
 {
-    static constexpr bool value=std::is_copy_constructible<_Head>::value && __all_copy_constructible<_Rest...>::value;
-};
+  return get<_T>(__v) < get<_T>(__w);
+}
 
-template<>
-struct __all_copy_constructible<>:
-    std::true_type{};
-
-template<bool _CopyConstructible,typename ... _Types>
-struct __noexcept_variant_const_copy_construct_impl{};
-
-template<typename _Head,typename ... _Rest>
-struct __noexcept_variant_const_copy_construct_impl<true,_Head,_Rest...>{
-    static constexpr bool value=noexcept(_Head(std::declval<_Head const&>())) && __noexcept_variant_const_copy_construct_impl<true,_Rest...>::value;
-};
-
-template<>
-struct __noexcept_variant_const_copy_construct_impl<true>{
-    static constexpr bool value=true;
-};
-
-template<typename ... _Types>
-struct __noexcept_variant_const_copy_construct:
-__noexcept_variant_const_copy_construct_impl<__all_copy_constructible<_Types...>::value,_Types...>
-{};
-
-template<bool _CopyNon_Constructible,typename ... _Types>
-struct __noexcept_variant_non_const_copy_construct_impl{};
-
-template<typename _Head,typename ... _Rest>
-struct __noexcept_variant_non_const_copy_construct_impl<true,_Head,_Rest...>{
-    static constexpr bool value=noexcept(_Head(std::declval<_Head&>())) && __noexcept_variant_non_const_copy_construct_impl<true,_Rest...>::value;
-};
-
-template<>
-struct __noexcept_variant_non_const_copy_construct_impl<true>{
-    static constexpr bool value=true;
-};
-
-template<typename ... _Types>
-struct __noexcept_variant_non_const_copy_construct:
-__noexcept_variant_non_const_copy_construct_impl<__all_copy_constructible<_Types...>::value,_Types...>
-{};
-
-template<bool _Swappable,typename ... _Types>
-struct __noexcept_variant_swap_impl{};
-
-template <typename _Head, typename... _Rest>
-struct __noexcept_variant_swap_impl<true, _Head, _Rest...> {
-    static constexpr bool value =
-        noexcept(swap(std::declval<_Head&>(),std::declval<_Head&>())) &&
-        __noexcept_variant_swap_impl<true, _Rest...>::value;
-};
-
-template<>
-struct __noexcept_variant_swap_impl<true>{
-    static constexpr bool value=true;
-};
-
-template<typename ... _Types>
-struct __noexcept_variant_swap:
-__noexcept_variant_swap_impl<__all_swappable<_Types...>::value,_Types...>
-{};
-
-template<typename ... _Types>
-class variant:
-        private __variant_base<
-    variant<_Types...>,__all_trivially_destructible<_Types...>::__value>
+template <class... _Types>
+constexpr array<__comparison_function_type<_Types...>, sizeof...(_Types)>
+__make_less_array()
 {
-    typedef __variant_base<variant<_Types...>,__all_trivially_destructible<_Types...>::__value> __base_type;
-    friend __base_type;
-    friend struct __copy_construct_op_table<variant>;
-    template<typename _Variant,typename _Alloc,typename _Indices>
-    friend struct __copy_construct_alloc_op_table;
-    friend struct __copy_assign_op_table<variant>;
-    friend struct __move_construct_op_table<variant>;
-    template<typename _Variant,typename _Alloc,typename _Indices>
-    friend struct __move_construct_alloc_op_table;
-    friend struct __move_assign_op_table<variant>;
-    friend struct __destroy_op_table<variant>;
+  return { __variant_less<_Types, _Types...> ... };
+}
 
-    template<ptrdiff_t _Index,typename ... _Types2>
-    friend struct __variant_accessor;
+template <class _Visitor, class... _Variants>
+using __invoker_function_type = auto(*)(_Visitor&&, _Variants&&...)
+-> result_of_t<_Visitor(variant_alternative_t<0, decay_t<_Variants>> ...)>;
 
-    friend struct __replace_construct_helper;
+template <size_t _I, class _Visitor, class... _Variants>
+auto
+__alternative_invoker(_Visitor&& __vis, _Variants&&... __vars)
+{
+    return invoke(forward<_Visitor>(__vis), get<_I>(forward<_Variants>(__vars)) ...);
+}
 
-    typedef __variant_data<_Types...> __storage_type;
-    __storage_type __storage;
-    typename __discriminator_type<sizeof ... (_Types)>::__type __index;
+template <class _Visitor, class... _Variants, size_t... _I>
+constexpr array<__invoker_function_type<_Visitor, _Variants...>, sizeof...(_I)>
+__make_invoker_array(index_sequence<_I...>)
+{
+    return { __alternative_invoker<_I, _Visitor, _Variants...> ... };
+}
 
-    template<size_t _Index,typename ... _Args>
-    size_t __emplace_construct(_Args&& ... __args){
-        new(&__storage) __storage_type(
-            in_place<_Index>,std::forward<_Args>(__args)...);
-        return  _Index;
-    }
+template <class _Visitor, class... _Types, class... _Variants>
+auto
+__variant_invoke(_Visitor&& __vis, variant<_Types...>& __var, _Variants&&... __vars)
+{
+  constexpr auto __array =
+    __make_invoker_array<_Visitor, variant<_Types...>, _Variants...>
+    (index_sequence_for<_Types...>{});
 
-    void __destroy_self(){
-        if(valueless_by_exception())
-            return;
-        __destroy_op_table<variant>::__apply[index()](this);
-        __index=-1;
-    }
+  return __array[__var.index()](forward<_Visitor>(__vis),
+                              forward<variant<_Types...>>(__var),
+                              forward<_Variants>(__vars)...);
+}
 
-    ptrdiff_t __move_construct(variant& __other){
-        ptrdiff_t const __other_index=__other.index();
-        if(__other_index==-1)
-            return -1;
-        __move_construct_op_table<variant>::__apply[__other_index](this,__other);
-        __other.__destroy_self();
-        return __other_index;
-    }
+template <class _Visitor, class... _Types, class... _Variants>
+auto
+__variant_invoke(_Visitor&& __vis, const variant<_Types...>& __var, _Variants&&... __vars)
+{
+  constexpr auto __array =
+    __make_invoker_array<_Visitor, const variant<_Types...>&, _Variants...>
+    (index_sequence_for<_Types...>{});
 
-    template<typename _Alloc>
-    ptrdiff_t __move_construct(_Alloc const& __alloc,variant& __other){
-        ptrdiff_t const __other_index=__other.index();
-        if(__other_index==-1)
-            return -1;
-        __move_construct_alloc_op_table<variant,_Alloc>::__apply[__other_index](
-            this,__alloc,__other);
-        __other.__destroy_self();
-        return __other_index;
-    }
+  return __array[__var.index()](forward<_Visitor>(__vis), __var, __vars...);
+}
 
-    ptrdiff_t __copy_construct(variant const& __other){
-        ptrdiff_t const __other_index=__other.index();
-        if(__other_index==-1)
-            return -1;
-        __copy_construct_op_table<variant>::__apply[__other_index](this,__other);
-        return __other_index;
-    }
+template <class... _Types>
+using __swap_function_type = void(*)(variant<_Types...>&, variant<_Types...>&);
 
-    template<typename _Alloc>
-    ptrdiff_t __copy_construct(_Alloc const& __alloc,variant const& __other){
-        ptrdiff_t const __other_index=__other.index();
-        if(__other_index==-1)
-            return -1;
-        __copy_construct_alloc_op_table<variant,_Alloc>::__apply[__other_index](
-            this,__alloc,__other);
-        return __other_index;
-    }
+template <class _T, class... _Types>
+constexpr void
+__swap(variant<_Types...>& __v, variant<_Types...>& __w) noexcept
+{
+  swap(get<_T>(__v), get<_T>(__w));
+}
 
-    template<size_t _Index,typename ... _Args>
-    void __replace_construct(_Args&& ... __args){
-        typedef typename __indexed_type<_Index,_Types...>::__type __this_type;
-        __replace_construct_helper::__helper<
-            _Index,
-            __storage_nothrow_constructible<__this_type,_Args...>::__value ||
-            (sizeof...(_Types)==1),
-            __storage_nothrow_move_constructible<__this_type>::__value,
-            __other_storage_nothrow_move_constructible<
-                _Index,_Types...>::__value
-            >::__trampoline(*this,std::forward<_Args>(__args)...);
-    }
+template <class... _Types>
+constexpr array<__swap_function_type<_Types...>, sizeof...(_Types)>
+__make_swap_array()
+{
+  return { __swap<_Types, _Types...> ... };
+}
 
-    template<size_t _Index,typename ... _Args>
-    void __two_stage_replace(_Args&& ... __args){
-        typedef typename __indexed_type<_Index,_Types...>::__type __type;
-        __variant_data<__type> __local(
-            in_place<0>,std::forward<_Args>(__args)...);
-        __destroy_self();
-        __emplace_construct<_Index>(
-            std::move(__local.__get(in_place<0>)));
-        __index=_Index;
-        __local.__destroy(in_place<0>);
-    }
+template <class... _Types>
+using __hash_function_type = size_t(*)(const variant<_Types...>&);
 
-    template<size_t _Index,typename ... _Args>
-    void __local_backup_replace(_Args&& ... __args){
-        __backup_storage<_Index,_Types...> __backup(__index,__storage);
-        __emplace_construct<_Index>(std::forward<_Args>(__args)...);
-        __index=_Index;
-        __backup.__destroy();
-    }
+template <class _T, class... _Types>
+constexpr size_t __hash(const variant<_Types...>& __v)
+{
+  return hash<_T>{}(get<_T>(__v));
+}
 
-    template<size_t _Index,typename ... _Args>
-    void __direct_replace(_Args&& ... __args) {
-        __destroy_self();
-        __emplace_construct<_Index>(std::forward<_Args>(__args)...);
-        __index=_Index;
-    }
+template <class... _Types>
+constexpr array<__hash_function_type<_Types...>, sizeof...(_Types)>
+__make_hash_array()
+{
+  return { __hash<_Types, _Types...> ... };
+}
 
-    struct __private_type{};
+// 20.7.5, relational operators
+template <class... _Types>
+inline
+constexpr bool operator==(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  constexpr auto __equals_to = __make_equal_to_array<_Types...>();
+  return (__v.valueless_by_exception() && __w.valueless_by_exception()) ||
+         (__v.index() == __w.index() && __equals_to[__v.index()](__v,__w));
+};
+
+template <class... _Types>
+inline
+constexpr bool operator!=(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return !(__v == __w);
+};
+
+template <class... _Types>
+inline
+constexpr bool operator<(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  constexpr auto __less = __make_less_array<_Types...>();
+  return (__v.index() < __w.index()) || (__v.index() == __w.index() &&
+          !__v.valueless_by_exception() && __less[__v.index()](__v,__w));
+};
+
+template <class... _Types>
+inline
+constexpr bool operator>(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return __w < __v;
+}
+
+template <class... _Types>
+constexpr bool operator<=(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return !(__v > __w);
+}
+
+template <class... _Types>
+inline
+constexpr bool operator>=(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return !(__v < __w);
+}
+
+// 20.7.6, visitation
+template <class _Visitor, class... _Variants>
+inline
+constexpr auto visit(_Visitor&& __vis, _Variants&&... __vars)
+{
+  return __variant_invoke(forward<_Visitor>(__vis), forward<_Variants>(__vars) ...);
+};
+
+// 20.7.7, class monostate
+struct monostate {};
+
+// 20.7.8, monostate relational operators
+inline
+constexpr bool operator<(monostate, monostate) noexcept {return false;};
+inline
+constexpr bool operator>(monostate, monostate) noexcept {return false;};
+inline
+constexpr bool operator<=(monostate, monostate) noexcept {return true;};
+inline
+constexpr bool operator>=(monostate, monostate) noexcept {return true;};
+inline
+constexpr bool operator==(monostate, monostate) noexcept {return true;};
+inline
+constexpr bool operator!=(monostate, monostate) noexcept {return false;};
+
+// 20.7.9, specialized algorithms
+template <class... _Types>
+inline
+void swap(variant<_Types...>& __lhs, variant<_Types...>& __rhs)
+  noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...> &&
+           conjunction_v<is_nothrow_swappable<_Types> ...>)
+{
+  __lhs.swap(__rhs);
+};
+
+template <class... _Types>
+class variant : public __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
+                                      conjunction_v<is_move_constructible<_Types>...>,
+                                      conjunction_v<is_copy_assignable<_Types>...>,
+                                      conjunction_v<is_move_assignable<_Types>...>,
+                                      conjunction_v<is_trivially_destructible<_Types>...>,
+                                      _Types...>
+{
+  using __base = __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
+                                conjunction_v<is_move_constructible<_Types>...>,
+                                conjunction_v<is_copy_assignable<_Types>...>,
+                                conjunction_v<is_move_assignable<_Types>...>,
+                                conjunction_v<is_trivially_destructible<_Types>...>,
+                                _Types...>;
+  using __base::__copy;
+  using __base::__move;
+  using __base::__construct;
+  using __base::__destroy;
+  using __base::__m_index;
 
 public:
-    constexpr variant()
-        noexcept(noexcept(typename __indexed_type<0,_Types...>::__type())):
-        __storage(in_place<0>),
-        __index(0)
-    {}
 
-    constexpr variant(typename std::conditional<__all_move_constructible<_Types...>::value,variant,__private_type>::type&& __other)
-    noexcept(__noexcept_variant_move_construct<_Types...>::value):
-        __index(__move_construct(__other))
-    {}
+  // 20.7.2.1, constructors
 
-    constexpr variant(typename std::conditional<!__all_move_constructible<_Types...>::value,variant,__private_type>::type&& __other)=delete;
+  template <class _T0 = variant_alternative_t<0,variant>,
+            enable_if_t<is_default_constructible_v<_T0>, int> = 0>
+  inline
+  constexpr
+  variant() noexcept(is_nothrow_default_constructible_v<_T0>) :
+    __base{in_place_type<_T0>}
+  {
+    static_assert(is_default_constructible_v<_T0>,
+      R"(This function shall not participate in overload resolution
+      unless is_default_constructible_v<_T0> is true.)");
+  };
 
-    constexpr variant(typename std::conditional<__all_copy_constructible<_Types...>::value,variant,__private_type>::type& __other)
-    noexcept(__noexcept_variant_non_const_copy_construct<_Types...>::value):
-        __index(__copy_construct(__other))
-    {}
+  template <class _T0 = variant_alternative_t<0,variant>,
+            enable_if_t<!is_default_constructible_v<_T0>, int> = 0
+            >
+  inline
+  constexpr
+  variant() noexcept(is_nothrow_default_constructible_v<_T0>) = delete;
 
-    constexpr variant(typename std::conditional<!__all_copy_constructible<_Types...>::value,variant,__private_type>::type& __other)=delete;
+  // We'll inherit the copy and move constructors from the __base
 
-    constexpr variant(typename std::conditional<__all_copy_constructible<_Types...>::value,variant,__private_type>::type const& __other)
-    noexcept(__noexcept_variant_const_copy_construct<_Types...>::value):
-        __index(__copy_construct(__other))
-    {}
+  inline
+  variant(const variant&) = default;
 
-    constexpr variant(typename std::conditional<!__all_copy_constructible<_Types...>::value,variant,__private_type>::type const& __other)=delete;
+  inline
+  variant(variant&&) = default;
 
-    template<typename _Type,typename ... _Args>
-    explicit constexpr variant(in_place_type_t<_Type>,_Args&& ... __args):
-        __storage(
-            in_place<__type_index<_Type,_Types...>::__value>,
-            std::forward<_Args>(__args)...),
-        __index(__type_index<_Type,_Types...>::__value)
+  template <class _T,
+            class _Tj = __imaginary_function_argument_t<_T, _Types...>,
+            enable_if_t<conjunction_v<negation<is_same<decay_t<_T>,variant>>,
+                                      is_constructible<_Tj, _T>,
+                                      __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
+            >
+  inline
+  constexpr
+  variant(_T&&  __t) noexcept(is_nothrow_constructible_v<_Tj, _T>) :
+      __base{in_place_type<_Tj>, forward<_T>(__t)}
+  {
+    static_assert(!is_same_v<decay_t<_T>,variant> &&
+                  is_constructible_v<_Tj, _T> &&
+                  __is_imaginary_function_well_formed_v<_Tj, _Types...>,
+      R"(This function shall not participate in overload resolution
+      unless is_same_v<decay_t<_T>, variant> is false,
+      unless is_constructible_v<_Tj, _T> is true, and
+      unless the expression FUN(std::forward<_T>(__t))
+      (with FUN being the above-mentioned set of imaginary functions)
+      is well formed.)");
+  };
+
+  template <class _T,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            >
+  inline
+  constexpr explicit
+  variant(in_place_type_t<_T>, _Args&&... __args) :
+    __base{in_place_type<_T>, forward<_Args>(__args)...}
+  {};
+
+  template <class _T,
+            class _U,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T, initializer_list<_U>&, _Args...>, int> = 0
+            >
+  inline
+  constexpr explicit
+  variant(in_place_type_t<_T>, initializer_list<_U> __il, _Args&&... __args) :
+    __base{in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args)...}
+  {};
+
+  template <size_t _I,
+            class... _Args,
+            class _T = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            >
+  inline
+  constexpr explicit
+  variant(in_place_index_t<_I>, _Args&&... __args) :
+    __base{in_place_type<_T>, forward<_Args>(__args)...}
+  {};
+
+  template <size_t _I,
+            class _U,
+            class... _Args,
+            class _Ti = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_Ti, initializer_list<_U>&, _Args...>, int> = 0
+            >
+  inline
+  constexpr explicit
+  variant(in_place_index_t<_I>, initializer_list<_U> __il, _Args&&... __args) :
+    __base{in_place_type<_Ti>, forward<initializer_list<_U>>(__il), forward<_Args>(__args)...}
+  {};
+
+  // allocator-extended constructors
+  template <class _Alloc,
+            class _T0 = variant_alternative_t<0,variant>,
+            enable_if_t<is_constructible_v<_T0>, int> = 0>
+  inline
+  variant(allocator_arg_t, const _Alloc& __a) :
+      __base{allocator_arg, __a, in_place_type<_T0>}
+  {
+    static_assert(is_default_constructible_v<_T0>,
+      R"(This function shall not participate in overload resolution
+      unless is_default_constructible_v<_T0> is true.)");
+  };
+
+  template <class _Alloc,
+            class _TN = __first_or_last_t<is_copy_constructible,_Types...>,
+            enable_if_t<is_copy_constructible_v<_TN>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, const variant& __v) :
+      __base{}
+  {
+    static_assert(conjunction_v<is_copy_constructible<_Types> ...>,
+      R"(This function shall not participate in overload resolution
+      unless is_copy_constructible_v<_Ti> is true for all i.)");
+    if(!__v.valueless_by_exception())
+      __copy(allocator_arg, __a, __v);
+  }
+
+  template <class _Alloc,
+            class _TN = __first_or_last_t<is_move_constructible,_Types...>,
+            enable_if_t<is_move_constructible_v<_TN>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, variant&& __v) :
+      __base{}
+  {
+    static_assert(conjunction_v<is_move_constructible<_Types> ...>,
+      R"(This function shall not participate in overload resolution
+        unless is_move_constructible_v<_Ti> is true for all i.)");
+    if(!__v.valueless_by_exception())
+      __move(allocator_arg, __a, forward<variant>(__v));
+  }
+
+  template <class _Alloc,
+            class _T,
+            class _Tj = __imaginary_function_argument_t<_T, _Types...>,
+            enable_if_t<conjunction_v<negation<is_same<decay_t<_T>,variant>>,
+                                             is_constructible<_Tj, _T>,
+                                             __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, _T&&  __t) :
+      __base{allocator_arg, __a, in_place_type<_Tj>, forward<_T>(__t)}
+  {
+    static_assert(!is_same_v<decay_t<_T>,variant> &&
+                  is_constructible_v<_Tj, _T> &&
+                  __is_imaginary_function_well_formed_v<_Tj, _Types...>,
+      R"(This function shall not participate in overload resolution
+      unless is_same_v<decay_t<_T>, variant> is false,
+      unless is_constructible_v<_Tj, _T> is true, and
+      unless the expression FUN( std::forward<_T>(__t))
+      (with FUN being the above-mentioned set of imaginary functions)
+      is well formed.)");
+  };
+
+  template <class _Alloc,
+            class _T,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args) :
+      __base{allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...}
+  {};
+
+  template <class _Alloc,
+            class _T,
+            class _U,
+            class... _Args,
+            enable_if_t<is_constructible_v<_T, initializer_list<_U>&, _Args...>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a,
+          in_place_type_t<_T>, initializer_list<_U> __il, _Args&&... __args) :
+    __base{allocator_arg, __a,
+           in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args) ...}
+  {};
+
+  template <class _Alloc,
+            size_t _I,
+            class... _Args,
+            class _T = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, in_place_index_t<_I>, _Args&&... __args) :
+    __base{allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...}
+  {};
+
+  template <class _Alloc,
+            size_t _I,
+            class _U,
+            class... _Args,
+            class _T = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_T, initializer_list<_U>&, _Args...>, int> = 0
+            >
+  inline
+  variant(allocator_arg_t, const _Alloc& __a, in_place_index_t<_I>, initializer_list<_U> __il, _Args&&... __args) :
+    __base{allocator_arg, __a, in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args) ...}
+  {};
+
+  // 20.7.2.2, destructor
+  inline
+  ~variant() = default;
+
+  // 20.7.2.3, assignment
+  inline
+  variant& operator=(const variant&) = default;
+
+  inline
+  variant& operator=(variant&&) = default;
+
+  template <class _T,
+            class _Tj = __imaginary_function_argument_t<_T, _Types...>,
+            enable_if_t<conjunction_v<negation<is_same<decay_t<_T>,variant>>,
+                                      is_assignable_v<_Tj&, _T>,
+                                      is_constructible<_Tj, _T>,
+                                      __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
+            >
+  inline
+  variant& operator=(_T&& __rhs)
+    noexcept(conjunction_v<is_nothrow_assignable<_Types&, _Types>...,
+                           is_nothrow_constructible<_Types&, _Types>...>)
+  {
+    static_assert(!is_same_v<decay_t<_T>, variant> &&
+                  is_assignable_v<_Tj&, _T> && is_constructible_v<_Tj, _T> &&
+                  __is_imaginary_function_well_formed_v<_Tj, _Types...>,
+      R"(This function shall not participate in overload resolution
+         unless is_same_v<decay_t<_T>, variant> is false,
+         unless is_assignable_v<_Tj&, _T> && is_constructible_v<_Tj, _T> is true, and
+         unless the expression FUN (std::forward<_T>(__t))
+         (with FUN being the above-mentioned set of imaginary functions) is well formed.)");
+    if(!valueless_by_exception())
+      __destroy();
+    __construct(in_place_type<_Tj>, forward<_T>(__rhs));
+    return *this;
+  };
+
+  // 20.7.2.4, modifiers
+
+  template <class _T, class... _Args>
+  inline
+  void emplace(_Args&&... __args)
+  {
+    static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+    static_assert(!is_lvalue_reference_v<_T>, "references cannot be reassigned");
+    if(!valueless_by_exception())
+      __destroy();
+    __construct(in_place_type<_T>, forward<_Args>(__args)...);
+  };
+
+  template <class _T, class _U, class... _Args>
+  inline
+  void emplace(initializer_list<_U> __il, _Args&&... __args)
+  {
+    static_assert(__count_v<_T, _Types...> > 0, "_Type is not an alternative");
+    static_assert(!is_lvalue_reference_v<_T>, "references cannot be reassigned");
+    if(!valueless_by_exception())
+      __destroy();
+    __construct(in_place_type<_T>, __il, forward<_Args>(__args)...);
+  };
+
+  template <size_t _I, class... _Args>
+  inline
+  void emplace(_Args&&... __args)
+  {
+    using _T = variant_alternative_t<_I, variant>;
+    emplace<_T>(forward<_Args>(__args)...);
+  };
+
+  template <size_t _I, class _U, class... _Args>
+  inline
+  void emplace(initializer_list<_U> __il, _Args&&... __args)
+  {
+    using _T = variant_alternative_t<_I, variant>;
+    emplace<_T>(__il, forward<_Args>(__args)...);
+  };
+
+  // 20.7.2.5, value status
+  inline
+  constexpr bool valueless_by_exception() const noexcept
+  {
+    return __m_index == variant_npos;
+  }
+
+  inline
+  constexpr size_t index() const noexcept
+  {
+    return __m_index;
+  };
+
+  // 20.7.2.6, swap
+  inline
+  void swap(variant& __rhs)
+    noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...,
+                           is_nothrow_swappable<_Types>...>)
+  {
+    constexpr auto __swap = __make_swap_array<_Types...>();
+    variant& __lhs = *this;
+    if(__lhs.valueless_by_exception() && __rhs.valueless_by_exception())
+      return;
+    if(__lhs.__m_index == __rhs.__m_index)
+      __swap[__lhs.__m_index](__lhs,__rhs);
+    else
     {
-        static_assert(std::is_constructible<_Type,_Args...>::value,"Type must be constructible from args");
+      variant __tmp{__rhs};
+      __rhs.__m_index = __lhs.__m_index;
+      __swap[__lhs.__m_index](__rhs,__lhs);
+      __lhs.__m_index = __tmp.__m_index;
+      __swap[__lhs.__m_index](__lhs,__tmp);
     }
-
-    template<size_t _Index,typename ... _Args>
-    explicit constexpr variant(in_place_index_t<_Index>,_Args&& ... __args):
-        __storage(in_place<_Index>,std::forward<_Args>(__args)...),
-        __index(_Index)
-    {
-        static_assert(std::is_constructible<typename __indexed_type<_Index,_Types...>::__type,_Args...>::value,"Type must be constructible from args");
-    }
-
-    template<typename _Type>
-    constexpr variant(_Type&& __x):
-        __storage(
-            in_place<
-            __type_index_to_construct<_Type,_Types...>::__value>,
-            std::forward<_Type>(__x)),
-        __index(__type_index_to_construct<_Type,_Types...>::__value)
-    {}
-
-    template<typename _Type,
-             typename _Enable=
-             typename std::enable_if<
-                 (__constructible_matches<std::initializer_list<_Type>,_Types...>::__type::__length>0)
-             >::type>
-    constexpr variant(std::initializer_list<_Type> __x):
-        __storage(
-            in_place<
-            __type_index_to_construct<std::initializer_list<_Type>,_Types...>::__value>,
-            __x),
-        __index(__type_index_to_construct<std::initializer_list<_Type>,_Types...>::__value)
-    {}
-
-    template<typename _Alloc>
-    variant(std::allocator_arg_t ,_Alloc const& __alloc):
-        __storage(in_place<0>,std::allocator_arg_t(),__alloc),
-        __index(0)
-    {}
-
-    template<typename _Alloc,size_t _Index,typename ... _Args>
-    variant(
-        std::allocator_arg_t ,_Alloc const& __alloc,
-        in_place_index_t<_Index>,_Args&& ... __args):
-        __storage(in_place<_Index>,std::allocator_arg_t(),__alloc,
-                  std::forward<_Args>(__args)...),
-        __index(_Index)
-    {
-        using __constructed_type=typename __indexed_type<_Index,_Types...>::__type;
-        static_assert(
-            (std::uses_allocator<__constructed_type,_Alloc>::value &&
-             (std::is_constructible<__constructed_type,std::allocator_arg_t,_Alloc,_Args...>::value ||
-              std::is_constructible<__constructed_type,_Args...,_Alloc>::value)) ||
-            (!std::uses_allocator<__constructed_type,_Alloc>::value &&
-             std::is_constructible<__constructed_type,_Args...>::value),
-            "Type must be uses-allocator constructible from args or not use allocator");
-    }
-
-    template<typename _Alloc,typename _Type,typename ... _Args>
-    variant(
-        std::allocator_arg_t ,_Alloc const& __alloc,
-        in_place_type_t<_Type>,_Args&& ... __args):
-        __storage(
-            in_place<__type_index<_Type,_Types...>::__value>,
-            std::allocator_arg_t(),__alloc,
-            std::forward<_Args>(__args)...),
-        __index(__type_index<_Type,_Types...>::__value)
-    {
-        using __constructed_type=_Type;
-        static_assert(
-            (std::uses_allocator<__constructed_type,_Alloc>::value &&
-             (std::is_constructible<__constructed_type,std::allocator_arg_t,_Alloc,_Args...>::value ||
-              std::is_constructible<__constructed_type,_Args...,_Alloc>::value)) ||
-            (!std::uses_allocator<__constructed_type,_Alloc>::value &&
-             std::is_constructible<__constructed_type,_Args...>::value),
-            "Type must be uses-allocator constructible from args or not use allocator");
-        static_assert(std::is_constructible<_Type,_Args...>::value,"Type must be constructible from args");
-    }
-
-    template<typename _Alloc>
-    variant(
-        std::allocator_arg_t ,_Alloc const& __alloc,variant& __other):
-        __index(__copy_construct(__alloc,__other))
-    {}
-
-    template<typename _Alloc>
-    variant(
-        std::allocator_arg_t ,_Alloc const& __alloc,variant const& __other):
-        __index(__copy_construct(__alloc,__other))
-    {}
-
-    template<typename _Alloc>
-    variant(
-        std::allocator_arg_t ,_Alloc const& __alloc,variant&& __other):
-        __index(__move_construct(__alloc,__other))
-    {}
-
-
-    template<typename _Type>
-    variant& operator=(_Type&& __x){
-        constexpr size_t _Index=
-            __type_index_to_construct<_Type,_Types...>::__value;
-        if(_Index==__index){
-            get<_Index>(*this)=std::forward<_Type>(__x);
-        }
-        else{
-            __replace_construct<_Index>(std::forward<_Type>(__x));
-        }
-        return *this;
-    }
-
-    variant &operator=(
-        typename std::conditional<
-            !(__all_copy_constructible<_Types...>::value &&
-              __all_move_constructible<_Types...>::value &&
-              __all_copy_assignable<_Types...>::value),
-            variant, __private_type>::type const &__other) = delete;
-
-    variant &operator=(
-        typename std::conditional<
-            __all_copy_constructible<_Types...>::value &&
-                __all_move_constructible<_Types...>::value &&
-                __all_copy_assignable<_Types...>::value,
-            variant, __private_type>::type const &__other) {
-        if (__other.valueless_by_exception()) {
-            __destroy_self();
-        }
-        else if(__other.index()==index()){
-            __copy_assign_op_table<variant>::__apply[index()](this,__other);
-        }
-        else{
-            __replace_construct_helper::__op_table<variant>::__copy_assign[
-                __other.index()](this,__other);
-        }
-        return *this;
-    }
-    variant &operator=(
-        typename std::conditional<
-            !(__all_copy_constructible<_Types...>::value &&
-              __all_move_constructible<_Types...>::value &&
-              __all_copy_assignable<_Types...>::value),
-            variant, __private_type>::type &__other) = delete;
-
-    variant &operator=(
-        typename std::conditional<
-            __all_copy_constructible<_Types...>::value &&
-                __all_move_constructible<_Types...>::value &&
-                __all_copy_assignable<_Types...>::value,
-            variant, __private_type>::type &__other) {
-        if(__other.valueless_by_exception()){
-            __destroy_self();
-        }
-        else if(__other.index()==index()){
-            __copy_assign_op_table<variant>::__apply[index()](this,__other);
-        }
-        else{
-            __replace_construct_helper::__op_table<variant>::__copy_assign[
-                __other.index()](this,__other);
-        }
-        return *this;
-    }
-    variant &operator=(
-        typename std::conditional<
-            !(__all_move_constructible<_Types...>::value &&
-              __all_move_assignable<_Types...>::value),
-            variant, __private_type>::type &&__other) = delete;
-
-    variant &operator=(
-        typename std::conditional<__all_move_constructible<_Types...>::value &&
-                                      __all_move_assignable<_Types...>::value,
-                                  variant, __private_type>::type &&
-            __other) noexcept(__noexcept_variant_move_assign<_Types...>::value) {
-        if (__other.valueless_by_exception()) {
-            __destroy_self();
-        }
-        else if(__other.index()==index()){
-            __move_assign_op_table<variant>::__apply[index()](this,__other);
-            __other.__destroy_self();
-        }
-        else{
-            __replace_construct_helper::__op_table<variant>::__move_assign[
-                __other.index()](this,__other);
-        }
-        return *this;
-    }
-
-    template<typename _Type,typename ... _Args>
-    void emplace(_Args&& ... __args){
-        __direct_replace<__type_index<_Type,_Types...>::__value>(
-            std::forward<_Args>(__args)...);
-    }
-
-    template<size_t _Index,typename ... _Args>
-    void emplace(_Args&& ... __args){
-        __direct_replace<_Index>(std::forward<_Args>(__args)...);
-    }
-
-    constexpr bool valueless_by_exception() const noexcept{
-        return __index==-1;
-    }
-    constexpr ptrdiff_t index() const noexcept{
-        return __index;
-    }
-
-    void swap(
-        typename std::conditional<
-            __all_swappable<_Types...>::value &&
-                __all_move_constructible<_Types...>::value,
-            variant, __private_type>::type
-            &__other) noexcept(__noexcept_variant_swap<_Types...>::value) {
-        if (__other.index() == index()) {
-            if(!valueless_by_exception())
-                __swap_op_table<variant>::__apply[index()](*this,__other);
-        }
-        else{
-            variant __temp(std::move(__other));
-            __other.__index=__other.__move_construct(*this);
-            __index=__move_construct(__temp);
-        }
-    }
+  }
 };
 
-template<>
-class variant<>{
-public:
-    variant()=delete;
-
-    constexpr bool valueless_by_exception() const noexcept{
-        return true;
-    }
-    constexpr ptrdiff_t index() const noexcept{
-        return -1;
-    }
-
-    void swap(variant&){}
+// 20.7.11, hash support
+// template <class _T> struct hash;
+template <class... _Types>
+struct hash<variant<_Types...>>
+{
+  inline
+  size_t operator()(const variant<_Types...>& __v) noexcept
+  {
+    constexpr auto __hash = __make_hash_array<_Types...>();
+    return __hash[__v.index()](__v);
+  }
 };
 
-template <typename... _Types>
-typename std::enable_if<__all_swappable<_Types...>::value &&
-                            __all_move_constructible<_Types...>::value,
-                        void>::type
-swap(variant<_Types...> &__lhs, variant<_Types...> &__rhs) noexcept(
-    __noexcept_variant_swap<_Types...>::value) {
-    __lhs.swap(__rhs);
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-struct __variant_accessor{
-    typedef typename __indexed_type<_Index,_Types...>::__type __type;
-    static constexpr __type& get(variant<_Types...>& __v){
-        return __v.__storage.__get(in_place<_Index>);
-    }
-    static constexpr __type const& get(variant<_Types...> const& __v){
-        return __v.__storage.__get(in_place<_Index>);
-    }
-    static constexpr __type&& get(variant<_Types...>&& __v){
-        return __v.__storage.__get_rref(in_place<_Index>);
-    }
-    static constexpr const __type&& get(variant<_Types...> const&& __v){
-        return __v.__storage.__get_rref(in_place<_Index>);
-    }
+template <>
+struct hash<monostate>
+{
+  inline
+  size_t operator()(monostate) noexcept
+  {
+    return 42;
+  }
 };
 
-template<typename _Type,typename ... _Types>
-constexpr _Type& get(variant<_Types...>& __v){
-    return get<__type_index<_Type,_Types...>::__value>(__v);
-}
+// 20.7.12, allocator-related traits
+// template <class _T, class _Alloc> struct uses_allocator;
 
-template<typename _Type,typename ... _Types>
-constexpr _Type&& get(variant<_Types...>&& __v){
-    return get<__type_index<_Type,_Types...>::__value>(std::move(__v));
-}
+template <class... _Types, class _Alloc>
+struct uses_allocator<variant<_Types...>, _Alloc> : true_type {};
 
-template<typename _Type,typename ... _Types>
-constexpr _Type const& get(variant<_Types...> const& __v){
-    return get<__type_index<_Type,_Types...>::__value>(__v);
-}
-
-template<typename _Type,typename ... _Types>
-constexpr const _Type&& get(variant<_Types...> const&& __v){
-    return get<__type_index<_Type,_Types...>::__value>(std::move(__v));
-}
-
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type const& get(
-    variant<_Types...> const& __v){
-    return *((_Index!=__v.index())?throw bad_variant_access("Bad variant index in get"):
-        &__variant_accessor<_Index,_Types...>::get(__v));
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type& get(variant<_Types...>& __v){
-    return *((_Index!=__v.index())?throw bad_variant_access("Bad variant index in get"):
-        &__variant_accessor<_Index,_Types...>::get(__v));
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr typename __indexed_type<_Index,_Types...>::__type&& get(variant<_Types...>&& __v){
-    return __variant_accessor<_Index,_Types...>::get(
-        (((_Index!=__v.index())?throw bad_variant_access("Bad variant index in get"):0),std::move(__v)));
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr const typename __indexed_type<_Index,_Types...>::__type&& get(variant<_Types...> const&& __v){
-    return __variant_accessor<_Index,_Types...>::get(
-        (((_Index!=__v.index())?throw bad_variant_access("Bad variant index in get"):0),std::move(__v)));
-}
-
-template<typename _Type,typename ... _Types>
-constexpr std::add_pointer_t<_Type> get_if(variant<_Types...>& __v){
-    return (__type_index<_Type,_Types...>::__value!=__v.index())?nullptr:&get<_Type>(__v);
-}
-
-template<typename _Type,typename ... _Types>
-constexpr std::add_pointer_t<_Type const> get_if(variant<_Types...> const& __v){
-    return (__type_index<_Type,_Types...>::__value!=__v.index())?nullptr:&get<_Type>(__v);
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr std::add_pointer_t<typename __indexed_type<_Index,_Types...>::__type> get_if(variant<_Types...>& __v){
-    return ((_Index!=__v.index())?nullptr:
-        &__variant_accessor<_Index,_Types...>::get(__v));
-}
-
-template<ptrdiff_t _Index,typename ... _Types>
-constexpr std::add_pointer_t<typename __indexed_type<_Index,_Types...>::__type const> get_if(
-    variant<_Types...> const& __v){
-    return ((_Index!=__v.index())?nullptr:
-        &__variant_accessor<_Index,_Types...>::get(__v));
-}
-
-template<typename _Type,typename ... _Types>
-constexpr bool holds_alternative(variant<_Types...> const& __v) noexcept{
-    return __v.index()==__type_index<_Type,_Types...>::__value;
-}
-
-template<typename _Visitor,typename ... _Types>
-struct __visitor_return_type;
-
-template<typename _Visitor>
-struct __visitor_return_type<_Visitor>{
-    typedef decltype(std::declval<_Visitor&>()()) __type;
-};
-
-template<typename _Visitor,typename _Head,typename ... _Rest>
-struct __visitor_return_type<_Visitor,_Head,_Rest...>{
-    typedef decltype(std::declval<_Visitor&>()(std::declval<_Head&>())) __type;
-};
-
-template<typename _Visitor,typename ... _Types>
-struct __visitor_table{
-    typedef variant<_Types...> __variant_type;
-    typedef typename __visitor_return_type<_Visitor,_Types...>::__type __return_type;
-    typedef __return_type (*__func_type)(_Visitor&,__variant_type&);
-
-    template<typename _Type>
-    static __return_type __trampoline_func(_Visitor& __visitor,__variant_type& __v){
-        return __visitor(get<_Type>(__v));
-    }
-
-    static const __func_type __trampoline[sizeof...(_Types)];
-};
-
-template<typename _Visitor,typename ... _Types>
-const typename __visitor_table<_Visitor,_Types...>::__func_type __visitor_table<_Visitor,_Types...>::__trampoline[sizeof...(_Types)]={
-        &__trampoline_func<_Types>...
-    };
-
-template<typename _Visitor,typename ... _Types>
-constexpr typename __visitor_return_type<_Visitor,_Types...>::__type
-visit(_Visitor&& __visitor,variant<_Types...>& __v){
-    if(__v.valueless_by_exception())
-        throw bad_variant_access("Visiting of empty variant");
-    return __visitor_table<_Visitor,_Types...>::__trampoline[__v.index()](__visitor,__v);
-}
-
-template<typename _Visitor,typename ... _Variants>
-struct __multi_visitor_return_type{
-    typedef decltype(std::declval<_Visitor&>()(get<0>(std::declval<_Variants>())...))
-    __type;
-};
-
-template<size_t _VariantIndex,typename _Indices>
-struct __visit_helper;
-
-template<ptrdiff_t ... _Indices>
-struct __visit_helper<0,__index_sequence<_Indices...>>{
-    template<typename _Visitor,typename ... _Variants>
-    static constexpr typename __multi_visitor_return_type<_Visitor,_Variants...>::__type
-    __visit(_Visitor& __visitor,_Variants& ... __v){
-        return __visitor(get<_Indices>(__v)...);
-    }
-};
-
-template<size_t _Index,typename ... _Args>
-struct __arg_selector_t;
-
-template<typename _Head,typename ... _Rest>
-struct __arg_selector_t<0,_Head,_Rest...>{
-    typedef _Head __type;
-
-    static constexpr __type& __select(_Head& __head,_Rest& ...){
-        return __head;
-    }
-};
-
-template<size_t _Index,typename _Head,typename ... _Rest>
-struct __arg_selector_t<_Index,_Head,_Rest...>{
-    typedef typename __arg_selector_t<_Index-1,_Rest...>::__type __type;
-    static constexpr __type& __select(_Head&,_Rest& ... __rest){
-        return __arg_selector_t<_Index-1,_Rest...>::__select(__rest...);
-    }
-};
-
-template<size_t _Index,typename ... _Args>
-constexpr typename __arg_selector_t<_Index,_Args...>::__type&& __arg_selector(_Args&& ... __args){
-    return std::forward<typename __arg_selector_t<_Index,_Args...>::__type>(
-        __arg_selector_t<_Index,_Args...>::__select(__args...));
-}
-
-template<ptrdiff_t _Index,size_t _VariantIndex,ptrdiff_t ... _Indices>
-struct __visit_helper2{
-    template<typename _Visitor,typename ... _Variants>
-    static constexpr typename __multi_visitor_return_type<_Visitor,_Variants...>::__type
-    __visit(_Visitor& __visitor,_Variants&& ... __v){
-        if(__arg_selector<_VariantIndex-1>(__v...).index()==_Index){
-            return __visit_helper<
-                _VariantIndex-1,__index_sequence<_Index,_Indices...>>::
-                __visit(__visitor,std::forward<_Variants>(__v)...);
-        }
-        else{
-            return __visit_helper2<_Index-1,_VariantIndex,_Indices...>::__visit(
-                __visitor,std::forward<_Variants>(__v)...);
-        }
-
-    }
-};
-
-template<size_t _VariantIndex,ptrdiff_t ... _Indices>
-struct __visit_helper2<-1,_VariantIndex,_Indices...>{
-    template<typename _Visitor,typename ... _Variants>
-    static constexpr typename __multi_visitor_return_type<_Visitor,_Variants...>::__type
-    __visit(_Visitor& __visitor,_Variants&& ... __v){
-        throw bad_variant_access("Visiting of empty variant");
-    }
-};
-
-template<typename _Variant>
-struct __variant_type_count;
-
-template<typename ... _Types>
-struct __variant_type_count<variant<_Types...>>{
-    static constexpr size_t __value=sizeof...(_Types);
-};
-
-template<typename _Variant>
-struct __variant_type_count<_Variant&>{
-    static constexpr size_t __value=__variant_type_count<_Variant>::__value;
-};
-
-template<typename _Variant>
-struct __variant_type_count<_Variant const&>{
-    static constexpr size_t __value=__variant_type_count<_Variant>::__value;
-};
-
-template<size_t _VariantIndex,ptrdiff_t ... _Indices>
-struct __visit_helper<_VariantIndex,__index_sequence<_Indices...>>{
-
-    template<typename _Visitor,typename ... _Variants>
-    static constexpr typename __multi_visitor_return_type<_Visitor,_Variants...>::__type
-    __visit(_Visitor& __visitor,_Variants&& ... __v){
-        return __visit_helper2<
-            __variant_type_count<
-                typename __arg_selector_t<
-                    _VariantIndex-1,_Variants...>::__type>::__value-1,
-            _VariantIndex,_Indices...>::__visit(
-                __visitor,std::forward<_Variants&&>(__v)...);
-    }
-};
-
-template<typename _Visitor,typename ... _Variants>
-constexpr typename __multi_visitor_return_type<_Visitor,_Variants...>::__type
-visit(_Visitor&& __visitor,_Variants&& ... __v){
-    return __visit_helper<sizeof...(_Variants),__index_sequence<>>::__visit(
-        __visitor,std::forward<_Variants>(__v)...);
-}
-
-template<typename ... _Types>
-constexpr bool operator==(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return (__lhs.index()==__rhs.index()) &&
-        ((__lhs.index()==-1) ||
-         __equality_op_table<variant<_Types...>>::__equality_compare[__lhs.index()](
-             __lhs,__rhs));
-}
-
-template<typename ... _Types>
-constexpr bool operator!=(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return !(__lhs==__rhs);
-}
-
-template<typename ... _Types>
-constexpr bool operator<(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return (__lhs.index()<__rhs.index()) ||
-        ((__lhs.index()==__rhs.index()) &&
-         ((__lhs.index()!=-1) &&
-          __less_than_op_table<variant<_Types...>>::
-          __less_than_compare[__lhs.index()](__lhs,__rhs)));
-}
-
-template<typename ... _Types>
-constexpr bool operator>(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return __rhs<__lhs;
-}
-
-template<typename ... _Types>
-constexpr bool operator>=(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return !(__lhs<__rhs);
-}
-
-template<typename ... _Types>
-constexpr bool operator<=(variant<_Types...> const& __lhs,variant<_Types...> const& __rhs){
-    return !(__lhs>__rhs);
-}
-
-struct monostate{};
-
-constexpr inline bool operator==(monostate const&,monostate const&){ return true;}
-constexpr inline bool operator!=(monostate const&,monostate const&){ return false;}
-constexpr inline bool operator>=(monostate const&,monostate const&){ return true;}
-constexpr inline bool operator<=(monostate const&,monostate const&){ return true;}
-constexpr inline bool operator>(monostate const&,monostate const&){ return false;}
-constexpr inline bool operator<(monostate const&,monostate const&){ return false;}
-
-struct __hash_visitor{
-    template<typename _Type>
-    size_t operator()(_Type const& __x){
-        return std::hash<_Type>()(__x);
-    }
-};
-
-}
-
-template<>
-struct hash<experimental::monostate>{
-    size_t operator()(experimental::monostate) noexcept{
-        return 42;
-    }
-};
-
-template<typename ... _Types>
-struct hash<experimental::variant<_Types...>>{
-    size_t operator()(experimental::variant<_Types...> const &v) noexcept {
-        return std::hash<ptrdiff_t>()(v.index()) ^
-               experimental::visit(experimental::__hash_visitor(), v);
-    }
-};
-
-template<typename ... _Args,typename _Alloc>
-struct uses_allocator<experimental::variant<_Args...>,_Alloc>:
-    true_type{};
-}
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#endif
+} // namespace std
