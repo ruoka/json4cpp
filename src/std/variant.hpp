@@ -422,7 +422,7 @@ protected:
     __m_storage{},
     __m_index{variant_npos}
   {
-    __construct(in_place_type<_T>, forward<_Args>(__args) ...);
+    __construct(in_place_type<_T>, forward<_Args>(__args)...);
   }
 
   template <class _Alloc, class _T, class... _Args>
@@ -430,7 +430,7 @@ protected:
     __m_storage{},
     __m_index{variant_npos}
   {
-    __construct(allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...);
+    __construct(allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args)...);
   }
 
   ~__variant_base()
@@ -446,7 +446,7 @@ protected:
   void __construct(in_place_type_t<_T>, _Args&&... __args)
   {
     assert(__m_index == variant_npos);
-    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...};
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args)...};
     __m_index = __variant_index_v<_T, _Types...>;
   };
 
@@ -458,7 +458,7 @@ protected:
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
     assert(__m_index == variant_npos);
-    new(&__m_storage) decay_t<_T>{allocator_arg, __a, forward<_Args>(__args) ...};
+    new(&__m_storage) decay_t<_T>{allocator_arg, __a, forward<_Args>(__args)...};
     __m_index = __variant_index_v<_T, _Types...>;
   };
 
@@ -470,7 +470,7 @@ protected:
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
     assert(__m_index == variant_npos);
-    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...,  __a};
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args)...,  __a};
     __m_index = __variant_index_v<_T, _Types...>;
   };
 
@@ -483,7 +483,7 @@ protected:
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
     assert(__m_index == variant_npos);
-    new(&__m_storage) decay_t<_T>{forward<_Args>(__args) ...};
+    new(&__m_storage) decay_t<_T>{forward<_Args>(__args)...};
     __m_index = __variant_index_v<_T, _Types...>;
   };
 
@@ -511,7 +511,7 @@ protected:
     assert(__v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using function = void(__variant_base::*)(const __variant_base&);
-    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types> ...};
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types>...};
     (this->*__array[__v.__m_index])(__v);
   }
 
@@ -522,7 +522,7 @@ protected:
     assert(__v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using function = void(__variant_base::*)(allocator_arg_t, const _Alloc&, const __variant_base&);
-    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Alloc, _Types> ...};
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Alloc, _Types>...};
     (this->*__array[__v.__m_index])(allocator_arg, __a, __v);
   }
 
@@ -550,7 +550,7 @@ protected:
     assert(__v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using function = void(__variant_base::*)(__variant_base&&);
-    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Types> ...};
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Types>...};
     (this->*__array[__v.__m_index])(forward<__variant_base>(__v));
     __v.__m_index = variant_npos;
   }
@@ -562,7 +562,7 @@ protected:
     assert(__v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using function = void(__variant_base::*)(allocator_arg_t, const _Alloc&, __variant_base&&);
-    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Alloc, _Types> ...};
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_move<_Alloc, _Types>...};
     (this->*__array[__v.__m_index])(allocator_arg, __a, forward<__variant_base>(__v));
     __v.__m_index = variant_npos;
   }
@@ -591,7 +591,7 @@ protected:
     assert(__m_index != variant_npos);
     assert(__m_index < sizeof...(_Types));
     using function = void(__variant_base::*)();
-    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_destroy<_Types> ...};
+    constexpr function __array[sizeof...(_Types)] = {&__variant_base::__private_destroy<_Types>...};
     (this->*__array[__m_index])();
   };
 };
@@ -622,7 +622,7 @@ protected:
 
   template <class _T, class... _Args>
   constexpr __variant_base(in_place_type_t<_T>, _Args&&... __args) :
-    __m_storage{in_place_type<_T>, forward<_Args>(__args) ...},
+    __m_storage{in_place_type<_T>, forward<_Args>(__args)...},
     __m_index{__variant_index_v<_T, _Types...>}
   {}
 
@@ -630,7 +630,7 @@ protected:
   void __construct(in_place_type_t<_T>, _Args&&... __args)
   {
     assert(__m_index == variant_npos);
-    new(&__m_storage) remove_reference_t<_T>{forward<_Args>(__args) ...};
+    new(&__m_storage) remove_reference_t<_T>{forward<_Args>(__args)...};
     __m_index = __variant_index_v<_T, _Types...>;
   };
 
@@ -649,7 +649,7 @@ protected:
     assert(__v.__m_index != variant_npos && __v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using __function = void(__variant_base::*)(const __variant_base&);
-    constexpr __function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types> ...};
+    constexpr __function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types>...};
     (this->*__array[__v.__m_index])(__v);
   }
 
@@ -688,8 +688,8 @@ protected:
     noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...,
                            is_nothrow_move_assignable<_Types>...   >)
   {
-    static_assert(conjunction_v<is_move_constructible<_Types> ...> &&
-                  conjunction_v<is_move_assignable   <_Types> ...> ,
+    static_assert(conjunction_v<is_move_constructible<_Types>...,
+                                is_move_assignable   <_Types>...> ,
       R"(This function shall not participate in overload resolution
       unless is_move_constructible_v<_Ti> && s_move_assignable_v<_Ti> is true for all i.)");
     if(__m_index != variant_npos)
@@ -756,10 +756,10 @@ protected:
   using __base::__m_index;
 
   __variant_base(__variant_base&& __v)
-    noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...>) :
+    noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...>) :
       __base{}
   {
-    static_assert(conjunction_v<is_copy_constructible<_Types> ...>,
+    static_assert(conjunction_v<is_copy_constructible<_Types>...>,
       R"(This function shall not participate in overload resolution
       unless is_copy_constructible_v<_Ti> is true for all i.)");
     if(__v.__m_index != variant_npos)
@@ -792,10 +792,10 @@ protected:
   using __base::__copy;
 
   __variant_base(const __variant_base& __v)
-      noexcept(conjunction_v<is_nothrow_copy_constructible<_Types> ...>) :
+      noexcept(conjunction_v<is_nothrow_copy_constructible<_Types>...>) :
       __base{}
   {
-    static_assert(conjunction_v<is_move_constructible<_Types> ...>,
+    static_assert(conjunction_v<is_move_constructible<_Types>...>,
       R"(This function shall not participate in overload resolution
       unless is_move_constructible_v<_Ti> is true for all i.)");
     if(__v.__m_index != variant_npos)
@@ -810,7 +810,7 @@ protected:
 // Some helper templates
 
 template < template <class> class _Test, class... _Types>
-struct __first_or_last;
+struct __first_or_last; //undefined
 
 template < template <class> class _Test, class... _Types>
 using __first_or_last_t = typename __first_or_last<_Test, _Types...>::type;
@@ -902,7 +902,7 @@ template <size_t _I, class... _Types>
 struct variant_alternative<_I, variant<_Types...>>
 {
   static_assert(_I < sizeof...(_Types), "variant_alternative index out of range");
-  using type = tuple_element_t<_I, tuple<_Types...>>; // FIXME doesn't work for volatile types
+  using type = tuple_element_t<_I, tuple<_Types...>>;
 };
 
 // 20.7.4, value access
@@ -1048,7 +1048,7 @@ template <class... _Types>
 constexpr array<__comparison_function_type<_Types...>, sizeof...(_Types)>
 __make_equal_to_array()
 {
-  return { __variant_equal_to<_Types, _Types...> ... };
+  return { __variant_equal_to<_Types, _Types...>... };
 }
 
 template <class _T, class... _Types>
@@ -1062,25 +1062,25 @@ template <class... _Types>
 constexpr array<__comparison_function_type<_Types...>, sizeof...(_Types)>
 __make_less_array()
 {
-  return { __variant_less<_Types, _Types...> ... };
+  return { __variant_less<_Types, _Types...>... };
 }
 
 template <class _Visitor, class... _Variants>
 using __invoker_function_type = auto(*)(_Visitor&&, _Variants&&...)
--> result_of_t<_Visitor(variant_alternative_t<0, decay_t<_Variants>> ...)>;
+-> result_of_t<_Visitor&&(variant_alternative_t<0, decay_t<_Variants>>&&...)>;
 
 template <size_t _I, class _Visitor, class... _Variants>
 auto
 __alternative_invoker(_Visitor&& __vis, _Variants&&... __vars)
 {
-    return invoke(forward<_Visitor>(__vis), get<_I>(forward<_Variants>(__vars)) ...);
+    return invoke(forward<_Visitor>(__vis), get<_I>(forward<_Variants>(__vars))...);
 }
 
 template <class _Visitor, class... _Variants, size_t... _I>
 constexpr array<__invoker_function_type<_Visitor, _Variants...>, sizeof...(_I)>
 __make_invoker_array(index_sequence<_I...>)
 {
-    return { __alternative_invoker<_I, _Visitor, _Variants...> ... };
+    return { __alternative_invoker<_I, _Visitor, _Variants...>... };
 }
 
 template <class _Visitor, class... _Types, class... _Variants>
@@ -1121,7 +1121,7 @@ template <class... _Types>
 constexpr array<__swap_function_type<_Types...>, sizeof...(_Types)>
 __make_swap_array()
 {
-  return { __swap<_Types, _Types...> ... };
+  return { __swap<_Types, _Types...>... };
 }
 
 template <class... _Types>
@@ -1137,7 +1137,7 @@ template <class... _Types>
 constexpr array<__hash_function_type<_Types...>, sizeof...(_Types)>
 __make_hash_array()
 {
-  return { __hash<_Types, _Types...> ... };
+  return { __hash<_Types, _Types...>... };
 }
 
 // 20.7.5, relational operators
@@ -1191,7 +1191,7 @@ template <class _Visitor, class... _Variants>
 inline
 constexpr auto visit(_Visitor&& __vis, _Variants&&... __vars)
 {
-  return __variant_invoke(forward<_Visitor>(__vis), forward<_Variants>(__vars) ...);
+  return __variant_invoke(forward<_Visitor>(__vis), forward<_Variants>(__vars)...);
 };
 
 // 20.7.7, class monostate
@@ -1215,8 +1215,8 @@ constexpr bool operator!=(monostate, monostate) noexcept {return false;};
 template <class... _Types>
 inline
 void swap(variant<_Types...>& __lhs, variant<_Types...>& __rhs)
-  noexcept(conjunction_v<is_nothrow_move_constructible<_Types> ...,
-                         is_nothrow_swappable<_Types> ...>)
+  noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...,
+                         is_nothrow_swappable<_Types>...>)
 {
   __lhs.swap(__rhs);
 };
@@ -1224,15 +1224,15 @@ void swap(variant<_Types...>& __lhs, variant<_Types...>& __rhs)
 template <class... _Types>
 class variant : public __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
                                       conjunction_v<is_move_constructible<_Types>...>,
-                                      conjunction_v<is_copy_assignable<_Types>...>,
-                                      conjunction_v<is_move_assignable<_Types>...>,
+                                      conjunction_v<is_copy_assignable<_Types>..., is_copy_constructible<_Types>...>,
+                                      conjunction_v<is_move_assignable<_Types>..., is_move_constructible<_Types>...>,
                                       conjunction_v<is_trivially_destructible<_Types>...>,
                                       _Types...>
 {
   using __base = __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
                                 conjunction_v<is_move_constructible<_Types>...>,
-                                conjunction_v<is_copy_assignable<_Types>...>,
-                                conjunction_v<is_move_assignable<_Types>...>,
+                                conjunction_v<is_copy_assignable<_Types>..., is_copy_constructible<_Types>...>,
+                                conjunction_v<is_move_assignable<_Types>..., is_move_constructible<_Types>...>,
                                 conjunction_v<is_trivially_destructible<_Types>...>,
                                 _Types...>;
 
@@ -1284,9 +1284,9 @@ public:
   variant(_T&&  __t) noexcept(is_nothrow_constructible_v<_Tj, _T>) :
       __base{in_place_type<_Tj>, forward<_T>(__t)}
   {
-    static_assert(!is_same_v<decay_t<_T>,variant> &&
-                  is_constructible_v<_Tj, _T> &&
-                  __is_imaginary_function_well_formed_v<_Tj, _Types...>,
+    static_assert(conjunction_v<negation<is_same<decay_t<_T>,variant>>,
+                                is_constructible<_Tj, _T>,
+                                __is_imaginary_function_well_formed<_Tj, _Types...>>,
       R"(This function shall not participate in overload resolution
       unless is_same_v<decay_t<_T>, variant> is false,
       unless is_constructible_v<_Tj, _T> is true, and
@@ -1318,13 +1318,13 @@ public:
 
   template <size_t _I,
             class... _Args,
-            class _T = variant_alternative_t<_I, variant>,
-            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            class _Ti = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_Ti, _Args...>, int> = 0
             >
   inline
   constexpr explicit
   variant(in_place_index_t<_I>, _Args&&... __args) :
-    __base{in_place_type<_T>, forward<_Args>(__args)...}
+    __base{in_place_type<_Ti>, forward<_Args>(__args)...}
   {};
 
   template <size_t _I,
@@ -1360,7 +1360,7 @@ public:
   variant(allocator_arg_t, const _Alloc& __a, const variant& __v) :
       __base{}
   {
-    static_assert(conjunction_v<is_copy_constructible<_Types> ...>,
+    static_assert(conjunction_v<is_copy_constructible<_Types>...>,
       R"(This function shall not participate in overload resolution
       unless is_copy_constructible_v<_Ti> is true for all i.)");
     if(!__v.valueless_by_exception())
@@ -1375,7 +1375,7 @@ public:
   variant(allocator_arg_t, const _Alloc& __a, variant&& __v) :
       __base{}
   {
-    static_assert(conjunction_v<is_move_constructible<_Types> ...>,
+    static_assert(conjunction_v<is_move_constructible<_Types>...>,
       R"(This function shall not participate in overload resolution
         unless is_move_constructible_v<_Ti> is true for all i.)");
     if(!__v.valueless_by_exception())
@@ -1411,7 +1411,7 @@ public:
             >
   inline
   variant(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args) :
-      __base{allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...}
+      __base{allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args)...}
   {};
 
   template <class _Alloc,
@@ -1423,31 +1423,30 @@ public:
   inline
   variant(allocator_arg_t, const _Alloc& __a,
           in_place_type_t<_T>, initializer_list<_U> __il, _Args&&... __args) :
-    __base{allocator_arg, __a,
-           in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args) ...}
+    __base{allocator_arg, __a, in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args)...}
   {};
 
   template <class _Alloc,
             size_t _I,
             class... _Args,
-            class _T = variant_alternative_t<_I, variant>,
-            enable_if_t<is_constructible_v<_T, _Args...>, int> = 0
+            class _Ti = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_Ti, _Args...>, int> = 0
             >
   inline
   variant(allocator_arg_t, const _Alloc& __a, in_place_index_t<_I>, _Args&&... __args) :
-    __base{allocator_arg, __a, in_place_type<_T>, forward<_Args>(__args) ...}
+    __base{allocator_arg, __a, in_place_type<_Ti>, forward<_Args>(__args)...}
   {};
 
   template <class _Alloc,
             size_t _I,
             class _U,
             class... _Args,
-            class _T = variant_alternative_t<_I, variant>,
-            enable_if_t<is_constructible_v<_T, initializer_list<_U>&, _Args...>, int> = 0
+            class _Ti = variant_alternative_t<_I, variant>,
+            enable_if_t<is_constructible_v<_Ti, initializer_list<_U>&, _Args...>, int> = 0
             >
   inline
   variant(allocator_arg_t, const _Alloc& __a, in_place_index_t<_I>, initializer_list<_U> __il, _Args&&... __args) :
-    __base{allocator_arg, __a, in_place_type<_T>, forward<initializer_list<_U>>(__il), forward<_Args>(__args) ...}
+    __base{allocator_arg, __a, in_place_type<_Ti>, forward<initializer_list<_U>>(__il), forward<_Args>(__args)...}
   {};
 
   // 20.7.2.2, destructor
@@ -1455,6 +1454,9 @@ public:
   ~variant() = default;
 
   // 20.7.2.3, assignment
+
+  // We'll inherit the copy and move assignment operators from the __base
+
   inline
   variant& operator=(const variant&) = default;
 
@@ -1464,7 +1466,7 @@ public:
   template <class _T,
             class _Tj = __imaginary_function_argument_t<_T, _Types...>,
             enable_if_t<conjunction_v<negation<is_same<decay_t<_T>,variant>>,
-                                      is_assignable_v<_Tj&, _T>,
+                                      is_assignable<_Tj&, _T>,
                                       is_constructible<_Tj, _T>,
                                       __is_imaginary_function_well_formed<_Tj, _Types...>>,int> = 0
             >
@@ -1473,9 +1475,10 @@ public:
     noexcept(conjunction_v<is_nothrow_assignable<_Types&, _Types>...,
                            is_nothrow_constructible<_Types&, _Types>...>)
   {
-    static_assert(!is_same_v<decay_t<_T>, variant> &&
-                  is_assignable_v<_Tj&, _T> && is_constructible_v<_Tj, _T> &&
-                  __is_imaginary_function_well_formed_v<_Tj, _Types...>,
+    static_assert(conjunction_v<negation<is_same<decay_t<_T>, variant>>,
+                                is_assignable<_Tj&, _T>,
+                                is_constructible<_Tj, _T>,
+                                __is_imaginary_function_well_formed<_Tj, _Types...>>,
       R"(This function shall not participate in overload resolution
          unless is_same_v<decay_t<_T>, variant> is false,
          unless is_assignable_v<_Tj&, _T> && is_constructible_v<_Tj, _T> is true, and
