@@ -206,14 +206,14 @@ struct __non_trivial{};
 template <class _Type>
 union __variant_storage<_Type,__trivial>
 {
-  _Type m_type;
+  _Type __m_type;
 
-  constexpr __variant_storage() : m_type{}
+  constexpr __variant_storage() : __m_type{}
   {}
 
   template<class... _Args>
   constexpr __variant_storage(in_place_type_t<_Type>, _Args&&... __args) :
-    m_type{forward<_Args>(__args)...}
+    __m_type{forward<_Args>(__args)...}
   {}
 };
 
@@ -242,14 +242,14 @@ union __variant_storage<void,__trivial>
 template <class _Type>
 union __variant_storage<_Type&,__trivial>
 {
-  reference_wrapper<remove_reference_t<_Type>> m_type;
+  reference_wrapper<remove_reference_t<_Type>> __m_type;
 
-  constexpr __variant_storage() : m_type{}
+  constexpr __variant_storage() : __m_type{}
   {}
 
   template<class... _Args>
   constexpr __variant_storage(in_place_type_t<_Type&>, _Args&&... __args) :
-    m_type{forward<_Args>(__args)...}
+    __m_type{forward<_Args>(__args)...}
   {}
 };
 
@@ -260,41 +260,40 @@ union __variant_storage<_Type>
                                   is_same_v<_Type,void>;
 
   __variant_storage<_Type, conditional_t<trivial, __trivial, __non_trivial>>
-  m_head;
+  __m_head;
 
-  constexpr __variant_storage() : m_head{}
-  {}
+  constexpr __variant_storage() : __m_head{} {};
 
   template <class _T,
             class... _Args,
             enable_if_t<is_same_v<_T,_Type>, int> = 0
             >
   constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
-    m_head{in_place_type<_T>, forward<_Args>(__args)...}
+    __m_head{in_place_type<_T>, forward<_Args>(__args)...}
   {}
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
   constexpr _T& get()
   {
-    return m_head.m_type;
+    return __m_head.__m_type;
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
   constexpr const _T& get() const
   {
-    return m_head.m_type;
+    return __m_head.__m_type;
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
   constexpr _T& get()
   {
-    return *reinterpret_cast<_T*>(&m_head.__m_storage);
+    return *reinterpret_cast<_T*>(&__m_head.__m_storage);
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
   constexpr const _T& get() const
   {
-    return *reinterpret_cast<const _T*>(&m_head.__m_storage);
+    return *reinterpret_cast<const _T*>(&__m_head.__m_storage);
   }
 };
 
@@ -305,10 +304,10 @@ union __variant_storage
                                   is_same_v<_Type,void>;
 
   __variant_storage<_Type, conditional_t<trivial, __trivial, __non_trivial>>
-  m_head;
+  __m_head;
 
   __variant_storage<_Types...>
-  m_tail;
+  __m_tail;
 
   __variant_storage()
   {}
@@ -318,7 +317,7 @@ union __variant_storage
             enable_if_t<is_same_v<_T,_Type>, int> = 0
             >
   constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
-    m_head{in_place_type<_T>, forward<_Args>(__args)...}
+    __m_head{in_place_type<_T>, forward<_Args>(__args)...}
   {}
 
   template <class _T,
@@ -326,43 +325,43 @@ union __variant_storage
             enable_if_t<!is_same_v<_T,_Type>, int> = 0
             >
   constexpr __variant_storage(in_place_type_t<_T>, _Args&&... __args) :
-    m_tail{in_place_type<_T>, forward<_Args>(__args)...}
+    __m_tail{in_place_type<_T>, forward<_Args>(__args)...}
   {}
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
   constexpr _T& get()
   {
-    return m_head.m_type;
+    return __m_head.__m_type;
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && trivial, int> = 0>
   constexpr const _T& get() const
   {
-    return m_head.m_type;
+    return __m_head.__m_type;
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
   constexpr _T& get()
   {
-    return *reinterpret_cast<_T*>(&m_head.__m_storage);
+    return *reinterpret_cast<_T*>(&__m_head.__m_storage);
   }
 
   template <class _T, enable_if_t<is_same_v<_T,_Type> && !trivial, int> = 0>
   constexpr const _T& get() const
   {
-    return *reinterpret_cast<const _T*>(&m_head.__m_storage);
+    return *reinterpret_cast<const _T*>(&__m_head.__m_storage);
   }
 
   template <class _T, enable_if_t<!is_same_v<_T,_Type>, int> = 0>
   constexpr _T& get()
   {
-    return m_tail.template get<_T>();
+    return __m_tail.template get<_T>();
   }
 
   template <class _T, enable_if_t<!is_same_v<_T,_Type>, int> = 0>
   constexpr const _T& get() const
   {
-    return m_tail.template get<_T>();
+    return __m_tail.template get<_T>();
   }
 };
 
@@ -386,7 +385,9 @@ struct __variant_index<_T, _U, _Types...> :
 
 // Variant Base Class
 
-template <bool _CopyConstructible,
+template <bool _TiviallyCopyConstructible,
+          bool _CopyConstructible,
+          bool _TiviallyMoveConstructible,
           bool _MoveConstructible,
           bool _CopyAssignable,
           bool _MoveAssignable,
@@ -397,7 +398,7 @@ class __variant_base; // undefined
 // Non_TiviallyDestructible Specialisation
 
 template <class... _Types>
-class __variant_base<false,false,false,false,false, _Types...>
+class __variant_base<false,false,false,false,false,false,false, _Types...>
 {
 public:
 
@@ -453,7 +454,7 @@ protected:
   template <class _Alloc,
             class _T,
             class... _Args,
-            enable_if_t<is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args...>,int> = 0
+            enable_if_t<is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args&&...>,int> = 0
             >
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
@@ -465,7 +466,7 @@ protected:
   template <class _Alloc,
             class _T,
             class... _Args,
-            enable_if_t<is_constructible_v<_T,_Args...,const _Alloc&>,int> = 0
+            enable_if_t<is_constructible_v<_T,_Args&&...,const _Alloc&>,int> = 0
             >
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
@@ -477,8 +478,8 @@ protected:
   template <class _Alloc,
             class _T,
             class... _Args,
-            enable_if_t<!is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args...> &&
-                        !is_constructible_v<_T,_Args...,const _Alloc&>,int> = 0
+            enable_if_t<!is_constructible_v<_T,allocator_arg_t,const _Alloc&,_Args&&...> &&
+                        !is_constructible_v<_T,_Args&&...,const _Alloc&>,int> = 0
             >
   void __construct(allocator_arg_t, const _Alloc& __a, in_place_type_t<_T>, _Args&&... __args)
   {
@@ -599,7 +600,7 @@ protected:
 // _TiviallyDestructible Specialisation
 
 template <class... _Types>
-class __variant_base<false,false,false,false,true, _Types...>
+class __variant_base<false,false,false,false,false,false,true, _Types...>
 {
 public:
 
@@ -609,8 +610,9 @@ protected:
 
   size_t __m_index = variant_npos;
 
-  __variant_base(const __variant_base&) = delete;
-  __variant_base(__variant_base&&) = delete;
+//  __variant_base(const __variant_base&) = delete;
+  __variant_base(const __variant_base&) = default;
+  __variant_base(__variant_base&&) = default;
   __variant_base& operator=(const __variant_base&) = delete;
   __variant_base& operator=(__variant_base&&) = delete;
   ~__variant_base() = default;
@@ -646,7 +648,8 @@ protected:
 
   void __copy(const __variant_base& __v)
   {
-    assert(__v.__m_index != variant_npos && __v.__m_index < sizeof...(_Types));
+    assert(__v.__m_index != variant_npos);
+    assert(__v.__m_index < sizeof...(_Types));
     assert(__m_index == variant_npos);
     using __function = void(__variant_base::*)(const __variant_base&);
     constexpr __function __array[sizeof...(_Types)] = {&__variant_base::__private_copy<_Types>...};
@@ -670,11 +673,11 @@ protected:
 
 template <bool _TiviallyDestructible,
           class... _Types>
-class __variant_base<false,false,false,true,_TiviallyDestructible,_Types...> :
-public __variant_base<false,false,false,false,_TiviallyDestructible,_Types...>
+class __variant_base<false,false,false,false,false,true,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,false,false,false,_TiviallyDestructible,_Types...>
 {
   using __base =
-  __variant_base<false,false,false,false,_TiviallyDestructible,_Types...>;
+  __variant_base<false,false,false,false,false,false,_TiviallyDestructible,_Types...>;
 
 protected:
 
@@ -698,6 +701,9 @@ protected:
       __move(move(__rhs));
     return *this;
   }
+
+  __variant_base(const __variant_base&) = default;
+  __variant_base(__variant_base&&) = default;
 };
 
 // _CopyAssignable Specialisation
@@ -705,11 +711,11 @@ protected:
 template <bool _MoveAssignable,
           bool _TiviallyDestructible,
           class... _Types>
-class __variant_base<false,false,true,_MoveAssignable,_TiviallyDestructible,_Types...> :
-public __variant_base<false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>
+class __variant_base<false,false,false,false,true,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>
 {
   using __base =
-  __variant_base<false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>;
+  __variant_base<false,false,false,false,false,_MoveAssignable,_TiviallyDestructible,_Types...>;
 
 protected:
 
@@ -734,6 +740,9 @@ protected:
       __copy(__rhs);
     return *this;
   }
+
+  __variant_base(const __variant_base&) = default;
+  __variant_base(__variant_base&&) = default;
   __variant_base& operator=(__variant_base&&) = default;
 };
 
@@ -743,11 +752,11 @@ template <bool _CopyAssignable,
           bool _MoveAssignable,
           bool _TiviallyDestructible,
           class... _Types>
-class __variant_base<false,true,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
-public __variant_base<false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+class __variant_base<false,false,false,true,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
 {
   using __base =
-  __variant_base<false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+  __variant_base<false,false,false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
 
 protected:
 
@@ -759,9 +768,9 @@ protected:
     noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...>) :
       __base{}
   {
-    static_assert(conjunction_v<is_copy_constructible<_Types>...>,
+    static_assert(conjunction_v<is_move_constructible<_Types>...>,
       R"(This function shall not participate in overload resolution
-      unless is_copy_constructible_v<_Ti> is true for all i.)");
+      unless is_move_constructible_v<_Ti> is true for all i.)");
     if(__v.__m_index != variant_npos)
     {
       __move(forward<__variant_base>(__v));
@@ -769,22 +778,56 @@ protected:
     }
   }
 
+  __variant_base(const __variant_base&) = default;
+  __variant_base& operator=(const __variant_base&) = default;
+  __variant_base& operator=(__variant_base&&) = default;
+};
+
+// _TriviallyMoveConstructible Specialisation
+
+template <bool _CopyAssignable,
+          bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<false,false,true,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,false,false,false,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+  using __base::__move;
+  using __base::__m_index;
+
+  constexpr __variant_base(__variant_base&& __v)
+    noexcept(conjunction_v<is_nothrow_move_constructible<_Types>...>) :
+      __base{forward<__variant_base>(__v)}
+  {
+    static_assert(conjunction_v<is_trivially_move_constructible<_Types>...>,
+      R"(This function shall not participate in overload resolution
+      unless is_copy_constructible_v<_Ti> is true for all i.)");
+  }
+
+  __variant_base(const __variant_base&) = default;
   __variant_base& operator=(const __variant_base&) = default;
   __variant_base& operator=(__variant_base&&) = default;
 };
 
 // _CopyConstructible Specialisation
 
-template <bool _MoveConstructible,
+template <bool _TriviallyMoveConstructible,
+          bool _MoveConstructible,
           bool _CopyAssignable,
           bool _MoveAssignable,
           bool _TiviallyDestructible,
           class... _Types>
-class __variant_base<true,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
-public __variant_base<false,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+class __variant_base<false,true,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
 {
   using __base =
-  __variant_base<false,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+  __variant_base<false,false,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
 
 protected:
 
@@ -800,6 +843,37 @@ protected:
       unless is_move_constructible_v<_Ti> is true for all i.)");
     if(__v.__m_index != variant_npos)
       __copy(__v);
+  }
+
+  __variant_base(__variant_base&&) = default;
+  __variant_base& operator=(const __variant_base&) = default;
+  __variant_base& operator=(__variant_base&&) = default;
+};
+
+// _TriviallyCopyConstructible Specialisation
+
+template <bool _TriviallyMoveConstructible,
+          bool _MoveConstructible,
+          bool _CopyAssignable,
+          bool _MoveAssignable,
+          bool _TiviallyDestructible,
+          class... _Types>
+class __variant_base<true,false,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...> :
+public __variant_base<false,false,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>
+{
+  using __base =
+  __variant_base<false,false,_TriviallyMoveConstructible,_MoveConstructible,_CopyAssignable,_MoveAssignable,_TiviallyDestructible,_Types...>;
+
+protected:
+
+  using __base::__base;
+
+  constexpr __variant_base(const __variant_base& __v) noexcept :
+      __base{__v}
+  {
+    static_assert(conjunction_v<is_trivially_copy_constructible<_Types>...>,
+      R"(This function shall not participate in overload resolution
+      unless is_move_constructible_v<_Ti> is true for all i.)");
   }
 
   __variant_base(__variant_base&&) = default;
@@ -1222,15 +1296,19 @@ void swap(variant<_Types...>& __lhs, variant<_Types...>& __rhs)
 };
 
 template <class... _Types>
-class variant : public __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
-                                      conjunction_v<is_move_constructible<_Types>...>,
+class variant : public __variant_base<conjunction_v<is_trivially_copy_constructible<_Types>...>,
+                                      conjunction_v<is_copy_constructible<_Types>...> && !conjunction_v<is_trivially_copy_constructible<_Types>...>,
+                                      conjunction_v<is_trivially_move_constructible<_Types>...>,
+                                      conjunction_v<is_move_constructible<_Types>...> && !conjunction_v<is_trivially_move_constructible<_Types>...>,
                                       conjunction_v<is_copy_assignable<_Types>..., is_copy_constructible<_Types>...>,
                                       conjunction_v<is_move_assignable<_Types>..., is_move_constructible<_Types>...>,
                                       conjunction_v<is_trivially_destructible<_Types>...>,
                                       _Types...>
 {
-  using __base = __variant_base<conjunction_v<is_copy_constructible<_Types>...>,
-                                conjunction_v<is_move_constructible<_Types>...>,
+  using __base = __variant_base<conjunction_v<is_trivially_copy_constructible<_Types>...>,
+                                conjunction_v<is_copy_constructible<_Types>...> && !conjunction_v<is_trivially_copy_constructible<_Types>...>,
+                                conjunction_v<is_trivially_move_constructible<_Types>...>,
+                                conjunction_v<is_move_constructible<_Types>...> && !conjunction_v<is_trivially_move_constructible<_Types>...>,
                                 conjunction_v<is_copy_assignable<_Types>..., is_copy_constructible<_Types>...>,
                                 conjunction_v<is_move_assignable<_Types>..., is_move_constructible<_Types>...>,
                                 conjunction_v<is_trivially_destructible<_Types>...>,
@@ -1268,7 +1346,7 @@ public:
   // We'll inherit the copy and move constructors from the __base
 
   inline
-  variant(const variant&) = default;
+  constexpr variant(const variant&) = default;
 
   inline
   variant(variant&&) = default;
