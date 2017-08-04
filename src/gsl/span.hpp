@@ -4,14 +4,14 @@
 #include <algorithm>
 #include <experimental/type_traits>
 
-namespace std {
+namespace gsl {
 
 enum class byte : unsigned char {};
 
 // [views.constants], constants
-constexpr ptrdiff_t dynamic_extent = -1;
+constexpr std::ptrdiff_t dynamic_extent = -1;
 
-template<ptrdiff_t Extent>
+template<std::ptrdiff_t Extent>
 struct __span_size
 {
     template<typename T>
@@ -34,7 +34,7 @@ struct __span_size<dynamic_extent>
     template<typename T>
     __span_size(T s) : m_value{static_cast<ptrdiff_t>(s)}
     {}
-    constexpr operator ptrdiff_t () const
+    constexpr operator std::ptrdiff_t () const
     {
         return m_value;
     }
@@ -45,17 +45,17 @@ struct __span_size<dynamic_extent>
         return *this;
     }
 private:
-    ptrdiff_t m_value;
+    std::ptrdiff_t m_value;
 };
 
 // A view over a contiguous, single-dimension sequence of objects
-template <class ElementType, ptrdiff_t Extent = dynamic_extent>
+template <class ElementType, std::ptrdiff_t Extent = dynamic_extent>
 class span
 {
 public:
     // constants and types
     using element_type = ElementType;
-    using index_type = ptrdiff_t;
+    using index_type = std::ptrdiff_t;
     using pointer = element_type*;
     using reference = element_type&;
     using iterator = pointer;
@@ -66,7 +66,7 @@ public:
     static constexpr index_type extent = Extent;
 
     // [span.cons], span constructors, copy, assignment, and destructor constexpr span();
-    constexpr span(nullptr_t) : m_data{nullptr}, m_size{0}
+    constexpr span(std::nullptr_t) : m_data{nullptr}, m_size{0}
     {}
 
     constexpr span(pointer ptr, index_type count) : m_data{ptr}, m_size{count}
@@ -80,11 +80,11 @@ public:
     {}
 
     template <size_t N>
-    constexpr span(array<remove_const_t<element_type>, N>& arr) : m_data{arr.data()}, m_size{N}
+    constexpr span(std::array<std::remove_const_t<element_type>, N>& arr) : m_data{arr.data()}, m_size{N}
     {}
 
     template <size_t N>
-    constexpr span(const array<remove_const_t<element_type>, N>& arr) : m_data{arr.data()}, m_size{N}
+    constexpr span(const std::array<std::remove_const_t<element_type>, N>& arr) : m_data{arr.data()}, m_size{N}
     {}
 
     template <class Container>
@@ -101,7 +101,7 @@ public:
     constexpr span(const span<OtherElementType, OtherExtent>& other) : span<ElementType,Extent>{other.m_data}
     {
         using std::experimental::is_convertible_v;
-        static_assert(is_convertible_v<OtherElementType,ElementType>, "Not convertible");
+        static_assert(std::is_convertible_v<OtherElementType,ElementType>, "Not convertible");
         static_assert(OtherExtent == Extent, "Size mismatch");
     }
 
@@ -109,7 +109,7 @@ public:
     constexpr span(span<OtherElementType, OtherExtent>&& other) : span<ElementType,Extent>{other.m_data}
     {
         using std::experimental::is_convertible_v;
-        static_assert(is_convertible_v<OtherElementType,ElementType>, "Not convertible");
+        static_assert(std::is_convertible_v<OtherElementType,ElementType>, "Not convertible");
         static_assert(OtherExtent == Extent, "Size mismatch");
     }
 
@@ -223,22 +223,22 @@ public:
 
     reverse_iterator rbegin() const noexcept
     {
-        return make_reverse_iterator(end());
+        return std::make_reverse_iterator(end());
     }
 
     reverse_iterator rend() const noexcept
     {
-        return make_reverse_iterator(begin());
+        return std::make_reverse_iterator(begin());
     }
 
     const_reverse_iterator crbegin() const noexcept
     {
-        return make_reverse_iterator(cend());
+        return std::make_reverse_iterator(cend());
     }
 
     const_reverse_iterator crend() const noexcept
     {
-        return make_reverse_iterator(cbegin());
+        return std::make_reverse_iterator(cbegin());
     }
 
 private:
@@ -289,15 +289,21 @@ constexpr bool operator>=(const span<ElementType, Extent>& l, const span<Element
 
 // [span.objectrep], views of object representation
 template <class ElementType, ptrdiff_t Extent>
-constexpr span<const byte, (Extent == dynamic_extent ? dynamic_extent : (sizeof(ElementType) * Extent))> as_bytes(span<ElementType, Extent> s) noexcept
+constexpr span<const std::byte, (Extent == dynamic_extent ? dynamic_extent : (sizeof(ElementType) * Extent))> as_bytes(span<ElementType, Extent> s) noexcept
 {
     return {static_cast<const byte*>(s.data()), s.length_bytes()};
 }
 
 template <class ElementType, ptrdiff_t Extent>
-constexpr span<byte, (Extent == dynamic_extent ? dynamic_extent : (sizeof(ElementType) * Extent))> as_writeable_bytes(span<ElementType, Extent> s) noexcept
+constexpr span<std::byte, (Extent == dynamic_extent ? dynamic_extent : (sizeof(ElementType) * Extent))> as_writeable_bytes(span<ElementType, Extent> s) noexcept
 {
     return {static_cast<byte*>(s.data()), s.length_bytes()};
 }
 
-} // namespace std
+template <class ElementType>
+span<ElementType> make_span(ElementType* ptr, typename span<ElementType>::index_type count)
+{
+    return span<ElementType>(ptr, count);
+}
+
+} // namespace gsl

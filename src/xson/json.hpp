@@ -11,7 +11,7 @@ using object = xson::object;
 // inline object parse(std::istream& is)
 // {
 //     auto ob = object{};
-//     _1::decoder{is}.decode(ob);
+//     xson::json::_1::decoder{is}.decode(ob);
 //     return std::move(ob);
 // }
 

@@ -404,12 +404,14 @@ public:
     void parse(std::istream& is)
     {
         m_state_machine.push(document{this});
-        auto c = char{};
+        is >> std::noskipws;
         while(is && !m_state_machine.empty())
         {
-            is >> std::noskipws >> c;
+            auto c = char{};
+            is >> c;
             m_state_machine.top()(c);
         }
+        is >> std::skipws;
         if(!m_state_machine.empty())
             throw std::runtime_error{"Invalid JSON object"s};
     }

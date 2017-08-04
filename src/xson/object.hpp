@@ -36,7 +36,7 @@ struct less
 {
     bool operator()(const string_type& lhs, const string_type& rhs) const
     {
-        if(ext::numeric(lhs) && ext::numeric(rhs))
+        if(ext::isnumeric(lhs) && ext::isnumeric(rhs))
         {
             if(lhs.size() == rhs.size())
                 return lhs < rhs;

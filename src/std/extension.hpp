@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iterator>
-#include <experimental/string_view>
+#include <string_view>
 
 namespace ext {
 
@@ -167,7 +167,7 @@ inline std::string& trim(std::string& str, const std::string& delimiters = " \f\
 }
 
 template<typename T>
-bool numeric(const T& str)
+bool isnumeric(const T& str)
 {
     return str.find_first_not_of("0123456789") == str.npos;
 }
@@ -188,27 +188,32 @@ auto& operator << (std::ostream& os, const std::chrono::duration<T,R>& d) noexce
 }
 
 template<typename T>
-auto to_string(const chrono::time_point<T>& tp) noexcept
+string to_string(const chrono::time_point<T>& tp) noexcept
 {
     return ext::to_iso8601(tp);
 }
 
-constexpr auto& to_string(bool b) noexcept
+constexpr const string& to_string(bool b) noexcept
 {
     return ext::bool2string[b];
 }
 
-constexpr auto& to_string(nullptr_t) noexcept
+constexpr const string& to_string(nullptr_t) noexcept
 {
     return ext::null2string;
 }
 
-constexpr auto& to_string(const string& str) noexcept
+constexpr const string& to_string(const string& str) noexcept
 {
     return str;
 }
 
-inline auto stoi(std::experimental::string_view sv, std::size_t* pos = nullptr, int base = 10)
+inline string to_string(string_view sv) noexcept
+{
+    return string{sv};
+}
+
+inline auto stoi(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
 {
     char* end;
     auto i = std::strtol(sv.data(), &end, base);
@@ -216,7 +221,7 @@ inline auto stoi(std::experimental::string_view sv, std::size_t* pos = nullptr, 
     return static_cast<std::int32_t>(i);
 }
 
-inline auto stol(std::experimental::string_view sv, std::size_t* pos = nullptr, int base = 10)
+inline auto stol(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
 {
     char* end;
     auto i = std::strtol(sv.data(), &end, base);
@@ -224,7 +229,7 @@ inline auto stol(std::experimental::string_view sv, std::size_t* pos = nullptr, 
     return i;
 }
 
-inline auto stoll(std::experimental::string_view sv, std::size_t* pos = nullptr, int base = 10)
+inline auto stoll(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
 {
     char* end;
     auto ll = std::strtoll(sv.data(), &end, base);
