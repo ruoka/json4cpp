@@ -1126,10 +1126,19 @@ __make_equal_to_array()
 }
 
 template <class _T, class... _Types>
-constexpr bool
+constexpr
+std::enable_if_t<!std::is_null_pointer_v<_T>,bool>
 __variant_less(const variant<_Types...>& __v, const variant<_Types...>& __w)
 {
   return get<_T>(__v) < get<_T>(__w);
+}
+
+template <class _T, class... _Types>
+constexpr
+std::enable_if_t<std::is_null_pointer_v<_T>,bool>
+__variant_less(const variant<_Types...>& __v, const variant<_Types...>& __w)
+{
+  return false;
 }
 
 template <class... _Types>
