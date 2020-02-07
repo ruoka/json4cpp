@@ -143,7 +143,7 @@ inline auto stotp(const std::string& str)
     return tp;
 }
 
-inline auto stob(const std::string& str) noexcept
+inline auto stob(const std::string& str)
 {
     using namespace std::string_literals;
     if(str == "true"s  || str == "1"s) return true;
