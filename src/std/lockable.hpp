@@ -17,10 +17,4 @@ struct lockable : public Class, public std::mutex
     }
 };
 
-template<class Lockable>
-auto make_lock(Lockable& l)
-{
-    return std::unique_lock<Lockable>(l);
-}
-
 } // namespace ext

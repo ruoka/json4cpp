@@ -14,7 +14,7 @@ inline std::ostream& operator << (std::ostream& os, const value& val)
         os << std::boolalpha << get<boolean_type>(val);
     else if(holds_alternative<date_type>(val))
         os << '"' << to_string(get<date_type>(val)) << '"';
-    else if(holds_alternative<null_type>(val))
+    else if(holds_alternative<monostate>(val))
         os << "null";
     else if(holds_alternative<int32_type>(val))
         os << get<int32_type>(val);

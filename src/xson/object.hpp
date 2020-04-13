@@ -1,10 +1,9 @@
 #pragma once
-
 #include <iostream>
 #include <initializer_list>
 #include <functional>
 #include <map>
-#include "std/variant.hpp"
+#include <variant>
 #include "std/extension.hpp"
 #include "xson/type.hpp"
 
@@ -13,12 +12,13 @@ namespace xson {
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
+using std::monostate;
 using std::variant;
 using std::monostate;
 using std::holds_alternative;
 using std::get;
 
-using value = variant<null_type,    // \x0A
+using value = variant<monostate,    // \x0A
                       number_type,  // \x01
                       string_type,  // \x02
                       boolean_type, // \x08
@@ -29,7 +29,9 @@ using value = variant<null_type,    // \x0A
 
 inline std::string to_string(const value& val)
 {
-    return visit([](const auto& arg){return std::to_string(arg);}, val);
+    using std::to_string;
+    using ext::to_string;
+    return visit([](const auto& arg){return to_string(arg);}, val);
 }
 
 struct less
@@ -162,7 +164,15 @@ public:
         return m_value;
     }
 
-    template <typename T>
+    template <typename T, std::enable_if_t<std::is_null_pointer_v<T>, bool> = true>
+    void value(const T& val)
+    {
+        static_assert(is_value_v<T>, "This type is not supported");
+        m_type = to_type(val);
+        m_value = monostate{};
+    }
+
+    template <typename T, std::enable_if_t<!std::is_null_pointer_v<T>, bool> = true>
     void value(const T& val)
     {
         static_assert(is_value_v<T>, "This type is not supported");
@@ -224,7 +234,7 @@ public:
 
     operator null_type () const
     {
-        return get<null_type>(m_value);
+        return nullptr;
     }
 
     operator int32_type () const
@@ -352,6 +362,11 @@ public:
     }
 
     std::size_t size() const
+    {
+        return m_objects.size();
+    }
+
+    std::size_t count() const
     {
         return m_objects.size();
     }
