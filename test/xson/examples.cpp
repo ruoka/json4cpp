@@ -36,18 +36,6 @@ TEST(Examples,Stringify)
     clog << json::stringify(papa) << endl;
 }
 
-TEST(Examples,Assign)
-{
-    auto document = object{};
-    document["papa"s]["name"s] = "Cool"s;
-    document["papa"s]["age"s] = 40;
-    document["papa"s]["married"s] = false;
-    document["papa"s]["kids"s][1] = {"Name"s,"Tulppu"s};
-    document["papa"s]["kids"s][2] = {"Name"s,"Elppu"s};
-    document["papa"s]["kids"s][3] = {"Name"s,"Jalppu"s};
-    clog << json::stringify(document) << endl;
-}
-
 TEST(Examples,Parse)
 {
     using namespace json;

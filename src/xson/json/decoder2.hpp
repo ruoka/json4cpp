@@ -416,6 +416,18 @@ public:
             throw std::runtime_error{"Invalid JSON object"s};
     }
 
+    void parse(std::string_view sv)
+    {
+        m_state_machine.push(document{this});
+        for(auto c : sv)
+        {
+            m_state_machine.top()(c);
+            if(m_state_machine.empty()) break;
+        }
+        if(!m_state_machine.empty())
+            throw std::runtime_error{"Invalid JSON object"s};
+    }
+
 }; // class parser
 
 } // namespace xson::json::_2

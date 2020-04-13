@@ -15,12 +15,12 @@ public:
 
     void decode(object& obj)
     {
-        auto next = u8' ';
+        auto next = ' ';
         m_is >> std::ws;
         next = m_is.peek();
-        if(next == u8'{')
+        if(next == '{')
             decode_object(obj);
-        else if(next == u8'[')
+        else if(next == '[')
             decode_array(obj);
         else
             throw std::invalid_argument{"Invalid JSON object "s + next};
@@ -30,19 +30,19 @@ private:
 
     void decode_string(object& obj)
     {
-        auto next = u8' ';
+        auto next = ' ';
         auto value = ""s;
         m_is >> next;                 // "
-        getline(m_is, value, u8'\"'); // value"
+        getline(m_is, value, '\"'); // value"
         obj = value;
     }
 
     void decode_value(object& obj)
     {
-        auto next = u8' ';
+        auto next = ' ';
         auto value = ""s;
         m_is >> next;
-        while(next != u8',' && next != u8'}' && next != u8']')
+        while(next != ',' && next != '}' && next != ']')
         {
             value += next;
             m_is >> next;
@@ -51,7 +51,7 @@ private:
 
         try
         {
-            if(value.find(u8'.') != value.npos)
+            if(value.find('.') != value.npos)
                 obj = stod(value);
             else if(value == "true")
                 obj = true;
@@ -71,22 +71,22 @@ private:
     void decode_array(object& parent)
     {
         auto idx = size_t{0};
-        auto next = u8' ';
+        auto next = ' ';
         m_is >> next;                         // [
-        while(next != u8']' && m_is)
+        while(next != ']' && m_is)
         {
             m_is >> std::ws;
             next = m_is.peek();               // ], {, [, " or empty
-            if(next != u8']')
+            if(next != ']')
             {
                 object& child = parent[idx++];
                 m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
-                if (next == u8'{')
+                if (next == '{')
                     decode_object(child);
-                else if (next == u8'[')
+                else if (next == '[')
                     decode_array(child);
-                else if (next == u8'\"')
+                else if (next == '\"')
                     decode_string(child);
                 else
                     decode_value(child);
@@ -98,26 +98,26 @@ private:
 
     void decode_object(object& parent)
     {
-        auto next = u8' ';
+        auto next = ' ';
         m_is >> next;                         // {
-        while(next != u8'}' && m_is)
+        while(next != '}' && m_is)
         {
             m_is >> std::ws;
             next = m_is.peek();               // } or "
-            if(next != u8'}')
+            if(next != '}')
             {
                 auto name = ""s;
                 m_is >> next;                 // "
-                getline(m_is, name, u8'\"');  // name"
+                getline(m_is, name, '\"');  // name"
                 m_is >> next;                 // :
                 object& child = parent[name];
                 m_is >> std::ws;
                 next = m_is.peek();           // {, [, " or empty
-                if(next == u8'{')
+                if(next == '{')
                     decode_object(child);
-                else if(next == u8'[')
+                else if(next == '[')
                     decode_array(child);
-                else if(next == u8'\"')
+                else if(next == '\"')
                     decode_string(child);
                 else
                     decode_value(child);

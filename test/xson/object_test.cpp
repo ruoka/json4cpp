@@ -322,7 +322,7 @@ TEST(XsonObjectTest,InitializerList2)
 {
     auto ob = object
     {
-        "List", {{"A"s,1},{"B"s,false},{"C"s,3.0},{"D"s,u8"4"s}}
+        "List", {{"A"s,1},{"B"s,false},{"C"s,3.0},{"D"s,"4"s}}
     };
     TRACE(ob);
     ASSERT_EQ(type::object, ob["List"s].type());
@@ -382,10 +382,10 @@ TEST(XsonObjectTest,Match2)
 
 TEST(XsonObjectTest,Match3)
 {
-    auto o1 = object{{u8"id"s, 1}, {u8"A"s, 1}},
-         o2 = object{{u8"id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}},
-         o3 = object{{u8"id"s, 1}, {u8"A"s, 1}, {u8"B"s, 2}, {u8"C"s, 3}},
-         s = object{u8"id"s, 1};
+    auto o1 = object{{"id"s, 1}, {"A"s, 1}},
+         o2 = object{{"id"s, 1}, {"A"s, 1}, {"B"s, 2}},
+         o3 = object{{"id"s, 1}, {"A"s, 1}, {"B"s, 2}, {"C"s, 3}},
+         s = object{"id"s, 1};
 
     ASSERT_TRUE(o1.match(s));
     ASSERT_TRUE(o2.match(s));
