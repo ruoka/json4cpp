@@ -1,5 +1,5 @@
 # json4cpp
-JSON Library for C++17
+JSON Library for C++20
 
 ## JSON Object ##
 ```cpp
@@ -65,7 +65,7 @@ clog << bson::stringify(papa) << endl;
 ## JSON Parser ##
 ```cpp
 #include "xson/json.hpp"
-    
+
 using namespace std;
 using namespace string_literals;
 using namespace xson;
