@@ -64,7 +64,7 @@ $(OBJDIR)/$(TESTDIR)/%.o: $(TESTDIR)/%.cpp $(GTESTLIBS)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -I$(INCDIR) -c $< -o $@
 
-$(TEST_TARGET): $(TEST_OBJECTS)
+$(TEST_TARGET): $(TEST_OBJECTS) $(INCLUDES)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TEST_OBJECTS) $(GTESTLIBS) -o $@
 
@@ -78,7 +78,7 @@ DEPENDENCIES = $(MAINS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.d) $(OBJECTS:%.o=%.d) $(TEST_
 all: $(INCLUDES)
 
 .PHONY: test
-test: $(TEST_TARGET)
+test: $(INCLUDES) $(TEST_TARGET)
 	$(TEST_TARGET)
 
 .PHONY: clean

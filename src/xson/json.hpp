@@ -1,4 +1,4 @@
-#pragma once
+    #pragma once
 
 #include "xson/object.hpp"
 #include "xson/json/encoder.hpp"
@@ -17,16 +17,16 @@ using object = xson::object;
 
 inline object parse(std::istream& is)
 {
-    auto b = xson::json::_2::builder{};
-    auto p = xson::json::_2::parser{&b};
+    auto b = xson::json::_3::builder{};
+    auto p = xson::json::_3::parser{&b};
     p.parse(is);
     return b.get();
 }
 
 inline object parse(std::string_view sv)
 {
-    auto b = xson::json::_2::builder{};
-    auto p = xson::json::_2::parser{&b};
+    auto b = xson::json::_3::builder{};
+    auto p = xson::json::_3::parser{&b};
     p.parse(sv);
     return b.get();
 }
