@@ -60,7 +60,7 @@ private:
             else if(value == "null")
                 obj = nullptr;
             else
-                obj = stoll(value);
+                obj = static_cast<xson::integer_type>(stoll(value));
         }
         catch(const std::invalid_argument&)
         {
