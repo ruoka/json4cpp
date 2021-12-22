@@ -12,7 +12,7 @@ inline object parse(std::istream& is)
 {
     auto ob = object{};
     decoder{is}.decode(ob);
-    return std::move(ob);
+    return ob;
 }
 
 } // namespace xson::fson
