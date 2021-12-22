@@ -62,7 +62,7 @@ TEST(Examples,Parse)
 
     clog << setw(2) << result << "\n\n";
 
-    clog << "_id            = " << result["id"s]               << "\n"
+    clog << "_id            = " << result["id"s]                << "\n"
          << "Name           = " << result["Name"s]              << "\n"
          << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
          << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
@@ -70,8 +70,11 @@ TEST(Examples,Parse)
          << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
     integer_type id = result["id"s];
+    clog << id << "\n";
 
     string_type name = result["Name"s];
+    clog << name << "\n";
 
     integer_type number = result["Lucky Numbers"s][1];
+    clog << number << "\n";
 }

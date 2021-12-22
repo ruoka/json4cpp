@@ -15,7 +15,7 @@ CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
 CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 endif
 
-CXXFLAGS += -std=c++2a -stdlib=libc++ -Wall -Wextra -I$(SRCDIR)
+CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra -I$(SRCDIR)
 
 LDFLAGS +=
 
@@ -46,7 +46,7 @@ SOURCES = $(call rwildcard,$(SRCDIR)/,*.cpp)
 
 OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
-LIBRARY = $(addprefix $(LIBDIR)/, libnet4cpp.a)
+LIBRARY =
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(@D)
