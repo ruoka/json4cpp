@@ -69,12 +69,9 @@ TEST(Examples,Parse)
          << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
          << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-    integer_type id = result["id"s];
-    clog << id << "\n";
+    [[maybe_unused]] integer_type id = result["id"s];
 
-    string_type name = result["Name"s];
-    clog << name << "\n";
+    [[maybe_unused]] string_type name = result["Name"s];
 
-    integer_type number = result["Lucky Numbers"s][1];
-    clog << number << "\n";
+    [[maybe_unused]] integer_type number = result["Lucky Numbers"s][1];
 }

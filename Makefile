@@ -21,6 +21,8 @@ LDFLAGS +=
 
 ############
 
+############
+
 SRCDIR = src
 
 TESTDIR = test
@@ -96,14 +98,11 @@ DEPENDENCIES = $(MAINS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.d) $(OBJECTS:%.o=%.d) $(TEST_
 ############
 
 .PHONY: all
-all: $(LIBRARY) $(TEST_TARGET)
-
-.PHONY: lib
-lib: $(LIBRARY) $(INCLUDES)
+all: $(INCLUDES)
 
 .PHONY: test
-test: $(TEST_TARGET)
-	$(TEST_TARGET) --gtest_filter=-*CommandLine:HttpServerTest*:NetReceiverAndSenderTest*
+test: $(INCLUDES) $(TEST_TARGET)
+	$(TEST_TARGET)
 
 .PHONY: clean
 clean:

@@ -155,6 +155,28 @@ TEST(XsonJsonTest,Array)
     EXPECT_EQ(str1, str2);
 }
 
+TEST(XsonJsonTest,NestedArrays)
+{
+    auto json = R"( {"array":[["a", "b", "c"], [1 ,2, 3], [0.1, 0.2, 0.3]]} )";
+
+    auto ob = json::parse(json);
+    TRACE("ob2:  " << ob);
+    auto str2 = json::stringify(ob);
+    TRACE("str2: " << str2);
+
+    EXPECT_EQ(static_cast<xson::string_type>(ob["array"s][0][0]), "a"s);
+    EXPECT_EQ(static_cast<xson::string_type>(ob["array"s][0][1]), "b"s);
+    EXPECT_EQ(static_cast<xson::string_type>(ob["array"s][0][2]), "c"s);
+
+    EXPECT_EQ(static_cast<xson::integer_type>(ob["array"s][1][0]), 1);
+    EXPECT_EQ(static_cast<xson::integer_type>(ob["array"s][1][1]), 2);
+    EXPECT_EQ(static_cast<xson::integer_type>(ob["array"s][1][2]), 3);
+
+    EXPECT_EQ(static_cast<xson::number_type>(ob["array"s][2][0]), 0.1);
+    EXPECT_EQ(static_cast<xson::number_type>(ob["array"s][2][1]), 0.2);
+    EXPECT_EQ(static_cast<xson::number_type>(ob["array"s][2][2]), 0.3);
+}
+
 TEST(XsonJsonTest,Vector)
 {
     auto ob1 = json::object
