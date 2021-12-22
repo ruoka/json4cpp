@@ -79,6 +79,9 @@ inline void encoder::encode(std::uint64_t i)
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-compare"
+
 inline unsigned size(std::int64_t i)
 {
     if (i < 0)
@@ -105,6 +108,8 @@ inline unsigned size(std::int64_t i)
     }
     return 9;
 }
+
+#pragma clang diagnostic pop
 
 inline void encoder::encode(std::int64_t i)
 {
