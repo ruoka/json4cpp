@@ -1,6 +1,6 @@
 CXX = clang++
 
-CXXFLAGS = -std=c++2a -MMD -Wall -Wextra # -D DEBUG=1
+CXXFLAGS = -std=c++20 -MMD -Wall -Wextra # -D DEBUG=1
 
 LDFLAGS =
 
