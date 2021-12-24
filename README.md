@@ -21,47 +21,6 @@ document["papa"s]["kids"s][3] = {"Name"s,"Jalppu"s};
 clog << json::stringify(document) << endl;
 ```
 
-## JSON/BSON Object ##
-```cpp
-#include <vector>
-#include "xson/json.hpp"
-#include "xson/bson.hpp"
-
-using namespace std;
-using namespace string_literals;
-using namespace xson;
-
-[...]
-
-auto kids = vector<object>
-{
-    { "Name"s, "Tulppu"s },
-    { "Name"s, "Elppu"s  },
-    { "Name"s, "Jalppu"s }
-};
-
-auto sizes = object
-{
-    { "Height"s,   200   },
-    { "Waist"s,    120.5 },
-    { "ShoeSize"s, 47.5  }
-};
-
-auto papa = object
-{
-    { "Name",         "Papa"s       },
-    { "Age",          40            },
-    { "Kids",         kids          },
-    { "Measures",     sizes         },
-    { "LuckyNumbers", {2, 22, 2112} },
-    { "Lucky",        false         }
-};
-
-clog << json::stringify(papa) << endl;
-
-clog << bson::stringify(papa) << endl;
-```
-
 ## JSON Parser ##
 ```cpp
 #include "xson/json.hpp"
@@ -106,22 +65,4 @@ int id = result["_id"s];
 string name = result["Name"s];
 
 int number = result["Lucky Numbers"s][1];
-```
-
-## BSON/JSON Dump ##
-```cpp
-#include "xson/json.hpp"
-#include "xson/bson.hpp"
-
-using namespace std;
-using namespace xson;
-
-[...]
-
-ifstream fs{"./test/xson/test3.bson"};
-while(fs && !fs.eof())
-{
-    clog << json::stringify(bson::parse(fs), 4) << endl;
-    fs >> ws;
-}
 ```
