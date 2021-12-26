@@ -1,8 +1,9 @@
 #include <sstream>
 #include <limits>
 #include <gtest/gtest.h>
-#include "xson/json.hpp"
 #include "xson/fson.hpp"
+#define XSON_JSON_HIDE_IOSTREAM
+#include "xson/json.hpp"
 
 using namespace std;
 using namespace string_literals;
@@ -13,6 +14,7 @@ using namespace xson::fson;
 TEST(XsonFsonTest, Array)
 {
     auto o1 = object{"Test"s, {"A"s, "B"s, "C"s}};
+    TRACE(json::stringify(o1));
 
     EXPECT_EQ(xson::type::array, o1["Test"s].type());
     EXPECT_EQ(xson::type::string, o1["Test"s][0].type());
@@ -23,6 +25,7 @@ TEST(XsonFsonTest, Array)
     ss << o1;
     auto o2 = object{};
     ss >> o2;
+    TRACE(json::stringify(o2));
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
     EXPECT_EQ(o1["Test"s][0].type(), o2["Test"s][0].type());
@@ -36,11 +39,10 @@ TEST(XsonFsonTest, Array)
 TEST(XsonFsonTest, Object)
 {
     auto o1 = object{"Test"s, {{"A"s, 1}, {"B"s, 2.0}, {"C"s, false}}};
-
-    clog << json::stringify(o1) << endl;
+    TRACE(json::stringify(o1));
 
     EXPECT_EQ(xson::type::object, o1["Test"s].type());
-    EXPECT_EQ(xson::type::int32, o1["Test"s]["A"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Test"s]["A"s].type());
     EXPECT_EQ(xson::type::number, o1["Test"s]["B"s].type());
     EXPECT_EQ(xson::type::boolean, o1["Test"s]["C"s].type());
 
@@ -48,36 +50,41 @@ TEST(XsonFsonTest, Object)
     ss << o1;
     auto o2 = object{};
     ss >> o2;
+    TRACE(json::stringify(o2));
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
     EXPECT_EQ(o1["Test"s]["A"s].type(), o2["Test"s]["A"s].type());
     EXPECT_EQ(o1["Test"s]["B"s].type(), o2["Test"s]["B"s].type());
     EXPECT_EQ(o1["Test"s]["C"s].type(), o2["Test"s]["C"s].type());
-    EXPECT_EQ(o1["Test"s]["A"s].value(), o2["Test"s]["A"s].value());
-    EXPECT_EQ(o1["Test"s]["B"s].value(), o2["Test"s]["B"s].value());
-    EXPECT_EQ(o1["Test"s]["C"s].value(), o2["Test"s]["C"s].value());
+    EXPECT_EQ(o1["Test"s]["A"s].get<object::value>(), o2["Test"s]["A"s].get<object::value>());
+    EXPECT_EQ(o1["Test"s]["B"s].get<object::value>(), o2["Test"s]["B"s].get<object::value>());
+    EXPECT_EQ(o1["Test"s]["C"s].get<object::value>(), o2["Test"s]["C"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Int32)
 {
     auto o1 = object{"Test"s, 57};
 
-    EXPECT_EQ(xson::type::int32, o1["Test"s].type());
+    TRACE(json::stringify(o1));
+
+    EXPECT_EQ(xson::type::integer, o1["Test"s].type());
 
     auto ss = stringstream{};
     ss << o1;
     auto o2 = object{};
     ss >> o2;
 
+    TRACE(json::stringify(o2));
+
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Int64)
 {
     auto o1 = object{"Test"s,  57ll};
 
-    EXPECT_EQ(xson::type::int64, o1["Test"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Test"s].type());
 
     auto ss = stringstream{};
     ss << o1;
@@ -85,7 +92,7 @@ TEST(XsonFsonTest, Int64)
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Double)
@@ -100,12 +107,14 @@ TEST(XsonFsonTest, Double)
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, String)
 {
     auto o1 = object{"Test"s, "Tulppu"s};
+
+    TRACE(json::stringify(o1));
 
     EXPECT_EQ(xson::type::string, o1["Test"s].type());
 
@@ -114,13 +123,17 @@ TEST(XsonFsonTest, String)
     auto o2 = object{};
     ss >> o2;
 
+    TRACE(json::stringify(o2));
+
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Boolean)
 {
     auto o1 = object{"Test"s, true};
+
+    TRACE(json::stringify(o1));
 
     EXPECT_EQ(xson::type::boolean, o1["Test"s].type());
 
@@ -129,8 +142,10 @@ TEST(XsonFsonTest, Boolean)
     auto o2 = object{};
     ss >> o2;
 
+    TRACE(json::stringify(o2));
+
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Date)
@@ -175,7 +190,7 @@ TEST(XsonFsonTest, Null)
     ss >> o2;
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(o1["Test"s].value(), o2["Test"s].value());
+    EXPECT_EQ(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
 }
 
 TEST(XsonFsonTest, Int32MinMax)
@@ -187,9 +202,9 @@ TEST(XsonFsonTest, Int32MinMax)
         { "Max"s,  numeric_limits<int32_t>::max() }
     };
 
-    EXPECT_EQ(xson::type::int32, o1["Zero"s].type());
-    EXPECT_EQ(xson::type::int32, o1["Min"s].type());
-    EXPECT_EQ(xson::type::int32, o1["Max"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Zero"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Min"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Max"s].type());
 
     auto ss = stringstream{};
     ss << o1;
@@ -216,9 +231,9 @@ TEST(XsonFsonTest, Int64MinMax1)
         { "Max"s,  numeric_limits<int64_t>::max()}
     };
 
-    EXPECT_EQ(xson::type::int64, o1["Zero"s].type());
-    EXPECT_EQ(xson::type::int64, o1["Min"s].type());
-    EXPECT_EQ(xson::type::int64, o1["Max"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Zero"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Min"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Max"s].type());
 
     long long zero = o1["Zero"s];
     EXPECT_EQ(0, zero);
@@ -237,9 +252,9 @@ TEST(XsonFsonTest, Int64MinMax2)
         { "Max"s,  36028797018963968ll  }  //  2^56
     };
 
-    EXPECT_EQ(xson::type::int64, o1["Zero"s].type());
-    EXPECT_EQ(xson::type::int64, o1["Min"s].type());
-    EXPECT_EQ(xson::type::int64, o1["Max"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Zero"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Min"s].type());
+    EXPECT_EQ(xson::type::integer, o1["Max"s].type());
 
     auto ss = stringstream{};
     ss << o1;

@@ -19,9 +19,8 @@ using array_type   = object;
 using boolean_type = bool;
 using null_type    = std::nullptr_t;
 using date_type    = std::chrono::system_clock::time_point;
-using int32_type   = std::int32_t;
-using int64_type   = std::int64_t;
 using integer_type = std::int64_t;
+using int32_type   = std::int32_t;
 
 enum class type : xson::byte_type
 {
@@ -35,7 +34,7 @@ enum class type : xson::byte_type
     boolean               = '\x08',
     null                  = '\x0A',
 
-    // + bson types
+// + bson types
 //  binary                = '\x05',
 //  undefined             = '\x06', // Deprecated
 //  objectid              = '\x07',
@@ -45,9 +44,10 @@ enum class type : xson::byte_type
 //  javascript            = '\x0D',
 //  deprecated            = '\x0E',
 //  javascript_with_scope = '\x0F',
-    int32                 = '\x10',
+//  int32                 = '\x10',
 //  timestamp             = '\x11',
-    int64                 = '\x12',
+//  int64                 = '\x12',
+    integer               = '\x12'
 //  min_key               = '\xFF',
 //  max_key               = '\x7F'
 };
@@ -56,47 +56,6 @@ inline auto& operator << (std::ostream& os, type t)
 {
     os << static_cast<int>(t);
     return os;
-}
-
-template <typename T> constexpr type to_type(const T&)
-{
-    static_assert(std::is_void<T>::value, "This type is not supported");
-    return type::null;
-}
-
-template <> constexpr type to_type(const xson::number_type&)
-{
-    return type::number;
-}
-
-template <> constexpr type to_type(const xson::string_type&)
-{
-    return type::string;
-}
-
-template <> constexpr type to_type(const xson::boolean_type&)
-{
-    return type::boolean;
-}
-
-template <> constexpr type to_type(const xson::null_type&)
-{
-    return type::null;
-}
-
-template <> constexpr type to_type(const xson::date_type&)
-{
-    return type::date;
-}
-
-template <> constexpr type to_type(const xson::int32_type&)
-{
-    return type::int32;
-}
-
-template <> constexpr type to_type(const xson::int64_type&)
-{
-    return type::int64;
 }
 
 
@@ -119,9 +78,9 @@ template <> struct is_value<xson::null_type> : std::true_type {};
 
 template <> struct is_value<xson::date_type> : std::true_type {};
 
-template <> struct is_value<xson::int32_type> : std::true_type {};
+template <> struct is_value<xson::integer_type> : std::true_type {};
 
-template <> struct is_value<xson::int64_type> : std::true_type {};
+template <> struct is_value<std::int32_t> : std::true_type {};
 
 template <typename T> constexpr bool is_value_v = is_value<T>::value;
 
@@ -148,6 +107,8 @@ template <> struct is_object_array<std::vector<object>> : std::true_type {};
 template <std::size_t N> struct is_object_array<std::array<object,N>> : std::true_type {};
 
 template <std::size_t N> struct is_object_array<object[N]> : std::true_type {};
+
+template <> struct is_object_array<object> : std::false_type {};
 
 template <typename T> constexpr bool is_object_array_v = is_object_array<T>::value;
 

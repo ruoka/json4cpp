@@ -4,231 +4,275 @@
 #include <functional>
 #include <map>
 #include <variant>
-#include "std/extension.hpp"
+//#include <ranges>
 #include "xson/type.hpp"
+#include "xson/trace.hpp"
+#include "std/extension.hpp"
 
 namespace xson {
 
 using namespace std::string_literals;
 using namespace std::chrono_literals;
-
-using std::monostate;
-using std::variant;
-using std::holds_alternative;
-using std::get;
-using std::to_string;
-using ext::to_string;
-
-using value = variant<monostate,    // \x0A
-                      number_type,  // \x01
-                      string_type,  // \x02
-                      boolean_type, // \x08
-                      date_type,    // \x09
-                      int32_type,   // \x10
-                      int64_type    // \x12
-                      >;
-
-inline std::string to_string(const value& val)
-{
-    return visit([](const auto& arg){return to_string(arg);}, val);
-}
-
-struct less
-{
-    bool operator()(const string_type& lhs, const string_type& rhs) const
-    {
-        if(ext::isnumeric(lhs) && ext::isnumeric(rhs))
-        {
-            if(lhs.size() == rhs.size())
-                return lhs < rhs;
-            else
-                return lhs.size() < rhs.size();
-        }
-        return lhs < rhs;
-    }
-};
+using monostate = std::monostate;
 
 class object
 {
 public:
 
-    using const_iterator = std::map<string_type,object>::const_iterator;
+    using map = std::map<std::string,object>;
+    using array = std::vector<object>;
+    using value = std::variant<monostate,   // \x0A
+                              number_type,  // \x01
+                              string_type,  // \x02
+                              date_type,    // \x09
+                              integer_type, // \x12
+                              boolean_type  // \x08
+                              >;
+    using data = std::variant<map,array,value>;
 
-    object() : m_type{type::object}, m_value{}, m_objects{}
-    {}
-
-    template <typename T,
-             std::enable_if_t<std::conjunction_v<std::negation<is_object<T>>,
-                                                 std::negation<is_value_array<T>>,
-                                                 std::negation<is_object_array<T>>>,bool> = true>
-    object(const string_type& name, const T& val) :
-    object{}
+    object() : m_data{}
     {
-        static_assert(is_value_v<T>, "This type is not supported");
-        m_objects[name].value(val);
+        TRACE('!');
     }
 
-    template <typename T,
-              std::enable_if_t<is_value_array_v<T>,bool> = true>
-    object(const string_type& name, const T& array) :
-    object{}
+    object(const data& d) : m_data{d}
     {
-        auto& parent = m_objects[name];
-        auto idx = std::size_t{0};
-        for(const auto& value : array)
-        {
-            parent.m_objects[std::to_string(idx)].value(value);
-            ++idx;
-        }
-        parent.type(type::array);
+        TRACE('!');
     }
 
-    template <typename T,
-              std::enable_if_t<is_value_v<T>,bool> = true>
-    object(const string_type& name, std::initializer_list<T> vil) :
-    object{name, std::vector<T>{vil}}
-    {}
-
-    object(const std::string& name, const object& obj) :
+    template <typename T> requires (std::is_constructible_v<value,T>  && !std::is_null_pointer_v<T>)
+    object(const string_type& name, const T& v) :
     object{}
     {
-        m_objects[name] = obj;
+        TRACE('!');
+        auto o = object{};
+        o.m_data = value{v};
+        m_data = map{{name,o}};
     }
 
-    template <typename T,
-              std::enable_if_t<is_object_array_v<T>,bool> = true>
-    object(const string_type& name, const T& array) :
+    template <typename T> requires std::is_null_pointer_v<T>
+    object(const string_type& name, const T&) :
     object{}
     {
-        auto& parent = m_objects[name];
-        auto idx = std::size_t{0};
-        for(const auto& obj : array)
-        {
-            parent.m_objects[std::to_string(idx)] = obj;
-            ++idx;
-        }
-        parent.type(type::array);
+        TRACE('!');
+        auto o = object{};
+        o.m_data = value{};
+        m_data = map{{name,o}};
     }
 
-    object(std::initializer_list<object> oil) :
+    template <typename T> requires xson::is_value_array_v<T>
+    object(const string_type& name, const T& values) :
     object{}
     {
-        for(const auto& o : oil)
-            m_objects.insert(o.cbegin(), o.cend());
+        TRACE('!');
+        m_data = map{};
+        auto arr = array{};
+        for(const auto& v : values)
+            arr.emplace_back(v);
+        std::get<map>(m_data).emplace(name,arr);
+    }
+
+    template <typename T> requires std::is_constructible_v<value,T>
+    object(const string_type& name, std::initializer_list<T> values)
+    {
+        TRACE('!');
+        m_data = map{};
+        auto arr = array{};
+        for(auto& v : values)
+            arr.emplace_back(v);
+        std::get<map>(m_data).emplace(name,arr);
+    }
+
+    object(const std::string& name, const object& o) :
+    object{}
+    {
+        TRACE('!');
+        m_data = map{};
+        std::get<map>(m_data).emplace(name,o);
+    }
+
+    object(std::initializer_list<object> objects)
+    {
+        TRACE('!');
+        m_data = map{};
+        for(auto& o : objects)
+            std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
+    }
+
+    template <typename T> requires xson::is_object_array_v<T>
+    object(const string_type& name, const T& objects) :
+    object{}
+    {
+        TRACE('!');
+        m_data = map{};
+        auto arr = array{};
+        for(const auto& o : objects)
+            arr.emplace_back(o);
+        std::get<map>(m_data).emplace(name,arr);
     }
 
     object(const object& obj) :
-    m_type{obj.m_type}, m_value{obj.m_value}, m_objects{obj.m_objects}
-    {}
+    m_data{obj.m_data}
+    {
+        TRACE('!');
+    }
 
     object(object&& obj) :
-    m_type{obj.m_type}, m_value{std::move(obj.m_value)}, m_objects{std::move(obj.m_objects)}
-    {}
-
-    object& operator = (const object& obj)
+    m_data{std::move(obj.m_data)}
     {
-        m_value= obj.m_value; m_type = obj.m_type; m_objects = obj.m_objects;
+        TRACE('!');
+    }
+
+    object& operator = (const object& o)
+    {
+        m_data = o.m_data;
         return *this;
     }
 
     object& operator = (object&& obj)
     {
-        m_value = std::move(obj.m_value); m_type = obj.m_type; m_objects = std::move(obj.m_objects);
+        m_data = std::move(obj.m_data);
         return *this;
     }
 
-    template <typename T,
-              std::enable_if_t<std::conjunction_v<std::negation<is_object<T>>,
-                                                  std::negation<is_value_array<T>>,
-                                                  std::negation<is_object_array<T>>>,bool> = true>
+    object& operator = (const data& d)
+    {
+        m_data = d;
+        return *this;
+    }
+
+    template <typename T> requires std::is_null_pointer_v<T>
+    object& operator = (const T&)
+    {
+        m_data = monostate{};
+        return *this;
+    }
+
+    template <typename T> requires (std::is_constructible_v<value,T> && !std::is_null_pointer_v<T>)
     object& operator = (const T& val)
     {
-        static_assert(is_value_v<T>, "This type is not supported");
-        value(val);
+        m_data = val;
         return *this;
     }
 
     xson::type type() const
     {
-        return m_type;
+        if(holds_alternative<map>(m_data))
+            return xson::type::object;
+
+        if(holds_alternative<array>(m_data))
+            return xson::type::array;
+
+        const auto& data = std::get<value>(m_data);
+
+        if(holds_alternative<number_type>(data))
+            return xson::type::number;
+
+        if(holds_alternative<string_type>(data))
+            return xson::type::string;
+
+        if(holds_alternative<boolean_type>(data))
+            return xson::type::boolean;
+
+        if(holds_alternative<date_type>(data))
+            return xson::type::date;
+
+        if(holds_alternative<integer_type>(data))
+            return xson::type::integer;
+
+        // if(holds_alternative<monostate>(data))
+        return xson::type::null;
     }
 
-    void type(xson::type t)
+    template<typename T>
+        requires std::is_same_v<T,value>
+    const auto& get() const
     {
-        m_type = t;
+        return std::get<value>(m_data);
     }
 
-    const xson::value& value() const
+    template<typename T>
+        requires std::is_same_v<T,value>
+    auto& get()
     {
-        return m_value;
+        return std::get<value>(m_data);
     }
 
-    template <typename T, std::enable_if_t<std::is_null_pointer_v<T>, bool> = true>
-    void value(const T& val)
+    template<typename T>
+        requires std::is_same_v<T,map>
+    const auto& get() const
     {
-        static_assert(is_value_v<T>, "This type is not supported");
-        m_type = to_type(val);
-        m_value = monostate{};
+        return std::get<map>(m_data);
     }
 
-    template <typename T, std::enable_if_t<!std::is_null_pointer_v<T>, bool> = true>
-    void value(const T& val)
+    template<typename T>
+        requires std::is_same_v<T,map>
+    auto& get()
     {
-        static_assert(is_value_v<T>, "This type is not supported");
-        m_type = to_type(val);
-        m_value = val;
+        return std::get<map>(m_data);
+    }
+
+    template<typename T>
+        requires std::is_same_v<T,array>
+    const auto& get() const
+    {
+        return std::get<array>(m_data);
+    }
+
+    template<typename T>
+        requires std::is_same_v<T,array>
+    auto& get()
+    {
+        return std::get<array>(m_data);
     }
 
     object& operator [] (const string_type& name)
     {
-        return m_objects[name];
+        return std::get<map>(m_data)[name];
     }
 
     const object& operator [] (const string_type& name) const
     {
-        if(!m_objects.count(name))
+        if(not std::get<map>(m_data).count(name))
             throw std::out_of_range("object has no field with name "s + name);
-        return m_objects.find(name)->second;
+        return std::get<map>(m_data).find(name)->second;
     }
 
     object& operator [] (std::size_t idx)
     {
-        if(m_objects.empty())
-            m_type = type::array;
-        return m_objects[std::to_string(idx)];
+        return std::get<array>(m_data)[idx];
     }
 
     const object& operator [] (std::size_t idx) const
     {
-        const auto name = std::to_string(idx);
-        if(!m_objects.count(name))
-            throw std::out_of_range("array has no index with value "s + name);
-        return m_objects.find(name)->second;
+        if(idx > std::get<array>(m_data).size())
+            throw std::out_of_range("array has no index with value "s + std::to_string(idx));
+        return std::get<array>(m_data)[idx];
     }
 
-    operator const xson::value& () const
+    operator const object::value& () const
     {
-        return m_value;
+        return std::get<value>(m_data);
     }
 
     operator number_type () const
     {
-        return get<double>(m_value);
+        return std::get<number_type>(std::get<value>(m_data));
     }
 
     operator const string_type& () const
     {
-        return get<string_type>(m_value);
+        return std::get<string_type>(std::get<value>(m_data));
     }
 
     operator boolean_type () const
     {
-        return get<boolean_type>(m_value);
+        return std::get<boolean_type>(std::get<value>(m_data));
     }
 
     operator date_type () const
     {
-        return get<date_type>(m_value);
+        return std::get<date_type>(std::get<value>(m_data));
     }
 
     operator null_type () const
@@ -238,39 +282,29 @@ public:
 
     operator int32_type () const
     {
-        return get<int32_type>(m_value);
+        return std::get<integer_type >(std::get<value>(m_data));
     }
 
-    operator int64_type () const
+    operator integer_type () const
     {
-        return get<int64_type >(m_value);
-    }
-
-    operator std::vector<std::string> () const
-    {
-        if(m_type != type::array)
-            throw std::logic_error("object type has to be array");
-        auto values = std::vector<std::string>{};
-        for(const auto& obj : m_objects)
-            values.push_back(obj.second); // FIXME We assume string values hare
-        return values;
+        return std::get<integer_type >(std::get<value>(m_data));
     }
 
     object& operator + (const object& obj)
     {
-        if(m_type == type::object)
-            m_objects.insert(obj.cbegin(), obj.cend());
-        else if(m_type == type::array)
-            m_objects[std::to_string(m_objects.size())] = obj;
+        if(holds_alternative<map>(m_data))
+            std::get<map>(m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
+        else if(holds_alternative<array>(m_data))
+            std::get<array>(m_data).push_back(obj);
         return *this;
     }
 
     object& operator + (object&& obj)
     {
-        if(m_type == type::object)
-            m_objects.insert(obj.cbegin(), obj.cend());
-        else if(m_type == type::array)
-            m_objects[std::to_string(m_objects.size())] = obj;
+        if(holds_alternative<map>(m_data))
+            std::get<map>(m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
+        else if(holds_alternative<array>(m_data))
+            std::get<array>(m_data).push_back(obj);
         return *this;
     }
 
@@ -288,126 +322,130 @@ public:
 
     bool has_value() const
     {
-        return m_value.index();
+        return holds_alternative<value>(m_data);
     }
 
     bool has_objects() const
     {
-        return !m_objects.empty();
+        return holds_alternative<map>(m_data);
+    }
+
+    bool is_array() const
+    {
+        return holds_alternative<array>(m_data);
     }
 
     bool empty() const
     {
-        return !(has_value() || has_objects());
+        if(holds_alternative<map>(m_data))
+            return std::get<map>(m_data).empty();
+        if(holds_alternative<array>(m_data))
+            return std::get<array>(m_data).empty();
+        else
+            return false;
     }
 
     bool has(const std::string& name) const
     {
-        return m_objects.count(name) > 0;
+        if(holds_alternative<map>(m_data))
+            return std::get<map>(m_data).contains(name);
+        else
+            return false;
     }
 
-    bool match(const object& subset) const
-    {
-        if(subset.empty())
-            return true;
-
-        if(has_value() && subset.has_objects())
-        {
-            auto test = std::all_of(subset.cbegin(), subset.cend(),
-                [&](const auto& node)
-                {
-                    if(operators.count(node.first))
-                        return operators.at(node.first)(value(), node.second.value());
-                    else
-                        return node.first[0] == '$';
-                });
-
-            if(subset.has("$in"s))
-                test = test && std::any_of(subset["$in"s].cbegin(), subset["$in"s].cend(),
-                    [&](const auto& node)
-                    {
-                        return value() == node.second.value();
-                    });
-
-            return test;
-        }
-
-        if(has_objects() && subset.has_objects())
-        {
-            auto lf = cbegin(), rf = subset.cbegin();
-            const auto ll = cend(), rl = subset.cend();
-
-            while(rf != rl && rf->first[0] == '$')
-                ++rf;
-
-            while(lf != ll && rf != rl)
-            {
-                if(lf->first < rf->first)
-                    ++lf;
-                else if(lf->first > rf->first)
-                    return false;
-                else if(lf->second.match(rf->second))
-                {
-                    ++lf;
-                    ++rf;
-                }
-                else
-                    return false;
-            }
-            return rf == rl;
-        }
-
-        return m_value == subset.m_value;
-    }
 
     std::size_t size() const
     {
-        return m_objects.size();
+        if(holds_alternative<map>(m_data))
+            return std::get<map>(m_data).size();
+        else if(holds_alternative<array>(m_data))
+            return std::get<array>(m_data).size();
+        else
+            return 0u;
     }
 
-    std::size_t count() const
+    auto count() const
     {
-        return m_objects.size();
+        return size();
     }
 
-    const_iterator begin() const
+    bool match([[maybe_unused]] const object& subset) const
     {
-        return m_objects.cbegin();
-    }
+        // if(subset.empty())
+        //     return true;
+        //
+        // if(has_value() && subset.has_objects())
+        // {
+        //     auto test = std::all_of(subset.cbegin(), subset.cend(),
+        //         [&](const auto& node)
+        //         {
+        //             if(operators.count(node.first))
+        //                 return operators.at(node.first)(value(), node.second.value());
+        //             else
+        //                 return node.first[0] == '$';
+        //         });
+        //
+        //     if(subset.has("$in"s))
+        //         test = test && std::any_of(subset["$in"s].cbegin(), subset["$in"s].cend(),
+        //             [&](const auto& node)
+        //             {
+        //                 return value() == node.second.value();
+        //             });
+        //
+        //     return test;
+        // }
+        //
+        // if(has_objects() && subset.has_objects())
+        // {
+        //     auto lf = cbegin(), rf = subset.cbegin();
+        //     const auto ll = cend(), rl = subset.cend();
+        //
+        //     while(rf != rl && rf->first[0] == '$')
+        //         ++rf;
+        //
+        //     while(lf != ll && rf != rl)
+        //     {
+        //         if(lf->first < rf->first)
+        //             ++lf;
+        //         else if(lf->first > rf->first)
+        //             return false;
+        //         else if(lf->second.match(rf->second))
+        //         {
+        //             ++lf;
+        //             ++rf;
+        //         }
+        //         else
+        //             return false;
+        //     }
+        //     return rf == rl;
+        // }
+        //
+        // return m_value == subset.m_value;
 
-    const_iterator end() const
-    {
-        return m_objects.cend();
-    }
-
-    const_iterator cbegin() const
-    {
-        return m_objects.cbegin();
-    }
-
-    const_iterator cend() const
-    {
-        return m_objects.cend();
+        return false; // FIXME
     }
 
 private:
 
-    using operator_type = std::function<bool(const xson::value&,const xson::value&)>;
+    using operator_type = std::function<bool(const object::value&,const object::value&)>;
 
     const std::map<string_type,operator_type> operators = std::map<string_type,operator_type>{
-        { "$eq"s,  std::equal_to<xson::value>{}      },
-        { "$ne"s,  std::not_equal_to<xson::value>{}  },
-        { "$lt"s,  std::less<xson::value>{}          },
-        { "$lte"s, std::less_equal<xson::value>{}    },
-        { "$gt"s,  std::greater<xson::value>{}       },
-        { "$gte"s, std::greater_equal<xson::value>{} }
+        { "$eq"s,  std::equal_to<object::value>{}      },
+        { "$ne"s,  std::not_equal_to<object::value>{}  },
+        { "$lt"s,  std::less<object::value>{}          },
+        { "$lte"s, std::less_equal<object::value>{}    },
+        { "$gt"s,  std::greater<object::value>{}       },
+        { "$gte"s, std::greater_equal<object::value>{} }
     };
 
-    xson::type m_type;
-
-    xson::value m_value;
-
-    std::map<string_type,object_type,less> m_objects;
+    data m_data;
 };
+
+inline std::string to_string(const object::value& val)
+{
+    using std::to_string;
+    using ext::to_string;
+    return std::visit([](const auto& arg){return to_string(arg);}, val);
+}
 
 } // namespace xson

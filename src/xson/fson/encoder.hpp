@@ -48,43 +48,48 @@ public:
         encode(static_cast<std::uint64_t>(us.count()));
     }
 
-    void encode(const xson::object& obj)
+    void encode(const xson::object& o)
     {
-        switch(obj.type())
+        encode(o.type());
+
+        switch(o.type())
         {
             case type::object:
-            case type::array:
-            for(const auto& o : obj)
+            for(const auto& [name,value] : o.get<object::map>())
             {
-                encode(o.second.type()); // type
-                encode(o.first);         // name
-                encode(o.second);        // object
+                encode(name);         // name
+                encode(value);        // object
             }
             encode(type::eod);
             break;
 
-            case type::int32:
-            encode(get<xson::int32_type>(obj.value()));
+            case type::array:
+            for(auto index = 0ull; const auto& value : o.get<object::array>())
+            {
+                encode(index++);      // index
+                encode(value);        // object
+            }
+            encode(type::eod);
             break;
 
-            case type::int64:
-            encode(get<xson::int64_type>(obj.value()));
+            case type::integer:
+            encode(std::get<xson::integer_type>(o.get<object::value>()));
             break;
 
             case type::number:
-            encode(get<xson::number_type>(obj.value()));
+            encode(std::get<xson::number_type>(o.get<object::value>()));
             break;
 
             case type::string:
-            encode(get<xson::string_type>(obj.value()));
+            encode(std::get<xson::string_type>(o.get<object::value>()));
             break;
 
             case type::boolean:
-            encode(get<xson::boolean_type>(obj.value()));
+            encode(std::get<xson::boolean_type>(o.get<object::value>()));
             break;
 
             case type::date:
-            encode(get<xson::date_type>(obj.value()));
+            encode(std::get<xson::date_type>(o.get<object::value>()));
             break;
 
             case type::null:
@@ -99,13 +104,3 @@ public:
 };
 
 } // namespace xson::fson
-
-namespace std {
-
-inline auto& operator << (std::ostream& os, const xson::object& ob)
-{
-    xson::fson::encoder{os}.encode(ob);
-    return os;
-}
-
-}

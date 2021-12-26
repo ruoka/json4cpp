@@ -1,6 +1,6 @@
 #include <vector>
 #include <gtest/gtest.h>
-#include "xson/json/encoder.hpp"
+#include "xson/json.hpp"
 
 using namespace std;
 using namespace std::chrono;

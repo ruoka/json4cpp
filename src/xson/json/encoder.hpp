@@ -1,25 +1,24 @@
 #pragma once
 
 #include "xson/object.hpp"
+#include "std/extension.hpp"
 
 namespace xson::json {
 
-inline std::ostream& operator << (std::ostream& os, const value& val)
+inline std::ostream& operator << (std::ostream& os, const object::value& v)
 {
-    if(holds_alternative<number_type>(val))
-        os << get<number_type>(val);
-    else if(holds_alternative<string_type>(val))
-        os << '"' << get<string_type>(val) << '"';
-    else if(holds_alternative<boolean_type>(val))
-        os << std::boolalpha << get<boolean_type>(val);
-    else if(holds_alternative<date_type>(val))
-        os << '"' << to_string(get<date_type>(val)) << '"';
-    else if(holds_alternative<monostate>(val))
+    if(holds_alternative<number_type>(v))
+        os << std::get<number_type>(v);
+    else if(holds_alternative<string_type>(v))
+        os << '"' << std::get<string_type>(v) << '"';
+    else if(holds_alternative<boolean_type>(v))
+        os << std::boolalpha << std::get<boolean_type>(v);
+    else if(holds_alternative<date_type>(v))
+        os << '"' << ext::to_string(std::get<date_type>(v)) << '"';
+    else if(holds_alternative<monostate>(v))
         os << "null";
-    else if(holds_alternative<int32_type>(val))
-        os << get<int32_type>(val);
-    else if(holds_alternative<int64_type>(val))
-        os << get<int64_type>(val);
+    else if(holds_alternative<integer_type>(v))
+        os << std::get<integer_type>(v);
     return os;
 }
 
@@ -30,31 +29,33 @@ public:
     encoder(std::ostream& os, std::streamsize indent = 2) : m_pretty{indent}, m_os{os}
     {}
 
-    void encode(const object& obj)
+    void encode(const object& o)
     {
-        if(obj.type() == type::object)
+        if(o.type() == type::object)
         {
+            const auto& container = o.get<object::map>();
             m_os << m_pretty('{');
-            for(auto it = obj.cbegin(); it != obj.cend(); ++it)
+            for(auto i = 0; const auto& [name,value] : container)
             {
-                if(it == obj.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
-                m_os << '\"' << it->first << '\"' << m_pretty(':');
-                encode(it->second);
+                m_os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                m_os << '\"' << name << '\"' << m_pretty(':');
+                encode(value);
             }
-            m_os << m_pretty('}', obj.empty());
+            m_os << m_pretty('}', container.empty());
         }
-        else if(obj.type() == type::array)
+        else if(o.type() == type::array)
         {
+            const auto& container = o.get<object::array>();
             m_os << m_pretty('[');
-            for(auto it = obj.cbegin(); it != obj.cend(); ++it)
+            for(auto i = 0; const auto& value : container)
             {
-                if(it == obj.cbegin()) m_os << m_pretty(); else m_os << m_pretty(',');
-                encode(it->second);
+                m_os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                encode(value);
             }
-            m_os << m_pretty(']', obj.empty());
+            m_os << m_pretty(']', container.empty());
         }
         else
-            m_os << obj.value();
+            m_os << o.get<object::value>();
     }
 
 private:
@@ -124,15 +125,5 @@ private:
 
     std::ostream& m_os;
 };
-
-inline auto& operator << (std::ostream& os, const xson::object& obj)
-{
-    const auto indent = os.width();
-    auto e = json::encoder{os, indent};
-    os.width(0);
-    e.encode(obj);
-    os.width(indent);
-    return os;
-}
 
 } // namespace xson::json

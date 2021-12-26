@@ -1,6 +1,7 @@
 #pragma once
 
 #include <istream>
+#include "xson/trace.hpp"
 
 namespace xson::fast {
 
@@ -31,6 +32,7 @@ protected:
 inline void decoder::decode(std::uint8_t& byte)
 {
     byte = m_is.get();
+    TRACE(byte);
 }
 
 inline void decoder::decode(std::uint32_t& i)
@@ -42,6 +44,7 @@ inline void decoder::decode(std::uint32_t& i)
         if(byte & 0x80)
             break;
     }
+    TRACE(i);
 }
 
 inline void decoder::decode(std::int32_t& i)
@@ -53,6 +56,7 @@ inline void decoder::decode(std::int32_t& i)
         if(byte & 0x80)
             break;
     }
+    TRACE(i);
 }
 
 inline void decoder::decode(std::uint64_t& i)
@@ -64,6 +68,7 @@ inline void decoder::decode(std::uint64_t& i)
         if(byte & 0x80)
             break;
     }
+    TRACE(i);
 }
 
 inline void decoder::decode(std::int64_t& i)
@@ -75,6 +80,7 @@ inline void decoder::decode(std::int64_t& i)
         if(byte & 0x80)
             break;
     }
+    TRACE(i);
 }
 
 inline void decoder::decode(std::string& str)
@@ -86,6 +92,7 @@ inline void decoder::decode(std::string& str)
         if(byte & 0x80)
             break;
     }
+    TRACE(str);
 }
 
 } // namespace xson::fast

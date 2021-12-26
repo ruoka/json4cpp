@@ -11,13 +11,19 @@ LDFLAGS = -L/usr/local/lib
 endif
 
 ifeq ($(OS),Darwin)
-CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
-CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+CXX := /opt/bin/clang++
+CXXFLAGS += -isystem /opt/include/c++/v1
+LDFLAGS += -L/opt/lib
+LDFLAGS += -Wl,-rpath,/opt/lib
+#CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
+#CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 endif
 
-CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra -I$(SRCDIR)
+CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra -I$(SRCDIR) -DDEBUG
 
-LDFLAGS +=
+CXXFLAGS += -nostdinc++ -nostdlib++
+
+LDFLAGS += -lc++
 
 ############
 
@@ -108,8 +114,8 @@ test: $(INCLUDES) $(TEST_TARGET)
 clean:
 	@rm -rf $(OBJDIR)
 	@rm -rf $(BINDIR)
-	@rm -rf $(LIBDIR)
-	@rm -rf $(INCDIR)
+#	@rm -rf $(LIBDIR)
+#	@rm -rf $(INCDIR)
 
 .PHONY: dump
 dump:

@@ -31,11 +31,12 @@ TEST(XsonObjectTest,Mix)
 {
     auto o1 = object{"Integer"s, 123456789};
     TRACE(o1);
-    ASSERT_FALSE(o1.empty());
-    ASSERT_TRUE(o1.has("Integer"s));
-    ASSERT_EQ(type::int32, o1["Integer"s].type());
+
+    EXPECT_FALSE(o1.empty());
+    EXPECT_TRUE(o1.has("Integer"s));
+    EXPECT_EQ(type::integer, o1["Integer"s].type());
     const int i1 = o1["Integer"s];
-    ASSERT_EQ(123456789, i1);
+    EXPECT_EQ(123456789, i1);
 
     auto o2 = object
     {
@@ -47,6 +48,7 @@ TEST(XsonObjectTest,Mix)
         {"Array"s, {1, 2, 3, 4, 5, 6}}
     };
     TRACE(o2);
+
     ASSERT_FALSE(o2.empty());
     ASSERT_TRUE(o2.has("Integer"s));
     ASSERT_TRUE(o2.has("Double"s));
@@ -60,7 +62,7 @@ TEST(XsonObjectTest,Mix)
     ASSERT_EQ(21.12, d);
 
     ASSERT_EQ(type::object, o2["Object1"s].type());
-    ASSERT_EQ(type::int32, o2["Object1"s]["Integer"s].type());
+    ASSERT_EQ(type::integer, o2["Object1"s]["Integer"s].type());
     const int i2 = o2["Object1"s]["Integer"s];
     ASSERT_EQ(123456789, i2);
 
@@ -86,7 +88,7 @@ TEST(XsonObjectTest,Array)
     int idx{0};
     for(const auto& a : arr)
     {
-        ASSERT_EQ(type::int32, ob["Array"s][idx].type());
+        ASSERT_EQ(type::integer, ob["Array"s][idx].type());
         const int i = ob["Array"s][idx];
         ASSERT_EQ(a, i);
         ++idx;
@@ -186,11 +188,11 @@ TEST(XsonObjectTest,ObjectWithArray)
     ASSERT_TRUE(ob.has("ObjectArray"s));
     ASSERT_EQ(type::array, ob["ObjectArray"s].type());
     ASSERT_EQ(type::object, ob["ObjectArray"s][0].type());
-    ASSERT_EQ(type::int32, ob["ObjectArray"s][0]["A"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectArray"s][0]["A"s].type());
     ASSERT_EQ(type::object, ob["ObjectArray"s][1].type());
-    ASSERT_EQ(type::int32, ob["ObjectArray"s][1]["B"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectArray"s][1]["B"s].type());
     ASSERT_EQ(type::object, ob["ObjectArray"s][2].type());
-    ASSERT_EQ(type::int32, ob["ObjectArray"s][2]["C"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectArray"s][2]["C"s].type());
 }
 
 TEST(XsonObjectTest,ObjectWithVector1)
@@ -228,11 +230,11 @@ TEST(XsonObjectTest,ObjectWithVector2)
     ASSERT_TRUE(ob.has("ObjectVector"s));
     ASSERT_EQ(type::array, ob["ObjectVector"s].type());
     ASSERT_EQ(type::object, ob["ObjectVector"s][0].type());
-    ASSERT_EQ(type::int32, ob["ObjectVector"s][0]["A"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectVector"s][0]["A"s].type());
     ASSERT_EQ(type::object, ob["ObjectVector"s][1].type());
-    ASSERT_EQ(type::int32, ob["ObjectVector"s][1]["B"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectVector"s][1]["B"s].type());
     ASSERT_EQ(type::object, ob["ObjectVector"s][2].type());
-    ASSERT_EQ(type::int32, ob["ObjectVector"s][2]["C"s].type());
+    ASSERT_EQ(type::integer, ob["ObjectVector"s][2]["C"s].type());
 }
 
 TEST(XsonObjectTest,Complex)
@@ -254,14 +256,14 @@ TEST(XsonObjectTest,Complex)
     ASSERT_EQ(true, b);
 
     ASSERT_TRUE(ob.has("Tulppu"s));
-    ASSERT_EQ(type::int32, ob["Tulppu"s].type());
+    ASSERT_EQ(type::integer, ob["Tulppu"s].type());
     const int i1 = ob["Tulppu"s];
     ASSERT_EQ(1, i1);
 
     ASSERT_TRUE(ob.has("Ages"s));
     ASSERT_EQ(type::array, ob["Ages"s].type());
 
-    ASSERT_EQ(type::int32, ob["Ages"s][4].type());
+    ASSERT_EQ(type::integer, ob["Ages"s][4].type());
     const int i2 = ob["Ages"s][4];
     ASSERT_EQ(2, i2);
 }
@@ -311,11 +313,11 @@ TEST(XsonObjectTest,InitializerList1)
     };
     TRACE(ob);
     ASSERT_EQ(type::array, ob["List"s].type());
-    ASSERT_EQ(type::int32, ob["List"s][0].type());
-    ASSERT_EQ(type::int32, ob["List"s][1].type());
-    ASSERT_EQ(type::int32, ob["List"s][2].type());
-    ASSERT_EQ(type::int32, ob["List"s][3].type());
-    ASSERT_EQ(type::int32, ob["List"s][4].type());
+    ASSERT_EQ(type::integer, ob["List"s][0].type());
+    ASSERT_EQ(type::integer, ob["List"s][1].type());
+    ASSERT_EQ(type::integer, ob["List"s][2].type());
+    ASSERT_EQ(type::integer, ob["List"s][3].type());
+    ASSERT_EQ(type::integer, ob["List"s][4].type());
 }
 
 TEST(XsonObjectTest,InitializerList2)
@@ -326,7 +328,7 @@ TEST(XsonObjectTest,InitializerList2)
     };
     TRACE(ob);
     ASSERT_EQ(type::object, ob["List"s].type());
-    ASSERT_EQ(type::int32, ob["List"s]["A"s].type());
+    ASSERT_EQ(type::integer, ob["List"s]["A"s].type());
     ASSERT_EQ(type::boolean, ob["List"s]["B"s].type());
     ASSERT_EQ(type::number, ob["List"s]["C"s].type());
 }

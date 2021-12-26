@@ -62,16 +62,3 @@ TEST(XsonObjectTest,IsObjectArray)
     ASSERT_EQ(xson::is_object_array<array2>(),    true);
     ASSERT_EQ(xson::is_object_array<vector2>(),   true);
 }
-
-TEST(XsonObjectTest,ToType)
-{
-    ASSERT_EQ(xson::to_type(double{}),       type::number);
-    ASSERT_EQ(xson::to_type(string{}),       type::string);
-//  ASSERT_EQ(xson::to_type(object{}),       type::object);
-//  ASSERT_EQ(xson::to_type(array{}),        type::array);
-    ASSERT_EQ(xson::to_type(bool{}),         type::boolean);
-    ASSERT_EQ(xson::to_type(date{}),         type::date);
-    ASSERT_EQ(xson::to_type(nullptr),        type::null);
-    ASSERT_EQ(xson::to_type(int{}),          type::int32);
-    ASSERT_EQ(xson::to_type(xson::int64_type{}), type::int64);
-}
