@@ -25,8 +25,9 @@ public:
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
             {
-                encode(name);         // name
-                encode(value);        // object
+                encode(type::name); // type
+                encode(name);       // name
+                encode(value);      // object
             }
             encode(type::eod);
             break;
@@ -34,8 +35,9 @@ public:
             case type::array:
             for(auto index = 0ull; const auto& value : o.get<object::array>())
             {
-                encode(index++);      // index
-                encode(value);        // object
+                encode(type::index); // type
+                encode(index++);     // index
+                encode(value);       // object
             }
             encode(type::eod);
             break;
@@ -63,7 +65,7 @@ public:
             case type::null:
             break;
 
-            case type::eod:
+            default:
             assert(false);
             break;
         }

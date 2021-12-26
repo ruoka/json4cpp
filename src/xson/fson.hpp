@@ -15,7 +15,6 @@ inline object parse(std::istream& is)
 
 } // namespace xson::fson
 
-
 #ifndef XSON_FSON_HIDE_IOSTREAM
 
 namespace std {

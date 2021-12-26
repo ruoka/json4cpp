@@ -422,7 +422,7 @@ public:
         //
         // return m_value == subset.m_value;
 
-        return false; // FIXME
+        return true; // FIXME
     }
 
 private:

@@ -25,8 +25,11 @@ using int32_type   = std::int32_t;
 enum class type : xson::byte_type
 {
     eod                   = '\x00',
+    name                  = '\x13',
+    index                 = '\x14',
 
-    // json types
+// json types
+
     number                = '\x01',
     string                = '\x02',
     object                = '\x03',
@@ -35,21 +38,9 @@ enum class type : xson::byte_type
     null                  = '\x0A',
 
 // + bson types
-//  binary                = '\x05',
-//  undefined             = '\x06', // Deprecated
-//  objectid              = '\x07',
     date                  = '\x09',
-//  regular_expression    = '\x0B',
-//  db_pointer            = '\x0C', // Deprecated
-//  javascript            = '\x0D',
-//  deprecated            = '\x0E',
-//  javascript_with_scope = '\x0F',
-//  int32                 = '\x10',
 //  timestamp             = '\x11',
-//  int64                 = '\x12',
     integer               = '\x12'
-//  min_key               = '\xFF',
-//  max_key               = '\x7F'
 };
 
 inline auto& operator << (std::ostream& os, type t)

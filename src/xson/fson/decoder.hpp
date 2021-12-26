@@ -22,6 +22,9 @@ public:
 
         while(m_is)
         {
+            auto type = xson::type{};
+            decode(type);
+
             xson::string_type name;
             xson::integer_type idx;
             xson::number_type   d;
@@ -30,9 +33,6 @@ public:
             xson::boolean_type  b;
             xson::integer_type  i;
 
-            auto type = xson::type{};
-            decode(type);
-
             switch(type)
             {
                 case type::object: // x03
@@ -40,9 +40,19 @@ public:
                     m_observer->start_object();
                     break;
 
+                case type::name:
+                    decode(name);
+                    m_observer->name(name);
+                    break;
+
                 case type::array:  // x04
                     parent.push(type::array);
                     m_observer->start_array();
+                    break;
+
+                case type::index:
+                    decode(idx);
+                    m_observer->index(idx);
                     break;
 
                 case type::number: // x01
@@ -75,9 +85,9 @@ public:
                     break;
 
                 case type::eod:     // x00
-                    parent.pop();
                     if(parent.top() == type::object) m_observer->end_object();
                     if(parent.top() == type::array) m_observer->end_array();
+                    parent.pop();
                     break;
 
                 default:
@@ -86,20 +96,6 @@ public:
             }
 
             if(parent.empty()) return;
-
-            if(parent.top() == type::object)
-            {
-                decode(name);
-                m_observer->name(name);
-                continue;
-            }
-
-            if(parent.top() == type::array)
-            {
-                decode(idx);
-                m_observer->index(idx);
-                continue;
-            }
         }
     }
 
