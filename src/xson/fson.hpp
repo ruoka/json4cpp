@@ -13,8 +13,12 @@ inline object parse(std::istream& is)
     return b.get();
 }
 
+} // namespace xson::fson
+
 
 #ifndef XSON_FSON_HIDE_IOSTREAM
+
+namespace std {
 
 inline auto& operator >> (std::istream& is, xson::object& ob)
 {
@@ -28,6 +32,6 @@ inline auto& operator << (std::ostream& os, const xson::object& ob)
     return os;
 }
 
-#endif
+} // namespace std
 
-} // namespace xson::fson
+#endif

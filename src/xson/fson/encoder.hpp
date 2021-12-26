@@ -16,38 +16,6 @@ public:
 
     using fast::encoder::encode;
 
-    template<typename T,
-             typename = std::enable_if_t<std::is_enum_v<T>>>
-    void encode(T e)
-    {
-        encode(static_cast<std::uint8_t>(e));
-    }
-
-    void encode(xson::number_type d)
-    {
-        union {
-            std::double_t d64;
-            std::uint64_t i64;
-        } d2i;
-        d2i.d64 = d;
-        encode(d2i.i64);
-    }
-
-    void encode(xson::boolean_type b)
-    {
-        if(b)
-            encode(std::uint8_t{'\x01'});
-        else
-            encode(std::uint8_t{'\x00'});
-    }
-
-    void encode(const xson::date_type d)
-    {
-        using namespace std::chrono;
-        const auto us = duration_cast<milliseconds>(d.time_since_epoch());
-        encode(static_cast<std::uint64_t>(us.count()));
-    }
-
     void encode(const xson::object& o)
     {
         encode(o.type());
@@ -100,7 +68,6 @@ public:
             break;
         }
     }
-
 };
 
 } // namespace xson::fson

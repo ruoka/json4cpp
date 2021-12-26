@@ -105,44 +105,6 @@ public:
 
 private:
 
-    template<typename T,
-             typename = std::enable_if_t<std::is_enum_v<T>>>
-    void decode(T& e)
-    {
-        std::uint8_t byte;
-        decode(byte);
-        e = static_cast<T>(byte);
-        TRACE(e);
-    }
-
-    void decode(double& d)
-    {
-        union {
-            std::uint64_t i64;
-            xson::number_type d64;
-        } i2d;
-        decode(i2d.i64);
-        d = i2d.d64;
-        TRACE(d);
-    }
-
-    void decode(bool& b)
-    {
-        std::uint8_t byte;
-        decode(byte);
-        b = static_cast<std::uint8_t>(byte);
-        TRACE(b);
-    }
-
-    void decode(xson::date_type& dt)
-    {
-        using namespace std::chrono;
-        std::uint64_t i64;
-        decode(i64);
-        dt = system_clock::time_point{milliseconds{i64}};
-        TRACE(i64);
-    }
-
     gsl::not_null<observer*> m_observer;
 
 };

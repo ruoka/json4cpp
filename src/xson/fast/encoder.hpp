@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <iterator>
+#include <cmath>
 #include "xson/trace.hpp"
 
 namespace xson::fast {
@@ -13,17 +14,29 @@ public:
     encoder(std::ostream& os) : m_os{os}
     {}
 
-    void encode(std::uint8_t b);
+    void encode(std::uint8_t);
 
-    void encode(std::uint32_t in);
+    void encode(std::uint32_t);
 
-    void encode(std::int32_t i);
+    void encode(std::int32_t);
 
-    void encode(std::uint64_t i);
+    void encode(std::uint64_t);
 
-    void encode(std::int64_t i);
+    void encode(std::int64_t);
 
-    void encode(const std::string& str);
+    void encode(const std::string&);
+
+    void encode(std::double_t);
+
+    void encode(bool);
+
+    void encode(const std::chrono::system_clock::time_point& d);
+
+    template<typename T> requires std::is_enum_v<T>
+    void encode(T e)
+    {
+        encode(static_cast<std::uint8_t>(e));
+    }
 
 private:
 
@@ -137,6 +150,31 @@ inline void encoder::encode(const std::string& str)
     auto tail = head + (str.size() - 1);
     std::copy(head, tail, std::ostream_iterator<char>(m_os));
     m_os.put(*tail | 0x80);
+}
+
+inline void encoder::encode(std::double_t d)
+{
+    union {
+        std::double_t d64;
+        std::uint64_t i64;
+    } d2i;
+    d2i.d64 = d;
+    encode(d2i.i64);
+}
+
+inline void encoder::encode(bool b)
+{
+    if(b)
+        encode(std::uint8_t{'\x01'});
+    else
+        encode(std::uint8_t{'\x00'});
+}
+
+inline void encoder::encode(const std::chrono::system_clock::time_point& d)
+{
+    using namespace std::chrono;
+    const auto us = duration_cast<milliseconds>(d.time_since_epoch());
+    encode(static_cast<std::uint64_t>(us.count()));
 }
 
 } // namespace xson::fast

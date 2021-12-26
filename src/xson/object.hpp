@@ -441,11 +441,12 @@ private:
     data m_data;
 };
 
+using std::to_string;
+using ext::to_string;
+
 inline std::string to_string(const object::value& val)
 {
-    using std::to_string;
-    using ext::to_string;
-    return std::visit([](const auto& arg){return to_string(arg);}, val);
+    return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
 }
 
 } // namespace xson
