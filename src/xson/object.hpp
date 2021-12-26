@@ -364,65 +364,69 @@ public:
             return 0u;
     }
 
-    auto count() const
-    {
-        return size();
-    }
-
     bool match([[maybe_unused]] const object& subset) const
     {
-        // if(subset.empty())
-        //     return true;
-        //
-        // if(has_value() && subset.has_objects())
-        // {
-        //     auto test = std::all_of(subset.cbegin(), subset.cend(),
-        //         [&](const auto& node)
-        //         {
-        //             if(operators.count(node.first))
-        //                 return operators.at(node.first)(value(), node.second.value());
-        //             else
-        //                 return node.first[0] == '$';
-        //         });
-        //
-        //     if(subset.has("$in"s))
-        //         test = test && std::any_of(subset["$in"s].cbegin(), subset["$in"s].cend(),
-        //             [&](const auto& node)
-        //             {
-        //                 return value() == node.second.value();
-        //             });
-        //
-        //     return test;
-        // }
-        //
-        // if(has_objects() && subset.has_objects())
-        // {
-        //     auto lf = cbegin(), rf = subset.cbegin();
-        //     const auto ll = cend(), rl = subset.cend();
-        //
-        //     while(rf != rl && rf->first[0] == '$')
-        //         ++rf;
-        //
-        //     while(lf != ll && rf != rl)
-        //     {
-        //         if(lf->first < rf->first)
-        //             ++lf;
-        //         else if(lf->first > rf->first)
-        //             return false;
-        //         else if(lf->second.match(rf->second))
-        //         {
-        //             ++lf;
-        //             ++rf;
-        //         }
-        //         else
-        //             return false;
-        //     }
-        //     return rf == rl;
-        // }
-        //
-        // return m_value == subset.m_value;
+        if(subset.empty())
+            return true;
 
-        return true; // FIXME
+        if(is_array() and subset.is_array())
+        {
+            if(get<array>().size() != subset.get<array>().size())
+                return false;
+
+            for(auto i = 0ll; const auto &o : subset.get<array>())
+                if(get<array>()[i++].get<value>() != o.get<value>()) return false;
+
+            return true;
+        }
+
+        if(has_value() and subset.has_objects())
+        {
+            auto test = std::all_of(subset.get<map>().cbegin(), subset.get<map>().cend(),
+                [&](const auto& node)
+                {
+                    if(operators.count(node.first))
+                        return operators.at(node.first)(get<value>(), node.second.template get<value>());
+                    else
+                        return node.first[0] == '$';
+                });
+
+            if(subset.has("$in"s))
+                test = test && std::any_of(subset["$in"s].get<map>().cbegin(), subset["$in"s].get<map>().cend(),
+                    [&](const auto& node)
+                    {
+                        return get<value>() == node.second.template get<value>();
+                    });
+
+            return test;
+        }
+
+        if(has_objects() and subset.has_objects())
+        {
+            auto lf = get<map>().cbegin(), rf = subset.get<map>().cbegin();
+            const auto ll = get<map>().cend(), rl = subset.get<map>().cend();
+
+            while(rf != rl && rf->first[0] == '$')
+                ++rf;
+
+            while(lf != ll && rf != rl)
+            {
+                if(lf->first < rf->first)
+                    ++lf;
+                else if(lf->first > rf->first)
+                    return false;
+                else if(lf->second.match(rf->second))
+                {
+                    ++lf;
+                    ++rf;
+                }
+                else
+                    return false;
+            }
+            return rf == rl;
+        }
+
+        return get<value>() == subset.get<value>();
     }
 
 private:
