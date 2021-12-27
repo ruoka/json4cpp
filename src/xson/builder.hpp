@@ -15,7 +15,6 @@ public:
     virtual void start_array() = 0;
     virtual void end_array() = 0;
     virtual void name(xson::string_type) = 0;
-    virtual void index(std::size_t) = 0;
     virtual void value(xson::string_type) = 0;
     virtual void value(xson::boolean_type) = 0;
     virtual void value(xson::null_type) = 0;
@@ -95,12 +94,6 @@ private:
     {
         TRACE(str);
         m_current = std::move(str);
-    }
-
-    void index(std::size_t i)
-    {
-        TRACE(i);
-        m_current = std::to_string(i);
     }
 
     void value(xson::string_type s)

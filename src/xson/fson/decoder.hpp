@@ -26,7 +26,6 @@ public:
             decode(type);
 
             xson::string_type name;
-            xson::integer_type idx;
             xson::number_type   d;
             xson::string_type str;
             xson::timestamp_type    dt;
@@ -48,11 +47,6 @@ public:
                 case type::array:  // x04
                     parent.push(type::array);
                     m_observer->start_array();
-                    break;
-
-                case type::index:
-                    decode(idx);
-                    m_observer->index(idx);
                     break;
 
                 case type::number: // x01

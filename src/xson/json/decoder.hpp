@@ -225,8 +225,6 @@ private:
 
     struct array
     {
-        std::size_t m_index = 0;
-
         void operator()(decoder& p, char c)
         {
             if(c == ']')
@@ -236,8 +234,6 @@ private:
             }
             else if (c != ',' && c != '}')
             {
-                p.m_observer->index(m_index);
-                ++m_index;
                 p.m_state_machine.push(&decoder::comma);
                 p.m_state_machine.push(&decoder::value);
                 p.m_state_machine.top()(p,c);

@@ -41,8 +41,7 @@ enum class type : xson::byte_type
 // control types
 
     name            = '\x1A',
-    index           = '\x1B',
-    end             = '\x1C'
+    end             = '\x1B'
 };
 
 inline auto& operator << (std::ostream& os, type t)

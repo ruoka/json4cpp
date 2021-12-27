@@ -33,10 +33,8 @@ public:
             break;
 
             case type::array:
-            for(auto index = 0ull; const auto& value : o.get<object::array>())
+            for(const auto& value : o.get<object::array>())
             {
-                encode(type::index); // type
-                encode(index++);     // index
                 encode(value);       // object
             }
             encode(type::end);
