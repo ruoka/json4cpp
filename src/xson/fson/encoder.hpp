@@ -29,7 +29,7 @@ public:
                 encode(name);       // name
                 encode(value);      // object
             }
-            encode(type::eod);
+            encode(type::end);
             break;
 
             case type::array:
@@ -39,7 +39,7 @@ public:
                 encode(index++);     // index
                 encode(value);       // object
             }
-            encode(type::eod);
+            encode(type::end);
             break;
 
             case type::integer:
@@ -58,8 +58,8 @@ public:
             encode(std::get<xson::boolean_type>(o.get<object::value>()));
             break;
 
-            case type::date:
-            encode(std::get<xson::date_type>(o.get<object::value>()));
+            case type::timestamp:
+            encode(std::get<xson::timestamp_type>(o.get<object::value>()));
             break;
 
             case type::null:

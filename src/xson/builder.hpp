@@ -21,7 +21,7 @@ public:
     virtual void value(xson::null_type) = 0;
     virtual void value(xson::integer_type) = 0;
     virtual void value(xson::number_type) = 0;
-    virtual void value(xson::date_type) = 0;
+    virtual void value(xson::timestamp_type) = 0;
 };
 
 class builder : public observer
@@ -148,7 +148,7 @@ private:
             m_stack.top().get().get<object::array>().emplace_back(n);
     }
 
-    void value(xson::date_type dt)
+    void value(xson::timestamp_type dt)
     {
         TRACE('!');
         if(m_type == type::object)

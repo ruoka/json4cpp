@@ -13,8 +13,8 @@ inline std::ostream& operator << (std::ostream& os, const object::value& v)
         os << '"' << std::get<string_type>(v) << '"';
     else if(holds_alternative<boolean_type>(v))
         os << std::boolalpha << std::get<boolean_type>(v);
-    else if(holds_alternative<date_type>(v))
-        os << '"' << ext::to_string(std::get<date_type>(v)) << '"';
+    else if(holds_alternative<timestamp_type>(v))
+        os << '"' << ext::to_string(std::get<timestamp_type>(v)) << '"';
     else if(holds_alternative<monostate>(v))
         os << "null";
     else if(holds_alternative<integer_type>(v))

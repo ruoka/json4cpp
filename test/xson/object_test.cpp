@@ -171,7 +171,7 @@ TEST(XsonObjectTest,Date)
     TRACE(ob);
     ASSERT_FALSE(ob.empty());
     ASSERT_TRUE(ob.has("Date"s));
-    ASSERT_EQ(type::date, ob["Date"s].type());
+    ASSERT_EQ(type::timestamp, ob["Date"s].type());
     const system_clock::time_point tp = ob["Date"s];
     ASSERT_EQ(duration_cast<milliseconds>(now.time_since_epoch()), duration_cast<milliseconds>(tp.time_since_epoch()));
     ASSERT_EQ(duration_cast<milliseconds>(now.time_since_epoch()).count(), duration_cast<milliseconds>(tp.time_since_epoch()).count());

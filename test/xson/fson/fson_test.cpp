@@ -156,7 +156,7 @@ TEST(XsonFsonTest, Date)
         {"A"s,    true                }
     };
 
-    ASSERT_EQ(xson::type::date, o1["Test"s].type());
+    ASSERT_EQ(xson::type::timestamp, o1["Test"s].type());
     ASSERT_EQ(xson::type::boolean, o1["A"s].type());
 
     const chrono::system_clock::time_point expected = o1["Test"s];
@@ -169,7 +169,7 @@ TEST(XsonFsonTest, Date)
     ss >> o2;
     clog << json::stringify(o2) << endl;
 
-    ASSERT_EQ(xson::type::date, o2["Test"s].type());
+    ASSERT_EQ(xson::type::timestamp, o2["Test"s].type());
     ASSERT_EQ(xson::type::boolean, o2["A"s].type());
 
     const system_clock::time_point actual = o2["Test"s];

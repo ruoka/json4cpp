@@ -11,36 +11,38 @@ namespace xson {
 
 class object;
 
-using byte_type    = std::uint8_t;
-using number_type  = std::double_t;
-using string_type  = std::string;
-using object_type  = object;
-using array_type   = object;
-using boolean_type = bool;
-using null_type    = std::nullptr_t;
-using date_type    = std::chrono::system_clock::time_point;
-using integer_type = std::int64_t;
-using int32_type   = std::int32_t;
+using byte_type      = std::uint8_t;
+using number_type    = std::double_t;
+using string_type    = std::string;
+using object_type    = object;
+using array_type     = object;
+using boolean_type   = bool;
+using null_type      = std::nullptr_t;
+using timestamp_type = std::chrono::system_clock::time_point;
+using integer_type   = std::int64_t;
+using int32_type     = std::int32_t;
 
 enum class type : xson::byte_type
 {
-    eod                   = '\x00',
-    name                  = '\x13',
-    index                 = '\x14',
-
 // json types
 
-    number                = '\x01',
-    string                = '\x02',
-    object                = '\x03',
-    array                 = '\x04',
-    boolean               = '\x08',
-    null                  = '\x0A',
+    object          = '\x01',
+    array           = '\x02',
+    string          = '\x03',
+    number          = '\x04',
+    boolean         = '\x05',
+    null            = '\x06',
 
-// + bson types
-    date                  = '\x09',
-//  timestamp             = '\x11',
-    integer               = '\x12'
+// additional types
+
+    integer         = '\x11',
+    timestamp       = '\x12',
+
+// control types
+
+    name            = '\x1A',
+    index           = '\x1B',
+    end             = '\x1C'
 };
 
 inline auto& operator << (std::ostream& os, type t)
@@ -67,7 +69,7 @@ template <> struct is_value<xson::boolean_type> : std::true_type {};
 
 template <> struct is_value<xson::null_type> : std::true_type {};
 
-template <> struct is_value<xson::date_type> : std::true_type {};
+template <> struct is_value<xson::timestamp_type> : std::true_type {};
 
 template <> struct is_value<xson::integer_type> : std::true_type {};
 

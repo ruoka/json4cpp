@@ -24,7 +24,7 @@ public:
     using value = std::variant<monostate,   // \x0A
                               number_type,  // \x01
                               string_type,  // \x02
-                              date_type,    // \x09
+                              timestamp_type,    // \x09
                               integer_type, // \x12
                               boolean_type  // \x08
                               >;
@@ -174,8 +174,8 @@ public:
         if(holds_alternative<boolean_type>(data))
             return xson::type::boolean;
 
-        if(holds_alternative<date_type>(data))
-            return xson::type::date;
+        if(holds_alternative<timestamp_type>(data))
+            return xson::type::timestamp;
 
         if(holds_alternative<integer_type>(data))
             return xson::type::integer;
@@ -270,9 +270,9 @@ public:
         return std::get<boolean_type>(std::get<value>(m_data));
     }
 
-    operator date_type () const
+    operator timestamp_type () const
     {
-        return std::get<date_type>(std::get<value>(m_data));
+        return std::get<timestamp_type>(std::get<value>(m_data));
     }
 
     operator null_type () const

@@ -29,7 +29,7 @@ public:
             xson::integer_type idx;
             xson::number_type   d;
             xson::string_type str;
-            xson::date_type    dt;
+            xson::timestamp_type    dt;
             xson::boolean_type  b;
             xson::integer_type  i;
 
@@ -74,7 +74,7 @@ public:
                     m_observer->value(nullptr);
                     break;
 
-                case type::date:    // x09
+                case type::timestamp:    // x09
                     decode(dt);
                     m_observer->value(dt);
                     break;
@@ -84,7 +84,7 @@ public:
                     m_observer->value(i);
                     break;
 
-                case type::eod:     // x00
+                case type::end:     // x00
                     if(parent.top() == type::object) m_observer->end_object();
                     if(parent.top() == type::array) m_observer->end_array();
                     parent.pop();
