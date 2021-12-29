@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 CXX := clang++
 
 ifeq ($(OS),Linux)
-CXX := /usr/lib/llvm-13/bin/clang++
+CXX := /usr/lib/llvm-14/bin/clang++
 CXXFLAGS = -pthread -I/usr/local/include
 LDFLAGS = -L/usr/local/lib
 endif
