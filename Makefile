@@ -21,8 +21,6 @@ endif
 
 CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra -I$(SRCDIR) #-DDEBUG
 
-CXXFLAGS += -nostdinc++ -nostdlib++
-
 LDFLAGS += -lc++
 
 ############
