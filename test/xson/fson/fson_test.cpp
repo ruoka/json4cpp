@@ -1,8 +1,8 @@
 #include <sstream>
 #include <limits>
 #include <gtest/gtest.h>
-#include "xson/fson.hpp"
 #define XSON_JSON_HIDE_IOSTREAM
+#include "xson/fson.hpp"
 #include "xson/json.hpp"
 
 using namespace std;

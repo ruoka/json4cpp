@@ -30,11 +30,7 @@ inline std::string stringify(const object& ob, unsigned indent = 2)
     return ss.str();
 }
 
-} // namespace xson::json
-
 #ifndef XSON_JSON_HIDE_IOSTREAM
-
-namespace std {
 
 inline auto& operator >> (std::istream& is, xson::object& ob)
 {
@@ -52,6 +48,6 @@ inline auto& operator << (std::ostream& os, const xson::object& obj)
     return os;
 }
 
-} // namespace std
-
 #endif
+
+} // namespace xson::json
