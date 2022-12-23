@@ -68,7 +68,7 @@ private:
             m_string += c;
         else
         {
-            m_observer->value(move(m_string));
+            m_observer->value(std::move(m_string));
             m_state_machine.pop();
             m_string = ""s;
         }
