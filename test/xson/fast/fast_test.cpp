@@ -12,10 +12,10 @@ TEST(XsonFastTest, Byte)
     auto ncdr = encoder{ss};
     auto dcdr = decoder{ss};
 
-    auto b1 = std::uint32_t{'y'};
+    auto b1 = std::uint8_t{1};
     ncdr.encode(b1);
 
-    auto b2 =  std::uint32_t{'n'};
+    auto b2 =  std::uint8_t{0};
     dcdr.decode(b2);
 
     ASSERT_EQ(b1, b2);
@@ -27,10 +27,10 @@ TEST(XsonFastTest, UInteger32)
     auto ncdr = encoder{ss};
     auto dcdr = decoder{ss};
 
-    auto i1 = 1234567u;
+    auto i1 = std::uint32_t{1234567};
     ncdr.encode(i1);
 
-    auto i2 = 0u;
+    auto i2 = std::uint32_t{0};
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -42,10 +42,10 @@ TEST(XsonFastTest, Integer32)
     auto ncdr = encoder{ss};
     auto dcdr = decoder{ss};
 
-    auto i1 = -1234567;
+    auto i1 = std::int32_t{-1234567};
     ncdr.encode(i1);
 
-    auto i2 = 0;
+    auto i2 = std::int32_t{0};
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -57,10 +57,10 @@ TEST(XsonFastTest, UInteger64)
     auto ncdr = encoder{ss};
     auto dcdr = decoder{ss};
 
-    auto i1 = 1234567ull;
+    auto i1 = std::uint64_t{1234567};
     ncdr.encode(i1);
 
-    auto i2 = 0ull;
+    auto i2 = std::uint64_t{0};
     dcdr.decode(i2);
 
     ASSERT_EQ(i1, i2);
@@ -72,12 +72,11 @@ TEST(XsonFastTest, Integer64)
     auto ncdr = encoder{ss};
     auto dcdr = decoder{ss};
 
-    auto i1 = -12345678987654321ll;
+    auto i1 = std::int64_t{-1234567898765432};
     ncdr.encode(i1);
 
-    auto i2 = 01ll;
+    auto i2 = std::int64_t{1};
     dcdr.decode(i2);
-
     ASSERT_EQ(i1, i2);
 }
 

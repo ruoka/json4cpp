@@ -235,12 +235,12 @@ TEST(XsonFsonTest, Int64MinMax1)
     EXPECT_EQ(xson::type::integer, o1["Min"s].type());
     EXPECT_EQ(xson::type::integer, o1["Max"s].type());
 
-    long long zero = o1["Zero"s];
+    std::int64_t zero = o1["Zero"s];
     EXPECT_EQ(0, zero);
-    long long min = o1["Min"s];
-    EXPECT_EQ(numeric_limits<long long>::min(), min);
-    long long max = o1["Max"s];
-    EXPECT_EQ(numeric_limits<long long>::max(), max);
+    std::int64_t min = o1["Min"s];
+    EXPECT_EQ(numeric_limits<std::int64_t>::min(), min);
+    std::int64_t max = o1["Max"s];
+    EXPECT_EQ(numeric_limits<std::int64_t>::max(), max);
 }
 
 TEST(XsonFsonTest, Int64MinMax2)
@@ -264,10 +264,10 @@ TEST(XsonFsonTest, Int64MinMax2)
     EXPECT_EQ(o1["Min"s].type(), o2["Min"s].type());
     EXPECT_EQ(o1["Max"s].type(), o2["Max"s].type());
 
-    long long zero = o2["Zero"s];
+    std::int64_t zero = o2["Zero"s];
     EXPECT_EQ(0, zero);
-    long long min = o2["Min"s];
+    std::int64_t min = o2["Min"s];
     EXPECT_EQ(-36028797018963968ll, min);
-    long long max = o2["Max"s];
+    std::int64_t max = o2["Max"s];
     EXPECT_EQ(36028797018963968ll, max);
 }
