@@ -18,5 +18,8 @@
             "binaryPath": "/workspaces/json4cpp/bin/test",
             "binaryArgs": []
         }
+    ],
+    "git.ignoredRepositories": [
+        "${workspaceFolder}/googletest"
     ]
 }
