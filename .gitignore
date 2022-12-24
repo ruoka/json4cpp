@@ -2,6 +2,4 @@ bin
 obj
 lib
 include
-test/xson/bson/test1.bson
-engine_test.db
-fson.db
+googletest/googletest/generated
