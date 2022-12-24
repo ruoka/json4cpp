@@ -19,7 +19,5 @@
             "binaryArgs": []
         }
     ],
-    "git.ignoredRepositories": [
-        "${workspaceFolder}/googletest"
-    ]
+    "git.ignoredRepositories": ["/workspaces/json4cpp/googletest"]
 }
