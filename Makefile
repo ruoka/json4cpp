@@ -5,18 +5,18 @@ OS := $(shell uname -s)
 CXX := clang++
 
 ifeq ($(OS),Linux)
-CXX := /usr/lib/llvm-14/bin/clang++
+CXX := /usr/lib/llvm-15/bin/clang++
 CXXFLAGS = -pthread -I/usr/local/include
 LDFLAGS = -L/usr/local/lib
 endif
 
 ifeq ($(OS),Darwin)
-CXX := /opt/bin/clang++
-CXXFLAGS += -isystem /opt/include/c++/v1
-LDFLAGS += -L/opt/lib
-LDFLAGS += -Wl,-rpath,/opt/lib
-#CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
-#CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+#CXX := /opt/bin/clang++
+#CXXFLAGS += -isystem /opt/include/c++/v1
+#LDFLAGS += -L/opt/lib
+#LDFLAGS += -Wl,-rpath,/opt/lib
+CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
+CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 endif
 
 CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra -I$(SRCDIR) #-DDEBUG
