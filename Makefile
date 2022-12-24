@@ -1,21 +1,17 @@
 .DEFAULT_GOAL := all
 
 OS := $(shell uname -s)
-
 CXX := clang++
 
 ifeq ($(OS),Linux)
-C :=  /usr/lib/llvm-15/bin/clang
+CS :=  /usr/lib/llvm-15/bin/clang
 CXX := /usr/lib/llvm-15/bin/clang++
 CXXFLAGS = -pthread -I/usr/local/include
 LDFLAGS = -L/usr/local/lib
 endif
 
 ifeq ($(OS),Darwin)
-#CXX := /opt/bin/clang++
-#CXXFLAGS += -isystem /opt/include/c++/v1
-#LDFLAGS += -L/opt/lib
-#LDFLAGS += -Wl,-rpath,/opt/lib
+CC := /Library/Developer/CommandLineTools/usr/bin/clang
 CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
 CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 endif
@@ -27,18 +23,15 @@ LDFLAGS += -lc++
 ############
 
 SRCDIR = src
-
 TESTDIR = test
-
 OBJDIR = obj
-
 BINDIR = bin
-
 LIBDIR = lib
-
 INCDIR = include
-
 GTESTDIR = googletest
+
+.SUFFIXES:
+.SUFFIXES: .cpp .hpp .o .a
 
 ############
 
@@ -50,8 +43,6 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 SOURCES = $(call rwildcard,$(SRCDIR)/,*.cpp)
 
 OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
-
-LIBRARY =
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(@D)
@@ -77,7 +68,7 @@ GTESTLIBS = $(addprefix $(LIBDIR)/, libgtest.a libgtest_main.a)
 
 $(GTESTLIBS):
 	git submodule update --init --recursive --depth 1
-	cd $(GTESTDIR) && cmake -DCMAKE_C_COMPILER="$(C)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_INSTALL_PREFIX=.. && make install
+	cd $(GTESTDIR) && cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_INSTALL_PREFIX=.. . && make install
 
 ############
 
@@ -110,22 +101,11 @@ test: $(INCLUDES) $(TEST_TARGET)
 
 .PHONY: clean
 clean:
-	@rm -rf $(OBJDIR)
-	@rm -rf $(BINDIR)
-#	@rm -rf $(LIBDIR)
-#	@rm -rf $(INCDIR)
+	@rm -rf $(OBJDIR) $(BINDIR)
 
 .PHONY: dump
 dump:
-	@echo $(SOURCES)
-	@echo $(OBJECTS)
-	@echo $(LIBRARY)
-	@echo $(HEADERS)
-	@echo $(INCLUDES)
-	@echo $(TEST_SOURCES)
-	@echo $(TEST_OBJECTS)
-	@echo $(TEST_TARGET)
-	@echo $(GTESTLIBS)
-	@echo $(DEPENDENCIES)
+	$(foreach v, $(sort $(.VARIABLES)), $(if $(filter file,$(origin $(v))), $(info $(v)=$($(v)))))
+	@echo ''
 
 -include $(DEPENDENCIES)
