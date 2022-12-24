@@ -128,18 +128,18 @@ TEST(XsonJsonTest,Integer)
 
     ASSERT_EQ(type::integer, ob["Min"s].type());
     const xson::integer_type min = ob["Min"s];
-    ASSERT_EQ(std::numeric_limits<long long>::min(), min);
+    ASSERT_EQ(std::numeric_limits<std::int64_t>::min(), min);
 
     ASSERT_EQ(type::integer, ob["Max"s].type());
     const xson::integer_type max = ob["Max"s];
-    ASSERT_EQ(std::numeric_limits<long long>::max(), max);
+    ASSERT_EQ(std::numeric_limits<std::int64_t>::max(), max);
 }
 
 TEST(XsonJsonTest,Array)
 {
     auto ob1 = json::object
     {
-        {"Array"s, std::array<long long,3>{1, 2, 3}}
+        {"Array"s, std::array<std::int64_t,3>{1, 2, 3}}
     };
     TRACE("ob1:  " << ob1);
     auto str1 = json::stringify(ob1);
