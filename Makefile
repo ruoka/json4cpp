@@ -16,7 +16,7 @@ CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
 CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 endif
 
-CXXFLAGS += -std=c++20 -stdlib=libc++ -MMD -Wall -Wextra -I$(SRCDIR) -DDEBUG
+CXXFLAGS += -std=c++20 -stdlib=libc++ -MMD -Wall -Wextra -I$(SRCDIR) # -DDEBUG
 
 LDFLAGS += -lc++
 

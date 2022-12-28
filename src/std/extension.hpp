@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <string_view>
 #include <variant>
+#include <charconv>
 
 namespace std
 {
@@ -45,35 +46,31 @@ auto& operator << (std::ostream& os, const std::chrono::duration<T,R>& d) noexce
 namespace ext
 {
 
-inline auto stoi(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
+inline auto stoi(std::string_view sv, int base = 10)
 {
-    char* end;
-    auto i = std::strtol(sv.data(), &end, base);
-    if(pos) *pos = std::distance<const char*>(sv.data(), end);
-    return static_cast<std::int32_t>(i);
-}
-
-inline auto stou(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
-{
-    char* end;
-    auto i = std::strtol(sv.data(), &end, base);
-    if(pos) *pos = std::distance<const char*>(sv.data(), end);
-    return static_cast<std::uint32_t>(i);
-}
-
-inline auto stol(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
-{
-    char* end;
-    auto i = std::strtol(sv.data(), &end, base);
-    if(pos) *pos = std::distance<const char*>(sv.data(), end);
+    auto i = 0;
+    std::from_chars(sv.data(),sv.data()+sv.size(),i,base);
     return i;
 }
 
-inline auto stoll(std::string_view sv, std::size_t* pos = nullptr, int base = 10)
+inline auto stou(std::string_view sv, int base = 10)
 {
-    char* end;
-    auto ll = std::strtoll(sv.data(), &end, base);
-    if(pos) *pos = std::distance<const char*>(sv.data(), end);
+    auto u = 0u;
+    std::from_chars(sv.data(),sv.data()+sv.size(),u,base);
+    return u;
+}
+
+inline auto stol(std::string_view sv, int base = 10)
+{
+    auto l = 0l;
+    std::from_chars(sv.data(),sv.data()+sv.size(),l,base);
+    return l;
+}
+
+inline auto stoll(std::string_view sv, int base = 10)
+{
+    auto ll = 0l;
+    std::from_chars(sv.data(),sv.data()+sv.size(),ll,base);
     return ll;
 }
 
@@ -82,20 +79,18 @@ inline std::string operator+(std::string str, std::string_view sv)
 	return str.append(sv.data(), sv.size());
 }
 
-static const std::string g_number2month[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-constexpr auto& to_string(const std::chrono::month& m) noexcept
+inline auto& to_string(const std::chrono::month& m) noexcept
 {
+    static const std::string number2month[] = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     const auto n = static_cast<unsigned>(m);
-    return g_number2month[n];
+    return number2month[n];
 }
 
-static const std::string g_number2weekday[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-
-constexpr auto& to_string(const std::chrono::weekday& wd) noexcept
+inline auto& to_string(const std::chrono::weekday& wd) noexcept
 {
+    static const std::string number2weekday[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     const auto n = wd.c_encoding();
-    return g_number2weekday[n];
+    return number2weekday[n];
 }
 
 template<typename T>
@@ -174,16 +169,16 @@ constexpr const std::string& to_string(bool b) noexcept
     return g_bool2string[b];
 }
 
-static const std::string g_null2string = {"null"};
-
-constexpr const std::string& to_string(std::nullptr_t) noexcept
+inline const std::string& to_string(std::nullptr_t) noexcept
 {
-    return g_null2string;
+    static const std::string null2string = {"null"};
+    return null2string;
 }
 
-constexpr const std::string& to_string(std::monostate) noexcept
+inline const std::string& to_string(std::monostate) noexcept
  {
-    return g_null2string;
+    static const std::string null2string = {"null"};
+    return null2string;
  }
 
 inline std::string to_string(std::string_view sv) noexcept
