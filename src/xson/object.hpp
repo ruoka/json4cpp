@@ -495,7 +495,7 @@ inline const std::string to_string(std::monostate) noexcept
 template<typename T>
 std::string to_string(const std::chrono::time_point<T>& point) noexcept
 {
-    return ext::to_iso8601(point);
+    return to_iso8601(point);
 }
 
 inline const std::string to_string(bool b) noexcept
