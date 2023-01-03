@@ -175,7 +175,7 @@ TEST(XsonFsonTest, Date)
     const system_clock::time_point actual = o2["Test"s];
 
     EXPECT_EQ(o1["Test"s].type(), o2["Test"s].type());
-    EXPECT_EQ(ext::to_string(expected), ext::to_string(actual));
+    EXPECT_EQ(xson::to_string(expected), xson::to_string(actual));
 }
 
 TEST(XsonFsonTest, Null)
