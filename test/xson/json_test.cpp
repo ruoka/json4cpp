@@ -66,7 +66,7 @@ TEST(XsonJsonTest,Date2String)
 
     ASSERT_EQ(type::string, ob["Date"s].type());
     const xson::string_type d = ob["Date"s];
-    ASSERT_EQ(ext::to_string(now), d);
+    ASSERT_EQ(xson::to_string(now), d);
 }
 
 TEST(XsonJsonTest,Null)
