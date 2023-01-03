@@ -17,13 +17,13 @@ inline object parse(std::istream& is)
 
 #ifndef XSON_FSON_HIDE_IOSTREAM
 
-inline auto& operator >> (std::istream& is, xson::object& ob)
+inline std::istream& operator >> (std::istream& is, object& ob)
 {
     ob = xson::fson::parse(is);
     return is;
 }
 
-inline auto& operator << (std::ostream& os, const xson::object& ob)
+inline std::ostream& operator << (std::ostream& os, const object& ob)
 {
     xson::fson::encoder{os}.encode(ob);
     return os;

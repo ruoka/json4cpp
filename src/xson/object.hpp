@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <variant>
+#include <charconv>
 //#include <ranges>
 #include "xson/type.hpp"
 #include "xson/trace.hpp"
@@ -21,12 +22,12 @@ public:
 
     using map = std::map<std::string,object>;
     using array = std::vector<object>;
-    using value = std::variant<monostate,   // \x0A
-                              number_type,  // \x01
-                              string_type,  // \x02
-                              timestamp_type,    // \x09
-                              integer_type, // \x12
-                              boolean_type  // \x08
+    using value = std::variant<monostate,     // \x0A
+                              number_type,    // \x01
+                              string_type,    // \x02
+                              timestamp_type, // \x09
+                              integer_type,   // \x12
+                              boolean_type    // \x08
                               >;
     using data = std::variant<map,array,value>;
 
@@ -445,8 +446,67 @@ private:
     data m_data;
 };
 
+template<typename T>
+auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
+{
+    const auto midnight = std::chrono::floor<std::chrono::days>(current_time);
+    const auto date = std::chrono::year_month_day{midnight};
+    const auto time = std::chrono::hh_mm_ss{current_time - midnight};
+    const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(time.subseconds());
+    // YYYY-MM-DDThh:mm:ss.fffZ
+    auto os = std::ostringstream{};
+    os << std::setw(4) << std::setfill('0') << (int)date.year()        << '-'
+       << std::setw(2) << std::setfill('0') << (unsigned)date.month()  << '-'
+       << std::setw(2) << std::setfill('0') << (unsigned)date.day()    << 'T'
+       << std::setw(2) << std::setfill('0') << time.hours().count()    << ':'
+       << std::setw(2) << std::setfill('0') << time.minutes().count()  << ':'
+       << std::setw(2) << std::setfill('0') << time.seconds().count()  << '.'
+       << std::setw(3) << std::setfill('0') << milliseconds.count()    << 'Z';
+    return os.str();
+}
+
+inline auto to_time_point(const std::string_view sv)
+{
+    // YYYYMMDD-HH:MM:SS.sss
+    assert(sv.size() > 7);
+    auto YYYY = 0; auto MM = 0u, DD = 0u, hh = 0u, mm = 0u, ss = 0u, fff = 0u;
+    auto res = std::from_chars_result{sv.data(),std::errc()};
+    res = std::from_chars(res.ptr,res.ptr+4,YYYY);
+    res = std::from_chars(res.ptr,res.ptr+2,MM);
+    res = std::from_chars(res.ptr,res.ptr+2,DD);
+    if(sv.length() == 21)
+    {
+        res = std::from_chars(++res.ptr,res.ptr+2,hh);
+        res = std::from_chars(++res.ptr,res.ptr+2,mm);
+        res = std::from_chars(++res.ptr,res.ptr+2,ss);
+        res = std::from_chars(++res.ptr,res.ptr+3,fff);
+    }
+    using namespace std::chrono;
+    return sys_days{year{YYYY}/month{MM}/day{DD}} + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+}
+
 using std::to_string;
-using ext::to_string;
+
+inline const std::string to_string(std::monostate) noexcept
+{
+    return "null";
+}
+
+template<typename T>
+std::string to_string(const std::chrono::time_point<T>& point) noexcept
+{
+    return ext::to_iso8601(point);
+}
+
+inline const std::string to_string(bool b) noexcept
+{
+    return b ? "true" : "false";
+}
+
+constexpr const std::string& to_string(const std::string& str) noexcept
+{
+    return str;
+}
 
 inline std::string to_string(const object::value& val)
 {

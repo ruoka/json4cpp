@@ -32,13 +32,13 @@ inline std::string stringify(const object& ob, unsigned indent = 2)
 
 #ifndef XSON_JSON_HIDE_IOSTREAM
 
-inline auto& operator >> (std::istream& is, xson::object& ob)
+inline auto& operator >> (std::istream& is, object& ob)
 {
     ob = xson::json::parse(is);
     return is;
 }
 
-inline auto& operator << (std::ostream& os, const xson::object& obj)
+inline auto& operator << (std::ostream& os, const object& obj)
 {
     const auto indent = os.width();
     auto e = xson::json::encoder{os,indent};
