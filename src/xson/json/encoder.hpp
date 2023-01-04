@@ -1,7 +1,6 @@
 #pragma once
 
 #include "xson/object.hpp"
-#include "std/extension.hpp"
 
 namespace xson::json {
 

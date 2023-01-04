@@ -1,3 +1,5 @@
+.SUFFIXES:
+.SUFFIXES: .cpp .hpp .o .a .c++m
 .DEFAULT_GOAL := all
 
 PROJECT := $(lastword $(notdir $(CURDIR)))
@@ -30,15 +32,13 @@ LDFLAGS +=
 
 PREFIX = .
 SRCDIR = src
-TESTDIR = test
 OBJDIR = obj
+TESTDIR = test
 BINDIR =$(PREFIX)/bin
 LIBDIR = $(PREFIX)/lib
 INCDIR = $(PREFIX)/include
+PCMDIR = $(PREFIX)/pcm
 GTESTDIR = $(PREFIX)/googletest
-
-.SUFFIXES:
-.SUFFIXES: .cpp .hpp .o .a
 
 ############
 
@@ -47,17 +47,39 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 
 ############
 
-SOURCES = $(call rwildcard,$(SRCDIR)/,*.cpp)
+ifeq ($(basename $(basename $(shell $(CXX) -dumpversion))),15) # This section only works with Clang 15 and above
 
-OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
+MODULES = $(call rwildcard,$(SRCDIR)/,*.c++m)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+PCMS = $(MODULES:$(SRCDIR)/%.c++m=$(PCMDIR)/%.pcm)
+
+OBJECTS += $(MODULES:$(SRCDIR)/%.c++m=$(OBJDIR)/%.o)
+
+$(PCMDIR)/%.pcm: $(SRCDIR)/%.c++m
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $< --precompile -c -o $@
+
+$(OBJDIR)/%.o: $(PCMDIR)/%.pcm
+	@mkdir -p $(@D)
+	$(CXX) $< -c -o $@
+
+LIBRARY = $(addprefix $(LIBDIR)/, lib$(PROJECT).a)
 
 $(LIBRARY) : $(OBJECTS)
 	@mkdir -p $(@D)
 	$(AR) $(ARFLAGS) $@ $^
+
+endif # Clang 15 and above
+
+############
+
+SOURCES = $(call rwildcard,$(SRCDIR)/,*.cpp)
+
+OBJECTS += $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
 
 ############
 
@@ -75,7 +97,7 @@ GTESTLIBS = $(addprefix $(LIBDIR)/, libgtest.a libgtest_main.a)
 
 $(GTESTLIBS):
 	git submodule update --init --recursive --depth 1
-	cd $(GTESTDIR) && cmake -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" -DCMAKE_INSTALL_PREFIX=.. . && make install
+	cd $(GTESTDIR) && cmake  -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_C_COMPILER="$(CC)" -DCMAKE_CXX_COMPILER="$(CXX)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" . && make install
 
 ############
 
@@ -100,15 +122,21 @@ DEPENDENCIES = $(MAINS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.d) $(OBJECTS:%.o=%.d) $(TEST_
 ############
 
 .PHONY: all
-all: $(INCLUDES)
+all: lib
+
+.PHONY: lib
+lib: $(INCLUDES) $(LIBRARY)
+
+.PHONY: module
+module: $(PCMS) $(LIBRARY)
 
 .PHONY: test
-test: $(INCLUDES) $(TEST_TARGET)
+test: $(TEST_TARGET)
 	$(TEST_TARGET)
 
 .PHONY: clean
 clean:
-	@rm -rf $(OBJDIR) $(BINDIR)
+	@rm -rf $(OBJDIR) $(BINDIR) $(LIBDIR) $(INCDIR) $(PCMDIR)
 
 .PHONY: dump
 dump:

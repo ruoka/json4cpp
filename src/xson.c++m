@@ -1,0 +1,31 @@
+module;
+#include "xson/json.hpp"
+#include "xson/fson.hpp"
+export module xson;
+
+export namespace xson
+{
+    using xson::integer_type;
+    using xson::object;
+    using xson::to_iso8601;
+    using xson::to_string;
+}
+export namespace xson::json
+{
+    using xson::json::parse;
+    using xson::json::stringify;
+    using xson::json::operator <<;
+    using xson::json::operator >>;
+}
+export namespace xson::fson
+{
+    using xson::fson::decoder;
+    using xson::fson::encoder;
+    using xson::fson::operator <<;
+    using xson::fson::operator >>;
+}
+export namespace xson::fast
+{
+    using xson::fast::decoder;
+    using xson::fast::encoder;
+}

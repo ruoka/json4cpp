@@ -5,10 +5,12 @@
 #include <map>
 #include <variant>
 #include <charconv>
+#include <sstream>
+#include <iomanip>
+#include <cassert>
 //#include <ranges>
 #include "xson/type.hpp"
 #include "xson/trace.hpp"
-#include "std/extension.hpp"
 
 namespace xson {
 
