@@ -1,12 +1,8 @@
 #pragma once
 
-#include <string>
-#include <map>
-#include <vector>
 #include <stack>
 #include "gsl/not_null.hpp"
 #include "xson/object.hpp"
-#include "xson/trace.hpp"
 
 namespace xson {
 
@@ -42,7 +38,7 @@ private:
         TRACE('!');
         if(m_stack.empty())
         {
-            m_root = object::map{};
+            m_root = object{object::map{}};
             m_stack.push(m_root);
         }
         else if(m_type == type::object)
@@ -50,7 +46,7 @@ private:
             m_stack.top().get().get<object::map>().emplace(m_current,object::map{});
             m_stack.push(m_stack.top().get().get<object::map>().at(m_current));
         }
-        else
+        else // type::array
         {
             m_stack.top().get().get<object::array>().emplace_back(object::map{});
             m_stack.push(m_stack.top().get().get<object::array>().back());
@@ -78,7 +74,7 @@ private:
         TRACE('!');
         if(m_stack.empty())
         {
-            m_root = object::array{};
+            m_root = object{object::array{}};
             m_stack.push(m_root);
         }
         else if(m_type == type::object)
@@ -86,7 +82,7 @@ private:
             m_stack.top().get().get<object::map>().emplace(m_current,object::array{});
             m_stack.push(m_stack.top().get().get<object::map>().at(m_current));
         }
-        else
+        else // type::array
         {
             m_stack.top().get().get<object::array>().emplace_back(object::array{});
             m_stack.push(m_stack.top().get().get<object::array>().back());
@@ -169,15 +165,17 @@ private:
             m_stack.top().get().get<object::array>().emplace_back(dt);
     }
 
+    using stack_type = std::stack<std::reference_wrapper<xson::object>>;
+
     enum class type {object,array};
 
-    type m_type;
+    type m_type = type{};
 
-    std::stack<std::reference_wrapper<xson::object>> m_stack = std::stack<std::reference_wrapper<xson::object>>{};
-
-    xson::object m_root;
+    stack_type m_stack = stack_type{};
 
     xson::string_type m_current = ""s;
+
+    xson::object m_root;
 
 }; // class builder
 

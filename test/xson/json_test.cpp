@@ -7,7 +7,6 @@
 using namespace std::chrono;
 using namespace xson;
 using namespace json;
-
 TEST(XsonJsonTest,String)
 {
     auto ss = std::stringstream{};

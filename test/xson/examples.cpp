@@ -9,6 +9,7 @@ using namespace xson;
 
 TEST(Examples,Stringify)
 {
+
     auto kids = vector<object>
     {
         { "Name"s, "Tulppu"s },
@@ -22,6 +23,8 @@ TEST(Examples,Stringify)
         { "Waist"s,    120.5 },
         { "ShoeSize"s, 47.5  }
     };
+
+    TRACE('X');
 
     auto papa = object
     {

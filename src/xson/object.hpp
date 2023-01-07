@@ -8,7 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cassert>
-//#include <ranges>
+#include <ranges>
 #include "xson/concepts.hpp"
 #include "xson/trace.hpp"
 
@@ -38,23 +38,24 @@ public:
         TRACE('!');
     }
 
-    object(const data& d) : m_data{d}
+    explicit object(const data& d) : m_data{d}
     {
         TRACE('!');
     }
 
-    template <typename T> requires (std::is_constructible_v<value,T>  && !std::is_null_pointer_v<T>)
-    object(const string_type& name, const T& v) :
+    template <typename T> requires (Value<T> and not Null<T> and not Object<T>)
+    object(const string_type& name, T&& v) :
     object{}
     {
         TRACE('!');
+        static_assert(Value<T>);
         auto o = object{};
         o.m_data = value{v};
         m_data = map{{name,o}};
     }
 
-    template <typename T> requires std::is_null_pointer_v<T>
-    object(const string_type& name, const T&) :
+    template <Null T>
+    object(const string_type& name, T&&) :
     object{}
     {
         TRACE('!');
@@ -63,19 +64,7 @@ public:
         m_data = map{{name,o}};
     }
 
-    template <typename T> requires xson::is_value_array_v<T>
-    object(const string_type& name, const T& values) :
-    object{}
-    {
-        TRACE('!');
-        m_data = map{};
-        auto arr = array{};
-        for(const auto& v : values)
-            arr.emplace_back(v);
-        std::get<map>(m_data).emplace(name,arr);
-    }
-
-    template <typename T> requires std::is_constructible_v<value,T>
+    template <Value T>
     object(const string_type& name, std::initializer_list<T> values)
     {
         TRACE('!');
@@ -85,11 +74,24 @@ public:
             arr.emplace_back(v);
         std::get<map>(m_data).emplace(name,arr);
     }
+/*
+    template <typename T> requires (not Value<T> and std::ranges::forward_range<T> and Value<std::iter_value_t<T>>)
+    object(const string_type& name, T&& values) :
+    object{}
+    {
+        TRACE('!');
+        m_data = map{};
+        auto arr = array{};
+        for(const auto& v : values)
+            arr.emplace_back(v);
+        std::get<map>(m_data).emplace(name,arr);
+    }
+*/
 
     object(const std::string& name, const object& o) :
     object{}
     {
-        TRACE('!');
+        TRACE("! xxxxxxx");
         m_data = map{};
         std::get<map>(m_data).emplace(name,o);
     }
@@ -102,8 +104,21 @@ public:
             std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
     }
 
-    template <typename T> requires xson::is_object_array_v<T>
-    object(const string_type& name, const T& objects) :
+/*
+    template <typename T> requires (not Object<T> and std::ranges::forward_range<T> and Object<std::iter_value_t<T>>)
+    object(const string_type& name, T&& objects) :
+    object{}
+    {
+        TRACE('!');
+        m_data = map{};
+        auto arr = array{};
+        for(const auto& o : objects)
+            arr.emplace_back(o);
+        std::get<map>(m_data).emplace(name,arr);
+    }
+*/
+    template <typename T> requires (not Value<T> and not Object<T> and std::ranges::forward_range<T>)
+    object(const string_type& name, T&& objects) :
     object{}
     {
         TRACE('!');
@@ -128,33 +143,31 @@ public:
 
     object& operator = (const object& o)
     {
+        TRACE('!');
         m_data = o.m_data;
         return *this;
     }
 
     object& operator = (object&& obj)
     {
+        TRACE('!');
         m_data = std::move(obj.m_data);
         return *this;
     }
 
-    object& operator = (const data& d)
-    {
-        m_data = d;
-        return *this;
-    }
-
-    template <typename T> requires std::is_null_pointer_v<T>
-    object& operator = (const T&)
-    {
-        m_data = monostate{};
-        return *this;
-    }
-
-    template <typename T> requires (std::is_constructible_v<value,T> && !std::is_null_pointer_v<T>)
+    template <Value T> requires (not Null<T>)
     object& operator = (const T& val)
     {
+        TRACE('!');
         m_data = val;
+        return *this;
+    }
+
+    template <Null T>
+    object& operator = (const T&)
+    {
+        TRACE('!');
+        m_data = monostate{};
         return *this;
     }
 

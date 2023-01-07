@@ -6,22 +6,32 @@ PROJECT := $(lastword $(notdir $(CURDIR)))
 
 ifeq ($(MAKELEVEL),0)
 
-OS := $(shell uname -s)
+ifndef OS
+OS = $(shell uname -s)
+endif
 
 ifeq ($(OS),Linux)
-CC := /usr/lib/llvm-15/bin/clang
-CXX := /usr/lib/llvm-15/bin/clang++
-CXXFLAGS = -pthread -I/usr/local/include
-LDFLAGS = -L/usr/local/lib
+CC = /usr/lib/llvm-15/bin/clang
+CXX = /usr/lib/llvm-15/bin/clang++
+CXXFLAGS = -pthread -I/usr/lib/llvm-15/include/c++/v1
+LDFLAGS = -lc++ -lc++experimental -L/usr/lib/llvm-15/lib/c++
 endif
 
 ifeq ($(OS),Darwin)
-CC := /Library/Developer/CommandLineTools/usr/bin/clang
-CXX := /Library/Developer/CommandLineTools/usr/bin/clang++
-CXXFLAGS = -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+CC = /opt/homebrew/opt/llvm/bin/clang
+CXX = /opt/homebrew/opt/llvm/bin/clang++
+CXXFLAGS =-I/opt/homebrew/opt/llvm/include/c++/v1
+LDFLAGS = -L/opt/homebrew/opt/llvm/lib/c++
 endif
 
-CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra
+ifeq ($(OS),Github)
+CC = /usr/local/opt/llvm/bin/clang
+CXX = /usr/local/opt/llvm/bin/clang++
+CXXFLAGS = -I/usr/local/opt/llvm/include/ -I/usr/local/opt/llvm/include/c++/v1
+LDFLAGS = -L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++
+endif
+
+CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra #-DDEBUG
 
 endif #($(MAKELEVEL),0)
 

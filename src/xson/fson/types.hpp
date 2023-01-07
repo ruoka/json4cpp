@@ -2,7 +2,7 @@
 
 namespace xson::fson {
 
-enum class type : xson::byte_type
+enum class type : char8_t 
 {
 // json types
 
