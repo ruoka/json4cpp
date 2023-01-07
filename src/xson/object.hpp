@@ -44,7 +44,7 @@ public:
     }
 
     template <typename T> requires (Value<T> and not Null<T>)
-    object(const string_type& name, T&& v) :
+    object(const string_type& name, const T& v) :
     object{}
     {
         TRACE('!');
@@ -55,7 +55,7 @@ public:
     }
 
     template <Null T>
-    object(const string_type& name, T&&) :
+    object(const string_type& name, [[maybe_unused]] const T& v) :
     object{}
     {
         TRACE('!');
