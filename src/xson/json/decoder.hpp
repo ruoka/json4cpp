@@ -1,6 +1,5 @@
 #pragma once
-
-#include "gsl/not_null.hpp"
+#include <stack>
 #include "xson/builder.hpp"
 
 namespace xson::json {

@@ -2,6 +2,7 @@
 
 #include "xson/json/decoder.hpp"
 #include "xson/json/encoder.hpp"
+#include "xson/builder.hpp"
 
 namespace xson::json {
 

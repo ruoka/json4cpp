@@ -1,8 +1,7 @@
 #pragma once
+#include <stack>
 #include <cassert>
-#include <type_traits>
-#include "gsl/not_null.hpp"
-#include "xson/builder.hpp"
+#include "xson/concepts.hpp"
 #include "xson/fast/decoder.hpp"
 #include "xson/fson/types.hpp"
 
