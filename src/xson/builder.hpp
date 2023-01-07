@@ -6,23 +6,7 @@
 
 namespace xson {
 
-class observer
-{
-public:
-    virtual void start_object() = 0;
-    virtual void end_object() = 0;
-    virtual void start_array() = 0;
-    virtual void end_array() = 0;
-    virtual void name(xson::string_type) = 0;
-    virtual void value(xson::string_type) = 0;
-    virtual void value(xson::boolean_type) = 0;
-    virtual void value(xson::null_type) = 0;
-    virtual void value(xson::integer_type) = 0;
-    virtual void value(xson::number_type) = 0;
-    virtual void value(xson::timestamp_type) = 0;
-};
-
-class builder : public observer
+class builder
 {
 public:
 
@@ -30,8 +14,6 @@ public:
     {
         return std::move(m_root);
     }
-
-private:
 
     void start_object()
     {
@@ -111,59 +93,17 @@ private:
         m_current = std::move(str);
     }
 
-    void value(xson::string_type s)
+    template<Value T>
+    void value(const T& val)
     {
         TRACE(s);
         if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,s);
+            m_stack.top().get().get<object::map>().emplace(m_current,val);
         else
-            m_stack.top().get().get<object::array>().emplace_back(s);
+            m_stack.top().get().get<object::array>().emplace_back(val);
     }
 
-    void value(xson::boolean_type b)
-    {
-        TRACE(b);
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,b);
-        else
-            m_stack.top().get().get<object::array>().emplace_back(b);
-    }
-
-    void value(xson::null_type)
-    {
-        TRACE("null");
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,object::value{});
-        else
-            m_stack.top().get().get<object::array>().emplace_back(object::value{});
-    }
-
-    void value(xson::integer_type i)
-    {
-        TRACE(i);
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,i);
-        else
-            m_stack.top().get().get<object::array>().emplace_back(i);
-    }
-
-    void value(xson::number_type n)
-    {
-        TRACE(n);
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,n);
-        else
-            m_stack.top().get().get<object::array>().emplace_back(n);
-    }
-
-    void value(xson::timestamp_type dt)
-    {
-        TRACE('!');
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,dt);
-        else
-            m_stack.top().get().get<object::array>().emplace_back(dt);
-    }
+private:
 
     using stack_type = std::stack<std::reference_wrapper<xson::object>>;
 

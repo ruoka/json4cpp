@@ -43,7 +43,7 @@ public:
         TRACE('!');
     }
 
-    template <typename T> requires (Value<T> and not Null<T> and not Object<T>)
+    template <typename T> requires (Value<T> and not Null<T>)
     object(const string_type& name, T&& v) :
     object{}
     {
@@ -74,19 +74,6 @@ public:
             arr.emplace_back(v);
         std::get<map>(m_data).emplace(name,arr);
     }
-/*
-    template <typename T> requires (not Value<T> and std::ranges::forward_range<T> and Value<std::iter_value_t<T>>)
-    object(const string_type& name, T&& values) :
-    object{}
-    {
-        TRACE('!');
-        m_data = map{};
-        auto arr = array{};
-        for(const auto& v : values)
-            arr.emplace_back(v);
-        std::get<map>(m_data).emplace(name,arr);
-    }
-*/
 
     object(const std::string& name, const object& o) :
     object{}
@@ -104,28 +91,15 @@ public:
             std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
     }
 
-/*
-    template <typename T> requires (not Object<T> and std::ranges::forward_range<T> and Object<std::iter_value_t<T>>)
-    object(const string_type& name, T&& objects) :
-    object{}
-    {
-        TRACE('!');
-        m_data = map{};
-        auto arr = array{};
-        for(const auto& o : objects)
-            arr.emplace_back(o);
-        std::get<map>(m_data).emplace(name,arr);
-    }
-*/
     template <typename T> requires (not Value<T> and not Object<T> and std::ranges::forward_range<T>)
-    object(const string_type& name, T&& objects) :
+    object(const string_type& name, T&& data) :
     object{}
     {
         TRACE('!');
         m_data = map{};
         auto arr = array{};
-        for(const auto& o : objects)
-            arr.emplace_back(o);
+        for(const auto& d : data)
+            arr.emplace_back(d);
         std::get<map>(m_data).emplace(name,arr);
     }
 

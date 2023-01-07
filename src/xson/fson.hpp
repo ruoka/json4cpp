@@ -10,7 +10,7 @@ using object = xson::object;
 inline object parse(std::istream& is)
 {
     auto b = xson::builder{};
-    auto d = xson::fson::decoder{is,&b};
+    auto d = decoder<xson::builder>{is,b};
     d.decode();
     return b.get();
 }

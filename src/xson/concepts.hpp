@@ -17,7 +17,6 @@ using array_type     = object;
 using boolean_type   = bool;
 using null_type      = std::nullptr_t;
 using timestamp_type = std::chrono::system_clock::time_point;
-//using timestamp_type = decltype(std::chrono::system_clock::now());
 using integer_type   = std::int64_t;
 using int32_type     = std::int32_t;
 

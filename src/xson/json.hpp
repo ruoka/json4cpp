@@ -10,7 +10,7 @@ using object = xson::object;
 inline object parse(std::istream& is)
 {
     auto b = xson::builder{};
-    auto d = xson::json::decoder{&b};
+    auto d = decoder<xson::builder>{b};
     d.decode(is);
     return b.get();
 }
@@ -18,7 +18,7 @@ inline object parse(std::istream& is)
 inline object parse(std::string_view sv)
 {
     auto b = xson::builder{};
-    auto d = xson::json::decoder{&b};
+    auto d = decoder<xson::builder>{b};
     d.decode(sv);
     return b.get();
 }

@@ -5,11 +5,12 @@
 
 namespace xson::json {
 
+template<typename Builder>
 class decoder
 {
 public:
 
-    decoder(gsl::not_null<observer*> o) : m_observer{o}
+    decoder(Builder& b) : m_builder{b}
     {}
 
     void decode(std::istream& is)
@@ -41,14 +42,14 @@ private:
     template <bool Boolean>
     void constant(char c)
     {
-        m_observer->value(Boolean);
+        m_builder.value(Boolean);
         m_state_machine.pop();
         m_state_machine.top()(*this,c);
     }
 
     void null(char c)
     {
-        m_observer->value(nullptr);
+        m_builder.value(nullptr);
         m_state_machine.pop();
         m_state_machine.top()(*this,c);
     }
@@ -68,7 +69,7 @@ private:
             m_string += c;
         else
         {
-            m_observer->value(std::move(m_string));
+            m_builder.value(std::move(m_string));
             m_state_machine.pop();
             m_string = ""s;
         }
@@ -90,7 +91,7 @@ private:
         }
         else
         {
-            m_observer->value(Sign * m_integer);
+            m_builder.value(Sign * m_integer);
             m_integer = 0;
             m_state_machine.pop();
             m_state_machine.top()(*this,c);
@@ -107,7 +108,7 @@ private:
         }
         else
         {
-            m_observer->value(Sign * m_number);
+            m_builder.value(Sign * m_number);
             m_number = 0;
             m_place = 1;
             m_state_machine.pop();
@@ -199,7 +200,7 @@ private:
             m_string += c;
         else
         {
-            m_observer->name(m_string);
+            m_builder.name(m_string);
             m_string = ""s;
             m_state_machine.pop();
         }
@@ -248,22 +249,22 @@ private:
     {
         if(c == '{')
         {
-            m_observer->start_object();
+            m_builder.start_object();
             m_state_machine.push(&decoder::object);
         }
         else if(c == '}')
         {
-            m_observer->end_object();
+            m_builder.end_object();
             m_state_machine.pop();
         }
         else if(c == '[')
         {
-            m_observer->start_array();
+            m_builder.start_array();
             m_state_machine.push(array{});
         }
         else if(c == ']')
         {
-            m_observer->end_array();
+            m_builder.end_array();
             m_state_machine.pop();
         }
         else if(!isws(c))
@@ -279,7 +280,7 @@ private:
 
     std::stack<state> m_state_machine = std::stack<state>{};
 
-    gsl::not_null<observer*> m_observer;
+    Builder& m_builder;
 
     xson::string_type m_string = ""s;
 

@@ -8,11 +8,12 @@
 
 namespace xson::fson {
 
+template<typename Builder>
 class decoder : public fast::decoder
 {
 public:
 
-    decoder(std::istream& is, gsl::not_null<observer*> o) : fast::decoder{is}, m_observer{o}
+    decoder(std::istream& is, Builder& b) : fast::decoder{is}, m_builder{b}
     {}
 
     using fast::decoder::decode;
@@ -37,51 +38,51 @@ public:
             {
                 case type::object: // x03
                     parent.push(type::object);
-                    m_observer->start_object();
+                    m_builder.start_object();
                     break;
 
                 case type::name:
                     decode(name);
-                    m_observer->name(name);
+                    m_builder.name(name);
                     break;
 
                 case type::array:  // x04
                     parent.push(type::array);
-                    m_observer->start_array();
+                    m_builder.start_array();
                     break;
 
                 case type::number: // x01
                     decode(d);
-                    m_observer->value(d);
+                    m_builder.value(d);
                     break;
 
                 case type::string: // x02
                     decode(str);
-                    m_observer->value(str);
+                    m_builder.value(str);
                     break;
 
                 case type::boolean: // x08
                     decode(b);
-                    m_observer->value(b);
+                    m_builder.value(b);
                     break;
 
                 case type::null:    // x0A
-                    m_observer->value(nullptr);
+                    m_builder.value(nullptr);
                     break;
 
                 case type::timestamp:    // x09
                     decode(dt);
-                    m_observer->value(dt);
+                    m_builder.value(dt);
                     break;
 
                 case type::integer: // x12
                     decode(i);
-                    m_observer->value(i);
+                    m_builder.value(i);
                     break;
 
                 case type::end:     // x00
-                    if(parent.top() == type::object) m_observer->end_object();
-                    if(parent.top() == type::array) m_observer->end_array();
+                    if(parent.top() == type::object) m_builder.end_object();
+                    if(parent.top() == type::array) m_builder.end_array();
                     parent.pop();
                     break;
 
@@ -96,7 +97,7 @@ public:
 
 private:
 
-    gsl::not_null<observer*> m_observer;
+    Builder& m_builder;
 
 };
 
