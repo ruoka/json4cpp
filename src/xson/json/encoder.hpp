@@ -30,7 +30,7 @@ public:
 
     void encode(const object& o)
     {
-        if(o.type() == type::object)
+        if(o.is_object())
         {
             const auto& container = o.get<object::map>();
             m_os << m_pretty('{');
@@ -42,7 +42,7 @@ public:
             }
             m_os << m_pretty('}', container.empty());
         }
-        else if(o.type() == type::array)
+        else if(o.is_array())
         {
             const auto& container = o.get<object::array>();
             m_os << m_pretty('[');

@@ -17,7 +17,7 @@ TEST(XsonJsonTest,String)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::string, ob["String"s].type());
+    ASSERT_TRUE(ob["String"s].is_string());
     const xson::string_type s = ob["String"s];
     ASSERT_EQ("1234567890"s, s);
 }
@@ -31,7 +31,7 @@ TEST(XsonJsonTest,Double)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::number, ob["Double"s].type());
+    ASSERT_TRUE(ob["Double"s].is_number());
     const xson::number_type d = ob["Double"s];
     ASSERT_EQ(21.12, d);
 }
@@ -45,11 +45,11 @@ TEST(XsonJsonTest,Boolean)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::boolean, ob["True"s].type());
+    ASSERT_TRUE(ob["True"s].is_boolean());
     const xson::boolean_type t = ob["True"s];
     ASSERT_EQ(true, t);
 
-    ASSERT_EQ(type::boolean, ob["False"s].type());
+    ASSERT_TRUE(ob["False"s].is_boolean());
     const xson::boolean_type f = ob["False"s];
     ASSERT_EQ(false, f);
 }
@@ -64,7 +64,7 @@ TEST(XsonJsonTest,Date2String)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::string, ob["Date"s].type());
+    ASSERT_TRUE(ob["Date"s].is_string());
     const xson::string_type d = ob["Date"s];
     ASSERT_EQ(xson::to_string(now), d);
 }
@@ -78,7 +78,7 @@ TEST(XsonJsonTest,Null)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::null, ob["Null"s].type());
+    ASSERT_TRUE(ob["Null"s].is_null());
     const xson::null_type n = ob["Null"s];
     ASSERT_EQ(nullptr, n);
 }
@@ -96,15 +96,15 @@ TEST(XsonJsonTest,Int32)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::integer, ob["Zero"s].type());
+    ASSERT_TRUE(ob["Zero"s].is_integer());
     const xson::integer_type zero = ob["Zero"s];
     ASSERT_EQ(0, zero);
 
-    ASSERT_EQ(type::integer, ob["Min"s].type());
+    ASSERT_TRUE(ob["Min"s].is_integer());
     const xson::integer_type min = ob["Min"s];
     ASSERT_EQ(std::numeric_limits<int>::min(), min);
 
-    ASSERT_EQ(type::integer, ob["Max"s].type());
+    ASSERT_TRUE(ob["Max"s].is_integer());
     const xson::integer_type max = ob["Max"s];
     ASSERT_EQ(std::numeric_limits<int>::max(), max);
 }
@@ -122,15 +122,15 @@ TEST(XsonJsonTest,Integer)
     auto ob = json::parse(ss);
     TRACE(ob);
 
-    ASSERT_EQ(type::integer, ob["Zero"s].type());
+    ASSERT_TRUE(ob["Zero"s].is_integer());
     const xson::integer_type zero = ob["Zero"s];
     ASSERT_EQ(0, zero);
 
-    ASSERT_EQ(type::integer, ob["Min"s].type());
+    ASSERT_TRUE(ob["Min"s].is_integer());
     const xson::integer_type min = ob["Min"s];
     ASSERT_EQ(std::numeric_limits<std::int64_t>::min(), min);
 
-    ASSERT_EQ(type::integer, ob["Max"s].type());
+    ASSERT_TRUE(ob["Max"s].is_integer());
     const xson::integer_type max = ob["Max"s];
     ASSERT_EQ(std::numeric_limits<std::int64_t>::max(), max);
 }
@@ -216,17 +216,17 @@ TEST(XsonJsonTest,Complex)
     auto obj = json::parse(ss);
     TRACE(obj);
 
-    ASSERT_EQ(type::boolean, obj["Ruoka"s].type());
+    ASSERT_TRUE(obj["Ruoka"s].is_boolean());
     const xson::boolean_type b = obj["Ruoka"s];
     ASSERT_EQ(true, b);
 
-    ASSERT_EQ(type::integer, obj["Tulppu"s].type());
+    ASSERT_TRUE(obj["Tulppu"s].is_integer());
     const xson::integer_type i1 = obj["Tulppu"s];
     ASSERT_EQ(1, i1);
 
-    ASSERT_EQ(type::array, obj["Ages"s].type());
+    ASSERT_TRUE(obj["Ages"s].is_array());
 
-    ASSERT_EQ(type::integer, obj["Ages"s][4].type());
+    ASSERT_TRUE(obj["Ages"s][4].is_integer());
     const xson::integer_type i2 = obj["Ages"s][4];
     ASSERT_EQ(2, i2);
 }
@@ -237,14 +237,14 @@ TEST(XsonJsonTest,ParseFile1)
     auto ob = json::parse(fs);
     TRACE("test1.json: "s << ob);
 
-    ASSERT_EQ(type::array, ob["required"s].type());
-    ASSERT_EQ(type::string, ob["required"s][2].type());
+    ASSERT_TRUE(ob["required"s].is_array());
+    ASSERT_TRUE(ob["required"s][2].is_string());
     const xson::string_type price = ob["required"s][2];
     EXPECT_EQ("price"s, price);
 
-    ASSERT_EQ(type::object, ob["properties"s].type());
-    ASSERT_EQ(type::object, ob["properties"s]["price"s].type());
-    ASSERT_EQ(type::integer, ob["properties"s]["price"s]["minimum"s].type());
+    ASSERT_TRUE(ob["properties"s].is_object());
+    ASSERT_TRUE(ob["properties"s]["price"s].is_object());
+    ASSERT_TRUE(ob["properties"s]["price"s]["minimum"s].is_integer());
     const xson::integer_type minimum = ob["properties"s]["price"s]["minimum"s];
     EXPECT_EQ(0, minimum);
 }
@@ -257,9 +257,9 @@ TEST(XsonJsonTest,ParseFile2)
 
     const xson::boolean_type alive = ob["isAlive"s];
     EXPECT_EQ(true, alive);
-    ASSERT_EQ(type::boolean, ob["isAlive"s].type());
+    ASSERT_TRUE(ob["isAlive"s].is_boolean());
 
     const xson::null_type spouce = ob["spouse"s];
     EXPECT_EQ(nullptr, spouce);
-    ASSERT_EQ(type::null, ob["spouse"s].type());
+    ASSERT_TRUE(ob["spouse"s].is_null());
 }

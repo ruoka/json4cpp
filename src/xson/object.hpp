@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <cassert>
 //#include <ranges>
-#include "xson/type.hpp"
+#include "xson/concepts.hpp"
 #include "xson/trace.hpp"
 
 namespace xson {
@@ -158,33 +158,55 @@ public:
         return *this;
     }
 
-    xson::type type() const
+    friend bool operator == (const object& lhs, const object& rhs)
     {
-        if(holds_alternative<map>(m_data))
-            return xson::type::object;
+        return lhs.m_data == rhs.m_data;
+    }
 
-        if(holds_alternative<array>(m_data))
-            return xson::type::array;
+    constexpr auto is_object() const
+    {
+        return holds_alternative<map>(m_data);
+    }
 
+    constexpr auto is_array() const
+    {
+        return holds_alternative<array>(m_data);
+    }
+
+    constexpr auto is_number() const
+    {
         const auto& data = std::get<value>(m_data);
+        return holds_alternative<number_type>(data);
+    }
 
-        if(holds_alternative<number_type>(data))
-            return xson::type::number;
+    constexpr auto is_string() const
+    {
+        const auto& data = std::get<value>(m_data);
+        return holds_alternative<string_type>(data);
+    }
 
-        if(holds_alternative<string_type>(data))
-            return xson::type::string;
+    constexpr auto is_boolean() const
+    {
+        const auto& data = std::get<value>(m_data);
+        return holds_alternative<boolean_type>(data);
+    }
 
-        if(holds_alternative<boolean_type>(data))
-            return xson::type::boolean;
+    constexpr auto is_timestamp() const
+    {
+        const auto& data = std::get<value>(m_data);
+        return holds_alternative<timestamp_type>(data);
+    }
 
-        if(holds_alternative<timestamp_type>(data))
-            return xson::type::timestamp;
+    constexpr auto is_integer() const
+    {
+        const auto& data = std::get<value>(m_data);
+        return holds_alternative<integer_type>(data);
+    }
 
-        if(holds_alternative<integer_type>(data))
-            return xson::type::integer;
-
-        // if(holds_alternative<monostate>(data))
-        return xson::type::null;
+    constexpr auto is_null() const
+    {
+        const auto& data = std::get<value>(m_data);
+        return holds_alternative<monostate>(data);
     }
 
     template<typename T>
@@ -285,7 +307,7 @@ public:
 
     operator int32_type () const
     {
-        return std::get<integer_type >(std::get<value>(m_data));
+        return std::get<integer_type>(std::get<value>(m_data));
     }
 
     operator integer_type () const
@@ -333,11 +355,6 @@ public:
         return holds_alternative<map>(m_data);
     }
 
-    bool is_array() const
-    {
-        return holds_alternative<array>(m_data);
-    }
-
     bool empty() const
     {
         if(holds_alternative<map>(m_data))
@@ -367,7 +384,7 @@ public:
             return 0u;
     }
 
-    bool match([[maybe_unused]] const object& subset) const
+    bool match(const object& subset) const
     {
         if(subset.empty())
             return true;

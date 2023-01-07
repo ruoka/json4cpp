@@ -2,8 +2,9 @@
 
 #include <cassert>
 #include <type_traits>
-#include "xson/fast/encoder.hpp"
 #include "xson/object.hpp"
+#include "xson/fast/encoder.hpp"
+#include "xson/fson/types.hpp"
 
 namespace xson::fson {
 
@@ -18,9 +19,11 @@ public:
 
     void encode(const xson::object& o)
     {
-        encode(o.type());
+        auto type = make_type(o);
 
-        switch(o.type())
+        encode(type);
+
+        switch(type)
         {
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
@@ -67,6 +70,27 @@ public:
             assert(false);
             break;
         }
+    }
+
+private:
+
+    constexpr fson::type make_type(const object& o) const
+    {
+        if(o.is_object()) return fson::type::object;
+
+        if(o.is_array()) return fson::type::array;
+
+        if(o.is_number()) return fson::type::number;
+
+        if(o.is_string()) return fson::type::string;
+
+        if(o.is_boolean()) return fson::type::boolean;
+
+        if(o.is_integer()) return fson::type::integer;
+
+        if(o.is_timestamp()) return fson::type::timestamp;
+
+        return fson::type::null;
     }
 };
 

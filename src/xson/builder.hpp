@@ -55,14 +55,22 @@ private:
             m_stack.top().get().get<object::array>().emplace_back(object::map{});
             m_stack.push(m_stack.top().get().get<object::array>().back());
         }
-        m_type = xson::type::object;
+        m_type = type::object;
     }
 
     void end_object()
     {
         TRACE('!');
         m_stack.pop();
-        if(not m_stack.empty()) m_type = m_stack.top().get().type();
+        if(not m_stack.empty())
+        {
+            if(m_stack.top().get().is_object())
+                m_type = type::object;
+            else if(m_stack.top().get().is_array())
+                m_type = type::array;
+            else
+                std::terminate(); // error
+        }
     }
 
     void start_array()
@@ -83,14 +91,22 @@ private:
             m_stack.top().get().get<object::array>().emplace_back(object::array{});
             m_stack.push(m_stack.top().get().get<object::array>().back());
         }
-        m_type = xson::type::array;
+        m_type = type::array;
     }
 
     void end_array()
     {
         TRACE('!');
         m_stack.pop();
-        if(not m_stack.empty()) m_type = m_stack.top().get().type();
+        if(not m_stack.empty())
+        {
+            if(m_stack.top().get().is_object())
+                m_type = type::object;
+            else if(m_stack.top().get().is_array())
+                m_type = type::array;
+            else
+                std::terminate(); // error
+        }
     }
 
     void name(xson::string_type str)
@@ -153,11 +169,13 @@ private:
             m_stack.top().get().get<object::array>().emplace_back(dt);
     }
 
+    enum class type {object,array};
+
+    type m_type;
+
     std::stack<std::reference_wrapper<xson::object>> m_stack = std::stack<std::reference_wrapper<xson::object>>{};
 
     xson::object m_root;
-
-    xson::type m_type = xson::type::object;
 
     xson::string_type m_current = ""s;
 

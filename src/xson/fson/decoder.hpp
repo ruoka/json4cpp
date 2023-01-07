@@ -2,8 +2,9 @@
 #include <cassert>
 #include <type_traits>
 #include "gsl/not_null.hpp"
-#include "xson/fast/decoder.hpp"
 #include "xson/builder.hpp"
+#include "xson/fast/decoder.hpp"
+#include "xson/fson/types.hpp"
 
 namespace xson::fson {
 
@@ -18,11 +19,11 @@ public:
 
     void decode()
     {
-        auto parent = std::stack<type>{};
+        auto parent = std::stack<fson::type>{};
 
         while(m_is)
         {
-            auto type = xson::type{};
+            auto type = xson::fson::type{};
             decode(type);
 
             xson::string_type name;
