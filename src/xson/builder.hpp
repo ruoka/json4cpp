@@ -98,7 +98,7 @@ public:
         TRACE(s);
         if(m_type == type::object)
             m_stack.top().get().get<object::map>().emplace(m_current,val);
-        else
+        else // type::array
             m_stack.top().get().get<object::array>().emplace_back(val);
     }
 

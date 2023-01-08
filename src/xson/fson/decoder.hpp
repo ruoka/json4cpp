@@ -27,11 +27,11 @@ public:
             decode(type);
 
             xson::string_type name;
-            xson::number_type   d;
+            xson::number_type d;
             xson::string_type str;
-            xson::timestamp_type    dt;
-            xson::boolean_type  b;
-            xson::integer_type  i;
+            xson::timestamp_type dt;
+            xson::boolean_type b;
+            xson::integer_type i;
 
             switch(type)
             {
