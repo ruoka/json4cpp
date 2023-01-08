@@ -26,6 +26,6 @@ export namespace xson::fson
 }
 export namespace xson::fast
 {
-    using xson::fast::decoder;
-    using xson::fast::encoder;
+    using fast::decode;
+    using fast::encode;
 }
