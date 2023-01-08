@@ -8,23 +8,21 @@
 namespace xson::fson {
 
 template<typename Builder>
-class decoder : public fast::decoder
+class decoder
 {
 public:
 
-    decoder(std::istream& is, Builder& b) : fast::decoder{is}, m_builder{b}
+    decoder(Builder& b) : m_builder{b}
     {}
 
-    using fast::decoder::decode;
-
-    void decode()
+    void decode(std::istream& is)
     {
         auto parent = std::stack<fson::type>{};
 
-        while(m_is)
+        while(is)
         {
             auto type = xson::fson::type{};
-            decode(type);
+            fast::decode(is,type);
 
             xson::string_type name;
             xson::number_type d;
@@ -41,7 +39,7 @@ public:
                     break;
 
                 case type::name:
-                    decode(name);
+                    fast::decode(is,name);
                     m_builder.name(name);
                     break;
 
@@ -51,17 +49,17 @@ public:
                     break;
 
                 case type::number: // x01
-                    decode(d);
+                    fast::decode(is,d);
                     m_builder.value(d);
                     break;
 
                 case type::string: // x02
-                    decode(str);
+                    fast::decode(is,str);
                     m_builder.value(str);
                     break;
 
                 case type::boolean: // x08
-                    decode(b);
+                    fast::decode(is,b);
                     m_builder.value(b);
                     break;
 
@@ -70,12 +68,12 @@ public:
                     break;
 
                 case type::timestamp:    // x09
-                    decode(dt);
+                    fast::decode(is,dt);
                     m_builder.value(dt);
                     break;
 
                 case type::integer: // x12
-                    decode(i);
+                    fast::decode(is,i);
                     m_builder.value(i);
                     break;
 

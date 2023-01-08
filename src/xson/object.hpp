@@ -162,77 +162,77 @@ public:
 
     constexpr auto is_number() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<number_type>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<number_type>(std::get<value>(m_data));
+        return false;
     }
 
     constexpr auto is_string() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<string_type>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<string_type>(std::get<value>(m_data));
+        return false;
     }
 
     constexpr auto is_boolean() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<boolean_type>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<boolean_type>(std::get<value>(m_data));
+        return false;
     }
 
     constexpr auto is_timestamp() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<timestamp_type>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<timestamp_type>(std::get<value>(m_data));
+        return false;
     }
 
     constexpr auto is_integer() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<integer_type>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<integer_type>(std::get<value>(m_data));
+        return false;
     }
 
     constexpr auto is_null() const
     {
-        const auto& data = std::get<value>(m_data);
-        return holds_alternative<monostate>(data);
+        if(holds_alternative<value>(m_data))
+            return holds_alternative<std::monostate>(std::get<value>(m_data));
+        return false;
     }
 
-    template<typename T>
-        requires std::is_same_v<T,value>
+    template<typename T> requires std::same_as<T,value>
     const auto& get() const
     {
         return std::get<value>(m_data);
     }
 
-    template<typename T>
-        requires std::is_same_v<T,value>
+    template<typename T> requires std::same_as<T,value>
     auto& get()
     {
         return std::get<value>(m_data);
     }
 
-    template<typename T>
-        requires std::is_same_v<T,map>
+    template<typename T> requires std::same_as<T,map>
     const auto& get() const
     {
         return std::get<map>(m_data);
     }
 
-    template<typename T>
-        requires std::is_same_v<T,map>
+    template<typename T> requires std::same_as<T,map>
     auto& get()
     {
         return std::get<map>(m_data);
     }
 
-    template<typename T>
-        requires std::is_same_v<T,array>
+    template<typename T> requires std::same_as<T,array>
     const auto& get() const
     {
         return std::get<array>(m_data);
     }
 
-    template<typename T>
-        requires std::is_same_v<T,array>
+    template<typename T> requires std::same_as<T,array>
     auto& get()
     {
         return std::get<array>(m_data);
@@ -245,9 +245,9 @@ public:
 
     const object& operator [] (const string_type& name) const
     {
-        if(not std::get<map>(m_data).count(name))
-            throw std::out_of_range("object has no field with name "s + name);
-        return std::get<map>(m_data).find(name)->second;
+        if(std::get<map>(m_data).contains(name))
+            return std::get<map>(m_data).find(name)->second;
+        throw std::out_of_range("object has no field with name "s + name);
     }
 
     object& operator [] (std::size_t idx)
@@ -257,9 +257,9 @@ public:
 
     const object& operator [] (std::size_t idx) const
     {
-        if(idx > std::get<array>(m_data).size())
-            throw std::out_of_range("array has no index with value "s + std::to_string(idx));
-        return std::get<array>(m_data)[idx];
+        if(idx < std::get<array>(m_data).size())
+            return std::get<array>(m_data)[idx];
+        throw std::out_of_range("array has no index with value "s + std::to_string(idx));
     }
 
     operator const object::value& () const
@@ -292,14 +292,14 @@ public:
         return nullptr;
     }
 
-    operator int32_type () const
-    {
-        return std::get<integer_type>(std::get<value>(m_data));
-    }
-
     operator integer_type () const
     {
         return std::get<integer_type >(std::get<value>(m_data));
+    }
+
+    operator int32_type () const
+    {
+        return std::get<integer_type>(std::get<value>(m_data));
     }
 
     object& operator + (const object& obj)
@@ -314,9 +314,9 @@ public:
     object& operator + (object&& obj)
     {
         if(holds_alternative<map>(m_data))
-            std::get<map>(m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
+            std::get<map>(m_data).merge(std::get<map>(obj.m_data));
         else if(holds_alternative<array>(m_data))
-            std::get<array>(m_data).push_back(obj);
+            std::get<array>(m_data).push_back(std::move(obj));
         return *this;
     }
 

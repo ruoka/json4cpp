@@ -25,36 +25,36 @@ class encoder
 {
 public:
 
-    encoder(std::ostream& os, std::streamsize indent = 2) : m_pretty{indent}, m_os{os}
+    encoder(std::streamsize indent = 2) : m_pretty{indent}
     {}
 
-    void encode(const object& o)
+    void encode(std::ostream& os, const object& o)
     {
         if(o.is_object())
         {
             const auto& container = o.get<object::map>();
-            m_os << m_pretty('{');
+            os << m_pretty('{');
             for(auto i = 0; const auto& [name,value] : container)
             {
-                m_os << (i++ == 0 ? m_pretty() : m_pretty(','));
-                m_os << '\"' << name << '\"' << m_pretty(':');
-                encode(value);
+                os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                os << '\"' << name << '\"' << m_pretty(':');
+                encode(os,value);
             }
-            m_os << m_pretty('}', container.empty());
+            os << m_pretty('}', container.empty());
         }
         else if(o.is_array())
         {
             const auto& container = o.get<object::array>();
-            m_os << m_pretty('[');
+            os << m_pretty('[');
             for(auto i = 0; const auto& value : container)
             {
-                m_os << (i++ == 0 ? m_pretty() : m_pretty(','));
-                encode(value);
+                os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                encode(os,value);
             }
-            m_os << m_pretty(']', container.empty());
+            os << m_pretty(']', container.empty());
         }
         else
-            m_os << o.get<object::value>();
+            os << o.get<object::value>();
     }
 
 private:
@@ -121,8 +121,6 @@ private:
     };
 
     prettyprint m_pretty;
-
-    std::ostream& m_os;
 };
 
 } // namespace xson::json

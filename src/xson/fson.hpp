@@ -11,8 +11,8 @@ using object = xson::object;
 inline object parse(std::istream& is)
 {
     auto b = xson::builder{};
-    auto d = decoder<xson::builder>{is,b};
-    d.decode();
+    auto d = decoder<xson::builder>{b};
+    d.decode(is);
     return b.get();
 }
 
@@ -26,7 +26,7 @@ inline std::istream& operator >> (std::istream& is, object& ob)
 
 inline std::ostream& operator << (std::ostream& os, const object& ob)
 {
-    xson::fson::encoder{os}.encode(ob);
+    xson::fson::encoder{}.encode(os,ob);
     return os;
 }
 

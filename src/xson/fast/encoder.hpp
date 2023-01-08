@@ -7,58 +7,16 @@
 
 namespace xson::fast {
 
-class encoder
-{
-public:
-
-    encoder(std::ostream& os) : m_os{os}
-    {}
-
-    void encode(std::uint8_t);
-
-    void encode(std::uint32_t);
-
-    void encode(std::int32_t);
-
-    void encode(std::uint64_t);
-
-    void encode(std::int64_t);
-
-    void encode(const std::string&);
-
-    void encode(std::double_t);
-
-    void encode(bool);
-
-    void encode(const std::chrono::system_clock::time_point& d);
-
-    template<typename T> requires std::is_enum_v<T>
-    void encode(T e)
-    {
-        encode(static_cast<std::uint8_t>(e));
-    }
-
-private:
-
-    std::ostream& m_os;
-};
-
-inline void encoder::encode(std::uint8_t b)
+inline void encode(std::ostream& os, std::uint8_t b)
 {
     TRACE("std::uint8_t");
-    m_os.put(b);
+    os.put(b);
 }
 
-inline void encoder::encode(std::uint32_t i)
+template<typename T> requires std::is_enum_v<T>
+void encode(std::ostream& os, T e)
 {
-    TRACE("std::uint32_t");
-    encode(static_cast<std::uint64_t>(i));
-}
-
-inline void encoder::encode(std::int32_t i)
-{
-    TRACE("std::uint32_t");
-    encode(static_cast<std::int64_t>(i));
+    encode(os,static_cast<std::uint8_t>(e));
 }
 
 inline unsigned size(std::uint64_t i)
@@ -74,21 +32,21 @@ inline unsigned size(std::uint64_t i)
    return 9;
 }
 
-inline void encoder::encode(std::uint64_t i)
+inline void encode(std::ostream& os, std::uint64_t i)
 {
     TRACE("std::uint64_t");
     switch(size(i))
     {
     // Shifts are logical (unsigned)
-    case 9: m_os.put((i >> 56) & 0x7f);
-    case 8: m_os.put((i >> 49) & 0x7f);
-    case 7: m_os.put((i >> 42) & 0x7f);
-    case 6: m_os.put((i >> 35) & 0x7f);
-    case 5: m_os.put((i >> 28) & 0x7f);
-    case 4: m_os.put((i >> 21) & 0x7f);
-    case 3: m_os.put((i >> 14) & 0x7f);
-    case 2: m_os.put((i >>  7) & 0x7f);
-    case 1: m_os.put((i & 0x7f) | 0x80);
+    case 9: os.put((i >> 56) & 0x7f);
+    case 8: os.put((i >> 49) & 0x7f);
+    case 7: os.put((i >> 42) & 0x7f);
+    case 6: os.put((i >> 35) & 0x7f);
+    case 5: os.put((i >> 28) & 0x7f);
+    case 4: os.put((i >> 21) & 0x7f);
+    case 3: os.put((i >> 14) & 0x7f);
+    case 2: os.put((i >>  7) & 0x7f);
+    case 1: os.put((i & 0x7f) | 0x80);
     }
 }
 
@@ -124,57 +82,69 @@ inline unsigned size(std::int64_t i)
 
 #pragma clang diagnostic pop
 
-inline void encoder::encode(std::int64_t i)
+inline void encode(std::ostream& os, std::int64_t i)
 {
     TRACE("std::int64_t");
     switch(size(i))
     {
     // Shifts are arithmetic (signed)
     // The sign bit of data will be copied on right shifts
-    case 9: m_os.put((i >> 56) & 0x7f);
-    case 8: m_os.put((i >> 49) & 0x7f);
-    case 7: m_os.put((i >> 42) & 0x7f);
-    case 6: m_os.put((i >> 35) & 0x7f);
-    case 5: m_os.put((i >> 28) & 0x7f);
-    case 4: m_os.put((i >> 21) & 0x7f);
-    case 3: m_os.put((i >> 14) & 0x7f);
-    case 2: m_os.put((i >>  7) & 0x7f);
-    case 1: m_os.put((i & 0x7f) | 0x80);
+    case 9: os.put((i >> 56) & 0x7f);
+    case 8: os.put((i >> 49) & 0x7f);
+    case 7: os.put((i >> 42) & 0x7f);
+    case 6: os.put((i >> 35) & 0x7f);
+    case 5: os.put((i >> 28) & 0x7f);
+    case 4: os.put((i >> 21) & 0x7f);
+    case 3: os.put((i >> 14) & 0x7f);
+    case 2: os.put((i >>  7) & 0x7f);
+    case 1: os.put((i & 0x7f) | 0x80);
     }
 }
 
-inline void encoder::encode(const std::string& str)
+inline void encode(std::ostream& os, std::uint32_t i)
+{
+    TRACE("std::uint32_t");
+    encode(os,static_cast<std::uint64_t>(i));
+}
+
+inline void encode(std::ostream& os, std::int32_t i)
+{
+    TRACE("std::uint32_t");
+    encode(os,static_cast<std::int64_t>(i));
+}
+
+inline void encode(std::ostream& os, const std::string& str)
 {
     TRACE("std::string");
     auto head = str.cbegin();
     auto tail = head + (str.size() - 1);
-    std::copy(head, tail, std::ostream_iterator<char>(m_os));
-    m_os.put(*tail | 0x80);
+    std::copy(head, tail, std::ostream_iterator<char>(os));
+    os.put(*tail | 0x80);
 }
 
-inline void encoder::encode(std::double_t d)
+inline void encode(std::ostream& os, std::double_t d)
 {
     union {
         std::double_t d64;
         std::uint64_t i64;
     } d2i;
     d2i.d64 = d;
-    encode(d2i.i64);
+    encode(os,d2i.i64);
 }
 
-inline void encoder::encode(bool b)
+inline void encode(std::ostream& os, bool b)
 {
     if(b)
-        encode(std::uint8_t{'\x01'});
+        encode(os,std::uint8_t{'\x01'});
     else
-        encode(std::uint8_t{'\x00'});
+        encode(os,std::uint8_t{'\x00'});
 }
 
-inline void encoder::encode(const std::chrono::system_clock::time_point& d)
+inline void encode(std::ostream& os, const std::chrono::system_clock::time_point& d)
 {
     using namespace std::chrono;
     const auto us = duration_cast<milliseconds>(d.time_since_epoch());
-    encode(static_cast<std::uint64_t>(us.count()));
+    encode(os,static_cast<std::uint64_t>(us.count()));
 }
 
 } // namespace xson::fast

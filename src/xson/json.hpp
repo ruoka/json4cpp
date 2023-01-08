@@ -27,7 +27,7 @@ inline object parse(std::string_view sv)
 inline std::string stringify(const object& ob, unsigned indent = 2)
 {
     auto ss = std::stringstream{};
-    encoder{ss,indent}.encode(ob);
+    encoder{indent}.encode(ss,ob);
     return ss.str();
 }
 
@@ -42,9 +42,9 @@ inline auto& operator >> (std::istream& is, object& ob)
 inline auto& operator << (std::ostream& os, const object& obj)
 {
     const auto indent = os.width();
-    auto e = xson::json::encoder{os,indent};
+    auto e = xson::json::encoder{indent};
     os.width(0);
-    e.encode(obj);
+    e.encode(os,obj);
     os.width(indent);
     return os;
 }

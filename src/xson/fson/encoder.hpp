@@ -8,59 +8,57 @@
 
 namespace xson::fson {
 
-class encoder : public fast::encoder
+class encoder
 {
 public:
 
-    encoder(std::ostream& os) : fast::encoder{os}
+    encoder()
     {}
 
-    using fast::encoder::encode;
-
-    void encode(const xson::object& o)
+    void encode(std::ostream& os, const xson::object& o)
     {
         auto type = make_type(o);
 
-        encode(type);
+        fast::encode(os,type);
 
         switch(type)
         {
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
             {
-                encode(type::name); // type
-                encode(name);       // name
-                encode(value);      // object
+                fast::encode(os,type::name); // type
+                fast::encode(os,name);       // name
+                encode(os,value);            // object
             }
-            encode(type::end);
+            fast::encode(os,type::end);
             break;
 
             case type::array:
             for(const auto& value : o.get<object::array>())
             {
-                encode(value);       // object
+                encode(os,value);            // object
             }
-            encode(type::end);
+            fast::encode(os,type::end);
             break;
 
             case type::integer:
-            encode(std::get<xson::integer_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::integer_type>(o.get<object::value>()));
             break;
 
             case type::number:
-            encode(std::get<xson::number_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::number_type>(o.get<object::value>()));
             break;
 
             case type::string:
-            encode(std::get<xson::string_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::string_type>(o.get<object::value>()));
             break;
 
             case type::boolean:
-            encode(std::get<xson::boolean_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::boolean_type>(o.get<object::value>()));
             break;
 
             case type::timestamp:
-            encode(std::get<xson::timestamp_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::timestamp_type>(o.get<object::value>()));
             break;
 
             case type::null:
