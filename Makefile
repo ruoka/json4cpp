@@ -57,7 +57,7 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 
 ############
 
-ifeq ($(basename $(basename $(shell $(CXX) -dumpversion))),17) # This section only works with Clang 17
+ifeq ($(basename $(basename $(shell $(CXX) -dumpversion))),18) # This section only works with Clang 18
 
 MODULES = $(call rwildcard,$(SRCDIR)/,*.c++m)
 

@@ -92,7 +92,7 @@ public:
         m_current = std::move(str);
     }
 
-    template<Value T>
+    template<Value T> requires (not Null<T>)
     void value(const T& val)
     {
         TRACE(s);
@@ -100,6 +100,16 @@ public:
             m_stack.top().get().get<object::map>().emplace(m_current,val);
         else // type::array
             m_stack.top().get().get<object::array>().emplace_back(val);
+    }
+
+    template<Null T>
+    void value(T)
+    {
+        TRACE(s);
+        if(m_type == type::object)
+            m_stack.top().get().get<object::map>().emplace(m_current,std::monostate{});
+        else // type::array
+            m_stack.top().get().get<object::array>().emplace_back(std::monostate{});
     }
 
 private:
