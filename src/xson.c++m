@@ -5,10 +5,11 @@ export module xson;
 
 export namespace xson
 {
-    using xson::integer_type;
     using xson::object;
+    using xson::array;
     using xson::to_iso8601;
     using xson::to_string;
+    using xson::integer_type;
 }
 export namespace xson::json
 {

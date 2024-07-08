@@ -129,6 +129,13 @@ public:
         return *this;
     }
 
+    object& operator = (const array& arr)
+    {
+        TRACE('!');
+        m_data = arr;
+        return *this;
+    }
+
     template <Value T> requires (not Null<T>)
     object& operator = (const T& val)
     {
@@ -518,5 +525,7 @@ inline std::string to_string(const object::value& val)
 {
     return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
 }
+
+using array = xson::object::array;
 
 } // namespace xson
