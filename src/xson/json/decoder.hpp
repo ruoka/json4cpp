@@ -85,6 +85,7 @@ private:
         else if(c == '.')
         {
             m_number = m_integer;
+            m_integer = 0;
             m_state_machine.pop();
             m_state_machine.push(&decoder::fractions<Sign>);
         }
