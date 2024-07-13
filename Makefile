@@ -11,10 +11,10 @@ OS = $(shell uname -s)
 endif
 
 ifeq ($(OS),Linux)
-CC = /usr/lib/llvm-15/bin/clang
-CXX = /usr/lib/llvm-15/bin/clang++
-CXXFLAGS = -pthread -I/usr/lib/llvm-15/include/c++/v1
-LDFLAGS = -lc++ -lc++experimental -L/usr/lib/llvm-15/lib/c++
+CC = /usr/lib/llvm-18/bin/clang
+CXX = /usr/lib/llvm-18/bin/clang++
+CXXFLAGS = -pthread -I/usr/lib/llvm-18/include/c++/v1
+LDFLAGS = -lc++ -lc++experimental -L/usr/lib/llvm-18s/lib/c++
 endif
 
 ifeq ($(OS),Darwin)
@@ -31,7 +31,7 @@ CXXFLAGS = -I/usr/local/opt/llvm/include/ -I/usr/local/opt/llvm/include/c++/v1
 LDFLAGS = -L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++
 endif
 
-CXXFLAGS += -std=c++20 -stdlib=libc++ -Wall -Wextra #-DDEBUG
+CXXFLAGS += -std=c++23 -stdlib=libc++ -Wall -Wextra #-DDEBUG
 
 endif #($(MAKELEVEL),0)
 

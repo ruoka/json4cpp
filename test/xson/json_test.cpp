@@ -78,8 +78,8 @@ TEST(XsonJsonTest,Null)
     TRACE(ob);
 
     ASSERT_TRUE(ob["Null"s].is_null());
-    const xson::null_type n = ob["Null"s];
-    ASSERT_EQ(nullptr, n);
+//  const xson::null_type n = ob["Null"s];
+//  ASSERT_EQ(nullptr, n);
 }
 
 TEST(XsonJsonTest,Int32)
@@ -258,7 +258,7 @@ TEST(XsonJsonTest,ParseFile2)
     EXPECT_EQ(true, alive);
     ASSERT_TRUE(ob["isAlive"s].is_boolean());
 
-    const xson::null_type spouce = ob["spouse"s];
-    EXPECT_EQ(nullptr, spouce);
+//  const xson::null_type spouce = ob["spouse"s];
+//  EXPECT_EQ(nullptr, spouce);
     ASSERT_TRUE(ob["spouse"s].is_null());
 }

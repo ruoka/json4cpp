@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <stack>
 #include "xson/object.hpp"
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <iostream>
 #include <initializer_list>
 #include <functional>
@@ -294,10 +295,10 @@ public:
         return std::get<timestamp_type>(std::get<value>(m_data));
     }
 
-    operator null_type () const
-    {
-        return nullptr;
-    }
+//    operator null_type () const
+//    {
+//        return nullptr;
+//    }
 
     operator integer_type () const
     {
@@ -396,7 +397,7 @@ public:
 
         if(has_value() and subset.has_objects())
         {
-            auto test = std::all_of(subset.get<map>().cbegin(), subset.get<map>().cend(),
+            auto test = std::ranges::all_of(subset.get<map>(),
                 [&](const auto& node)
                 {
                     if(operators.count(node.first))

@@ -79,7 +79,7 @@ TEST(XsonObjectTest,Mix)
 
 TEST(XsonObjectTest,Array)
 {
-    auto arr = array<int,9>{1,2,3,4,5,6,7,8,9};
+    auto arr = std::array<int,9>{1,2,3,4,5,6,7,8,9};
     auto ob =object{"Array"s, arr};
     TRACE(ob);
     ASSERT_FALSE(ob.empty());
@@ -97,7 +97,7 @@ TEST(XsonObjectTest,Array)
 
 TEST(XsonObjectTest,Vector)
 {
-    auto vec = vector<string>{"a","b","c","d","e","f","g","h","i"};
+    auto vec = std::vector<string>{"a","b","c","d","e","f","g","h","i"};
     auto ob = object{"Vector"s, vec};
     TRACE(ob);
     ASSERT_FALSE(ob.empty());
@@ -160,8 +160,8 @@ TEST(XsonObjectTest,Null)
     ASSERT_FALSE(ob.empty());
     ASSERT_TRUE(ob.has("Null"s));
     ASSERT_TRUE(ob["Null"s].is_null());
-    xson::null_type n = ob["Null"s];
-    ASSERT_EQ(nullptr, n);
+//  xson::null_type n = ob["Null"s];
+//  ASSERT_EQ(nullptr, n);
 }
 
 TEST(XsonObjectTest,Date)
@@ -181,7 +181,7 @@ TEST(XsonObjectTest,ObjectWithArray)
 {
     auto ob = object
     {
-        "ObjectArray"s, array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
+        "ObjectArray"s, std::array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
     };
     TRACE(ob);
     ASSERT_FALSE(ob.empty());
