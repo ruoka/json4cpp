@@ -11,10 +11,10 @@ OS = $(shell uname -s)
 endif
 
 ifeq ($(OS),Linux)
-CC = /usr/lib/llvm-18/bin/clang
-CXX = /usr/lib/llvm-18/bin/clang++
-CXXFLAGS = -pthread -I/usr/lib/llvm-18/include/c++/v1
-LDFLAGS = -lc++ -lc++experimental -L/usr/lib/llvm-18s/lib/c++
+CC = /usr/lib/llvm-19/bin/clang
+CXX = /usr/lib/llvm-19/bin/clang++
+CXXFLAGS = -pthread -I/usr/lib/llvm-19/include/c++/v1
+LDFLAGS = -lc++ -lc++experimental -L/usr/lib/llvm-19s/lib/c++
 endif
 
 ifeq ($(OS),Darwin)
@@ -57,9 +57,24 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 
 ############
 
-ifeq ($(basename $(basename $(shell $(CXX) -dumpversion))),18) # This section only works with Clang 18
+CXX_VERSION := $(basename $(basename $(shell $(CXX) -dumpversion)))
 
-MODULES = $(call rwildcard,$(SRCDIR)/,*.c++m)
+ifeq ($(CXX_VERSION),17)
+    $(info CXX version is 17)
+else ifeq ($(CXX_VERSION),18)
+    $(info CXX version is 18)
+else ifeq ($(CXX_VERSION),19)
+    $(info CXX version is 19)
+else
+    $(info CXX version is $(CXX_VERSION))
+    $(error CXX version is less than 17. Please use a CXX version >= 17)
+endif
+
+ifeq ($(filter 17 18 19,$(CXX_VERSION)),)
+    # Skip module compilation if CXX version is not in the list
+else
+
+MODULES = $(SRCDIR)/$(PROJECT).c++m
 
 PCMS = $(MODULES:$(SRCDIR)/%.c++m=$(PCMDIR)/%.pcm)
 
@@ -73,13 +88,7 @@ $(OBJDIR)/%.o: $(PCMDIR)/%.pcm
 	@mkdir -p $(@D)
 	$(CXX) $< -c -o $@
 
-LIBRARY = $(addprefix $(LIBDIR)/, lib$(PROJECT).a)
-
-$(LIBRARY) : $(OBJECTS)
-	@mkdir -p $(@D)
-	$(AR) $(ARFLAGS) $@ $^
-
-endif # Clang 15 and above
+endif
 
 ############
 
@@ -87,9 +96,15 @@ SOURCES = $(call rwildcard,$(SRCDIR)/,*.cpp)
 
 OBJECTS += $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
+LIBRARY = $(addprefix $(LIBDIR)/, lib$(PROJECT).a)
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
+
+$(LIBRARY) : $(OBJECTS)
+	@mkdir -p $(@D)
+	$(AR) $(ARFLAGS) $@ $^
 
 ############
 
