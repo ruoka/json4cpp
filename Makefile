@@ -58,20 +58,9 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 ############
 
 CXX_VERSION := $(basename $(basename $(shell $(CXX) -dumpversion)))
-
-ifeq ($(CXX_VERSION),17)
-    $(info CXX version is 17)
-else ifeq ($(CXX_VERSION),18)
-    $(info CXX version is 18)
-else ifeq ($(CXX_VERSION),19)
-    $(info CXX version is 19)
-else
-    $(info CXX version is $(CXX_VERSION))
+$(info CXX version is $(CXX_VERSION))
+ifeq ($(filter 17 18 19 20,$(CXX_VERSION)),)
     $(error CXX version is less than 17. Please use a CXX version >= 17)
-endif
-
-ifeq ($(filter 17 18 19,$(CXX_VERSION)),)
-    # Skip module compilation if CXX version is not in the list
 else
 
 MODULES = $(SRCDIR)/$(PROJECT).c++m
@@ -82,11 +71,11 @@ OBJECTS += $(MODULES:$(SRCDIR)/%.c++m=$(OBJDIR)/%.o)
 
 $(PCMDIR)/%.pcm: $(SRCDIR)/%.c++m
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $< --precompile -c -o $@
+	$(CXX) $(CXXFLAGS) $< --precompile -o $@
 
 $(OBJDIR)/%.o: $(PCMDIR)/%.pcm
 	@mkdir -p $(@D)
-	$(CXX) $< -c -o $@
+	$(CXX) -c $< -o $@
 
 endif
 
