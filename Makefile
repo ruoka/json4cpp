@@ -35,14 +35,13 @@ endif # ifndef CC
 endif #($(MAKELEVEL),0)
 
 CXXFLAGS += -MMD -I$(SRCDIR)
-LDFLAGS +=
 
 ############
 
 PREFIX ?= .
 SRCDIR = src
-OBJDIR = obj
 TESTDIR = test
+OBJDIR = $(PREFIX)/obj
 BINDIR =$(PREFIX)/bin
 LIBDIR = $(PREFIX)/lib
 INCDIR = $(PREFIX)/include
