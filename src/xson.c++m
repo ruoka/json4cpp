@@ -1,9 +1,9 @@
 module;
-#include "xson/fson.hpp"
 export module xson;
 
 import :fast;
 import :json;
+import :fson;
 
 export namespace xson
 {
