@@ -229,7 +229,7 @@ private:
     template<int Sign>
     void fractions(char c)
     {
-        if(isdigit(c))
+        if(std::isdigit(c))
         {
             m_place *= 10;
             m_number += (static_cast<xson::number_type>(c-'0')/m_place);
@@ -254,7 +254,7 @@ private:
         {
             m_state_machine.push(&decoder::string);
         }
-        else if(isdigit(c))
+        else if(std::isdigit(c))
         {
             m_state_machine.push(&decoder::positive);
             m_state_machine.top()(*this,c);

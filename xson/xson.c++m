@@ -14,6 +14,9 @@ export namespace xson
     using xson::to_iso8601;
     using xson::to_string;
     using xson::integer_type;
+    using xson::string_type;
+    using xson::number_type;
+    using xson::boolean_type;
 }
 export namespace xson::json
 {
@@ -26,11 +29,21 @@ export namespace xson::fson
 {
     using xson::fson::decoder;
     using xson::fson::encoder;
-    using xson::fson::operator <<;
+    using xson::fson::parse;
+    using xson::json::operator <<;
     using xson::fson::operator >>;
 }
 export namespace xson::fast
 {
     using fast::decode;
     using fast::encode;
+}
+export namespace xson::trace
+{
+    // Re-export trace function (imported transitively through :object and :fast)
+    using xson::trace::trace;
+}
+namespace std
+{
+    export using xson::json::operator <<;
 }

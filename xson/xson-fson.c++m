@@ -99,7 +99,7 @@ public:
             break;
 
             default:
-            assert(false);
+            std::terminate();
             break;
         }
     }
@@ -198,13 +198,14 @@ public:
                     break;
 
                 case type::end:     // x00
+                    if(parent.empty()) return;  // End of document
                     if(parent.top() == type::object) m_builder.end_object();
                     if(parent.top() == type::array) m_builder.end_array();
                     parent.pop();
                     break;
 
                 default:
-                    assert(false);
+                    std::terminate();
                     break;
             }
 
@@ -235,11 +236,8 @@ inline std::istream& operator >> (std::istream& is, object& ob)
     return is;
 }
 
-inline std::ostream& operator << (std::ostream& os, const object& ob)
-{
-    xson::fson::encoder{}.encode(os,ob);
-    return os;
-}
+// Note: operator<< for object is provided by xson::json to avoid ambiguity
+// Use xson::fson::encoder{}.encode(os, ob) directly if you need FSON encoding
 
 #endif
 

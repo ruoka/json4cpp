@@ -1,24 +1,43 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
-	"name": "clang++-18",
-
+	"name": "clang++-19",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
-
+	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
+	"forwardPorts": [],
+	
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "/usr/lib/llvm-18/bin/clang++ -v",
-
+	"postCreateCommand": "clang++-19 -v && echo 'Dev container ready!'",
+	
 	// Configure tool-specific properties.
-	// "customizations": {},
-
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh"
+			},
+			"extensions": [
+				"ms-vscode.cpptools"
+			]
+		},
+		"codespaces": {
+			"repositories": {
+				"ruoka/std": {
+					"permissions": "write-all"
+				},
+				"ruoka/tester": {
+					"permissions": "write-all"
+				},
+				"ruoka/xson": {
+					"permissions": "write-all"
+				}
+			}
+		}
+	}
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }

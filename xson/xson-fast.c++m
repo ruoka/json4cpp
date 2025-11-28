@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: MIT
 // See the LICENSE file in the project root for full license text.
-module;
-#include "xson/trace.hpp"  // For TRACE macro compatibility
 
 export module xson:fast;
 
@@ -11,7 +9,7 @@ export namespace xson::fast {
 
 inline void encode(std::ostream& os, std::uint8_t b)
 {
-    TRACE("std::uint8_t");
+    // xson::trace::trace("std::uint8_t");
     os.put(b);
 }
 
@@ -36,7 +34,7 @@ inline unsigned size(std::uint64_t i)
 
 inline void encode(std::ostream& os, std::uint64_t i)
 {
-    TRACE("std::uint64_t");
+    // xson::trace::trace("std::uint64_t");
     switch(size(i))
     {
     // Shifts are logical (unsigned)
@@ -86,7 +84,7 @@ inline unsigned size(std::int64_t i)
 
 inline void encode(std::ostream& os, std::int64_t i)
 {
-    TRACE("std::int64_t");
+    // xson::trace::trace("std::int64_t");
     switch(size(i))
     {
     // Shifts are arithmetic (signed)
@@ -105,19 +103,19 @@ inline void encode(std::ostream& os, std::int64_t i)
 
 inline void encode(std::ostream& os, std::uint32_t i)
 {
-    TRACE("std::uint32_t");
+    // xson::trace::trace("std::uint32_t");
     encode(os,static_cast<std::uint64_t>(i));
 }
 
 inline void encode(std::ostream& os, std::int32_t i)
 {
-    TRACE("std::uint32_t");
+    // xson::trace::trace("std::uint32_t");
     encode(os,static_cast<std::int64_t>(i));
 }
 
 inline void encode(std::ostream& os, const std::string& str)
 {
-    TRACE("std::string");
+    // xson::trace::trace("std::string");
     auto head = str.cbegin();
     auto tail = head + (str.size() - 1);
     std::copy(head, tail, std::ostream_iterator<char>(os));
@@ -154,7 +152,7 @@ inline void encode(std::ostream& os, const std::chrono::system_clock::time_point
 inline void decode(std::istream& is, std::uint8_t& byte)
 {
     byte = is.get();
-    TRACE(byte);
+    // xson::trace::trace(byte);
 }
 
 template<typename T> requires std::is_enum_v<T>
@@ -163,7 +161,7 @@ void decode(std::istream& is, T& e)
     std::uint8_t byte;
     decode(is,byte);
     e = static_cast<T>(byte);
-    TRACE(e);
+    // xson::trace::trace(e);
 }
 
 inline void decode(std::istream& is, std::uint32_t& i)
@@ -175,7 +173,7 @@ inline void decode(std::istream& is, std::uint32_t& i)
         if(byte & 0x80)
             break;
     }
-    TRACE(i);
+    // xson::trace::trace(i);
 }
 
 inline void decode(std::istream& is, std::int32_t& i)
@@ -187,7 +185,7 @@ inline void decode(std::istream& is, std::int32_t& i)
         if(byte & 0x80)
             break;
     }
-    TRACE(i);
+    // xson::trace::trace(i);
 }
 
 inline void decode(std::istream& is, std::uint64_t& i)
@@ -199,7 +197,7 @@ inline void decode(std::istream& is, std::uint64_t& i)
         if(byte & 0x80)
             break;
     }
-    TRACE(i);
+    // xson::trace::trace(i);
 }
 
 inline void decode(std::istream& is, std::int64_t& i)
@@ -211,7 +209,7 @@ inline void decode(std::istream& is, std::int64_t& i)
         if(byte & 0x80)
             break;
     }
-    TRACE(i);
+    // xson::trace::trace(i);
 }
 
 inline void decode(std::istream& is, std::string& str)
@@ -223,7 +221,7 @@ inline void decode(std::istream& is, std::string& str)
         if(byte & 0x80)
             break;
     }
-    TRACE(str);
+    // xson::trace::trace(str);
 }
 
 inline void decode(std::istream& is, std::double_t& d)
@@ -234,7 +232,7 @@ inline void decode(std::istream& is, std::double_t& d)
     } i2d;
     decode(is,i2d.i64);
     d = i2d.d64;
-    TRACE(d);
+    // xson::trace::trace(d);
 }
 
 inline void decode(std::istream& is, bool& b)
@@ -242,7 +240,7 @@ inline void decode(std::istream& is, bool& b)
     std::uint8_t byte;
     decode(is,byte);
     b = static_cast<std::uint8_t>(byte);
-    TRACE(b);
+    // xson::trace::trace(b);
 }
 
 inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
@@ -251,7 +249,7 @@ inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
     std::uint64_t i64;
     decode(is,i64);
     dt = system_clock::time_point{milliseconds{i64}};
-    TRACE(i64);
+    // xson::trace::trace(i64);
 }
 
 } // namespace xson::fast

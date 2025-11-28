@@ -5,19 +5,38 @@
         "*.c++": "cpp",
         "*.c++m": "cpp"
     },
-    "C_Cpp.default.compilerPath": "/usr/lib/llvm-15/bin/clang++",
-    "C_Cpp.default.cppStandard": "c++20",
-    "C_Cpp.default.includePath": ["${workspaceFolder}/src","${workspaceFolder}/include"], 
+    "C_Cpp.default.compilerPath": "/usr/lib/llvm-19/bin/clang++",
+    "C_Cpp.default.compilerArgs": [
+        "-std=c++23",
+        "-stdlib=libc++",
+        "-fexperimental-library",
+        "-pthread",
+        "-fPIC",
+        "-I/usr/include/c++/v1",
+        "-fprebuilt-module-path=${workspaceFolder}/build/pcm"
+    ],
+    "C_Cpp.default.cppStandard": "c++23",
     "C_Cpp.default.intelliSenseMode": "clang-x64",
+    "C_Cpp.default.includePaths": [
+        "${workspaceFolder}/xson",
+        "${workspaceFolder}/deps/tester/tester",
+        "/usr/include/c++/v1"
+    ],
     "C_Cpp.errorSquiggles": "enabled",
     "terminal.integrated.gpuAcceleration": "off",
-    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
-    "makefile.launchConfigurations": [
-        {
-            "cwd": "/workspaces/json4cpp/bin",
-            "binaryPath": "/workspaces/json4cpp/bin/test",
-            "binaryArgs": []
-        }
-    ],
-    "git.ignoredRepositories": ["/workspaces/json4cpp/googletest"]
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "files.exclude": {
+        "**/build/**": true,
+        "**/obj/**": true,
+        "**/pcm/**": true,
+        "**/*.o": true,
+        "**/*.a": true
+    },
+    "search.exclude": {
+        "**/build/**": true,
+        "**/obj/**": true,
+        "**/pcm/**": true
+    },
+    "C_Cpp.default.defines": [],
+    "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": false
 }
