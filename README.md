@@ -1,37 +1,56 @@
 # json4cpp
-JSON Library for C++20
+JSON and FSON Library for C++23
 
-## JSON Object ##
+A modern C++23 module-based library for JSON and FSON (Fast JSON) serialization. Built with C++ modules for fast compilation and clean interfaces.
+
+## Requirements
+
+- C++23 compatible compiler (Clang 17+ recommended)
+- LLVM with `std.cppm` module support
+
+## Building
+
+The project uses the C++ Builder (CB) build system. From the project root:
+
+```bash
+tools/CB.sh <path-to-std.cppm> your-program.c++
+```
+
+## Usage
+
+### JSON Object Creation
+
 ```cpp
-#include "xson/json.hpp"
+import std;
+import xson;
 
+using namespace std::string_literals;
 using namespace xson;
-
-[...]
 
 auto document = object{};
 
 document["papa"s]["name"s] = "Cool"s;
 document["papa"s]["age"s] = 40;
 document["papa"s]["married"s] = false;
-document["papa"s]["kids"s][1] = {"Name"s,"Tulppu"s};
-document["papa"s]["kids"s][2] = {"Name"s,"Elppu"s};
-document["papa"s]["kids"s][3] = {"Name"s,"Jalppu"s};
+document["papa"s]["kids"s][1] = { "Name"s, "Tulppu"s };
+document["papa"s]["kids"s][2] = { "Name"s, "Elppu"s };
+document["papa"s]["kids"s][3] = { "Name"s, "Jalppu"s };
 
-clog << json::stringify(document) << endl;
+std::clog << json::stringify(document) << std::endl;
 ```
 
-## JSON Parser ##
+### JSON Parsing
+
 ```cpp
-#include "xson/json.hpp"
+import std;
+import xson;
 
-using namespace std;
-using namespace string_literals;
+using namespace std::string_literals;
 using namespace xson;
+using xson::json::operator <<;
+using xson::json::operator >>;
 
-[...]
-
-auto ss = stringstream{R"(
+auto ss = std::stringstream{R"(
     {
         "_id" : 2,
         "Name" : "Ruoka",
@@ -47,22 +66,39 @@ auto ss = stringstream{R"(
     }
 )"};
 
-clog << ss.str() << "\n\n";
+std::clog << ss.str() << "\n\n";
 
 auto result = json::parse(ss);
 
-clog << setw(2) << result << "\n\n";
+std::clog << std::setw(2) << result << "\n\n";
 
-clog << "_id            = " << result["_id"s]               << "\n"
-     << "Name           = " << result["Name"s]              << "\n"
-     << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
-     << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
-     << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
-     << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
+std::clog << "_id            = " << result["_id"s]               << "\n"
+          << "Name           = " << result["Name"s]              << "\n"
+          << "Embedded.Name  = " << result["Embedded"s]["Name"s] << "\n"
+          << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
+          << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
+          << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-int id = result["_id"s];
-
-string name = result["Name"s];
-
-int number = result["Lucky Numbers"s][1];
+xson::integer_type id = result["_id"s];
+xson::string_type name = result["Name"s];
+xson::integer_type number = result["Lucky Numbers"s][1];
 ```
+
+## Module Structure
+
+The library is organized as C++23 modules:
+
+- `xson` - Main module exporting core types and functions
+- `xson:json` - JSON parsing and stringification
+- `xson:fson` - FSON (Fast JSON) binary serialization
+- `xson:object` - Core object, array, and builder types
+- `xson:fast` - Fast encoding/decoding utilities
+- `xson:trace` - Debug tracing functionality
+
+## Features
+
+- **C++23 Modules**: Fast compilation with module interfaces
+- **JSON Support**: Full JSON parsing and stringification
+- **FSON Support**: Binary serialization format for efficient storage
+- **Type-Safe**: Strong typing with `integer_type`, `number_type`, `string_type`, etc.
+- **Extensible**: Support for custom types via timestamp and integer types
