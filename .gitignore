@@ -1,5 +1,90 @@
-bin
-obj
-lib
-include
-pcm
+###############################################################################
+# Build Artifacts
+###############################################################################
+
+# Build directories
+build/
+build-*/
+
+# Build subdirectories
+obj/
+pcm/
+bin/
+lib/
+stamps/
+cache/
+
+# Compiled object files
+*.o
+*.a
+*.pcm
+*.d
+*.deps
+
+# Executables
+test_runner
+tools/cb
+
+###############################################################################
+# IDE and Editor Files
+###############################################################################
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+.vscode-test/
+
+# Vim
+*.swp
+*.swo
+*~
+
+###############################################################################
+# Operating System Files
+###############################################################################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+.directory
+.Trash-*
+
+###############################################################################
+# Temporary and Log Files
+###############################################################################
+
+*.tmp
+*.log
+*.bak
+
+# Test output
+test_runner.log
+*.test.log
+
+# Build logs
+build.log
+*.build.log
+
+###############################################################################
+# Database Files
+###############################################################################
+
+*.db
+*.pid
+
+###############################################################################
+# Coverage and Analysis Reports
+###############################################################################
+
+# Code coverage (gcov)
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Static analysis reports
+*.plist
