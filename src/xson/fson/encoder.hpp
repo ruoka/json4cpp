@@ -3,8 +3,16 @@
 #include <cassert>
 #include <type_traits>
 #include "xson/object.hpp"
-#include "xson/fast/encoder.hpp"
 #include "xson/fson/types.hpp"
+
+// Note: fast::encode is available via xson module import
+// If this header is included in a module context, import xson:fast
+// Otherwise, the old header path may still work for backward compatibility
+#ifdef __cpp_modules
+import xson:fast;
+#else
+#include "xson/fast/encoder.hpp"
+#endif
 
 namespace xson::fson {
 

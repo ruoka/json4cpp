@@ -2,8 +2,16 @@
 #include <stack>
 #include <cassert>
 #include "xson/concepts.hpp"
-#include "xson/fast/decoder.hpp"
 #include "xson/fson/types.hpp"
+
+// Note: fast::decode is available via xson module import
+// If this header is included in a module context, import xson:fast
+// Otherwise, the old header path may still work for backward compatibility
+#ifdef __cpp_modules
+import xson:fast;
+#else
+#include "xson/fast/decoder.hpp"
+#endif
 
 namespace xson::fson {
 

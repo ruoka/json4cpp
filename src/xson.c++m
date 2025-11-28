@@ -3,6 +3,8 @@ module;
 #include "xson/fson.hpp"
 export module xson;
 
+import :fast;
+
 export namespace xson
 {
     using xson::object;
