@@ -82,22 +82,22 @@ fi
 CURRENT_DIR="$(pwd)"
 INCLUDE_FLAGS=()
 
-# Check if we're in the xson project root (has src/ directory and deps/)
-if [[ -d "$CURRENT_DIR/src" && -d "$CURRENT_DIR/deps" ]]; then
+# Check if we're in the xson project root (has xson/ directory and deps/)
+if [[ -d "$CURRENT_DIR/xson" && -d "$CURRENT_DIR/deps" ]]; then
     # xson project structure
-    # Note: -I "$CURRENT_DIR/src" is needed for module imports and header includes
+    # Note: -I "$CURRENT_DIR/xson" is needed for module imports
     INCLUDE_FLAGS=(
-        -I "$CURRENT_DIR/src"
+        -I "$CURRENT_DIR/xson"
         -I "$CURRENT_DIR/deps/tester/tester"
         -I "/opt/homebrew/include"
     )
 # Check if we're in a subdirectory of xson project
-elif [[ "$CURRENT_DIR" == *"/xson"* ]] && [[ -d "$(cd "$CURRENT_DIR/../.." 2>/dev/null && pwd)/src" ]]; then
+elif [[ "$CURRENT_DIR" == *"/xson"* ]] && [[ -d "$(cd "$CURRENT_DIR/../.." 2>/dev/null && pwd)/xson" ]]; then
     # We're in a subdirectory, find project root
     PROJECT_ROOT_FOUND=""
     CHECK_DIR="$CURRENT_DIR"
     while [[ "$CHECK_DIR" != "/" ]]; do
-        if [[ -d "$CHECK_DIR/src" && -d "$CHECK_DIR/deps" ]]; then
+        if [[ -d "$CHECK_DIR/xson" && -d "$CHECK_DIR/deps" ]]; then
             PROJECT_ROOT_FOUND="$CHECK_DIR"
             break
         fi
@@ -105,7 +105,7 @@ elif [[ "$CURRENT_DIR" == *"/xson"* ]] && [[ -d "$(cd "$CURRENT_DIR/../.." 2>/de
     done
     if [[ -n "$PROJECT_ROOT_FOUND" ]]; then
         INCLUDE_FLAGS=(
-            -I "$PROJECT_ROOT_FOUND/src"
+            -I "$PROJECT_ROOT_FOUND/xson"
             -I "$PROJECT_ROOT_FOUND/deps/tester/tester"
             -I "/opt/homebrew/include"
         )
