@@ -10,6 +10,9 @@ using namespace std::chrono;
 using namespace xson;
 using namespace xson::fson;
 
+using xson::json::operator <<;
+using xson::json::operator >>;
+
 namespace xson::fson_test {
 
 auto register_tests()

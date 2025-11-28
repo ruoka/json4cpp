@@ -10,6 +10,9 @@ using namespace std::string_literals;
 using namespace xson;
 using namespace xson::json;
 
+using xson::json::operator <<;
+using xson::json::operator >>;
+
 namespace xson::object_test {
 
 auto register_tests()

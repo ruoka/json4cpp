@@ -9,29 +9,57 @@ import :fson;
 
 export namespace xson
 {
-    using xson::object;
-    using xson::array;
+    using object        = xson::object;
+    using array         = xson::object::array;
+    using integer_type  = xson::integer_type;
+    using number_type   = xson::number_type;
+    using string_type   = xson::string_type;
+    using boolean_type  = xson::boolean_type;
+    using timestamp_type = xson::timestamp_type;
     using xson::to_iso8601;
     using xson::to_string;
-    using xson::integer_type;
-    using xson::string_type;
-    using xson::number_type;
-    using xson::boolean_type;
 }
+
 export namespace xson::json
 {
+    using xson::json::object;
     using xson::json::parse;
     using xson::json::stringify;
-    using xson::json::operator <<;
-    using xson::json::operator >>;
+
+    inline auto& operator >> (std::istream& is, object& ob)
+    {
+        ob = xson::json::parse(is);
+        return is;
+    }
+    
+    inline auto& operator << (std::ostream& os, const object& obj)
+    {
+        const auto indent = os.width();
+        auto e = xson::json::encoder{indent};
+        os.width(0);
+        e.encode(os,obj);
+        os.width(indent);
+        return os;
+    }
 }
 export namespace xson::fson
 {
+    using xson::fson::object;
     using xson::fson::decoder;
     using xson::fson::encoder;
     using xson::fson::parse;
-    using xson::json::operator <<;
-    using xson::fson::operator >>;
+
+    inline std::istream& operator >> (std::istream& is, object& ob)
+    {
+        ob = xson::fson::parse(is);
+        return is;
+    }
+    
+    inline std::ostream& operator << (std::ostream& os, const object& ob)
+    {
+        xson::fson::encoder{}.encode(os,ob);
+        return os;
+    }
 }
 export namespace xson::fast
 {
@@ -42,8 +70,4 @@ export namespace xson::trace
 {
     // Re-export trace function (imported transitively through :object and :fast)
     using xson::trace::trace;
-}
-namespace std
-{
-    export using xson::json::operator <<;
 }

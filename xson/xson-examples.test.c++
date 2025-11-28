@@ -8,6 +8,9 @@ import tester;
 using namespace std::string_literals;
 using namespace xson;
 
+using xson::json::operator <<;
+using xson::json::operator >>;
+
 namespace xson::examples_test {
 
 auto register_tests()

@@ -236,8 +236,11 @@ inline std::istream& operator >> (std::istream& is, object& ob)
     return is;
 }
 
-// Note: operator<< for object is provided by xson::json to avoid ambiguity
-// Use xson::fson::encoder{}.encode(os, ob) directly if you need FSON encoding
+inline std::ostream& operator << (std::ostream& os, const object& ob)
+{
+    xson::fson::encoder{}.encode(os,ob);
+    return os;
+}
 
 #endif
 
