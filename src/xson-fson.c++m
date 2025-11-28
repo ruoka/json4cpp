@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
 // See the LICENSE file in the project root for full license text.
 module;
-#include <ostream>
-#include <istream>
-#include <stack>
-#include <cassert>
-#include <type_traits>
 
 export module xson:fson;
 
+import std;
 import :object;
 import :fast;
 

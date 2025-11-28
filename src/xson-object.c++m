@@ -1,27 +1,11 @@
 // SPDX-License-Identifier: MIT
 // See the LICENSE file in the project root for full license text.
 module;
-#include <algorithm>
-#include <iostream>
-#include <initializer_list>
-#include <functional>
-#include <map>
-#include <variant>
-#include <charconv>
-#include <sstream>
-#include <iomanip>
-#include <cassert>
-#include <ranges>
-#include <cstdint>
-#include <string>
-#include <chrono>
-#include <array>
-#include <vector>
-#include <exception>
-#include <stack>
-#include "xson/trace.hpp"
+#include "xson/trace.hpp"  // For TRACE macro compatibility
 
 export module xson:object;
+
+import std;
 
 export namespace xson {
 
