@@ -1,6 +1,7 @@
 module;
 export module xson;
 
+import :object;
 import :fast;
 import :json;
 import :fson;

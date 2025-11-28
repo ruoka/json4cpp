@@ -6,12 +6,10 @@ module;
 #include <stack>
 #include <cassert>
 #include <type_traits>
-#include "xson/object.hpp"
-#include "xson/concepts.hpp"
-#include "xson/builder.hpp"
 
 export module xson:fson;
 
+import :object;
 import :fast;
 
 export namespace xson::fson {

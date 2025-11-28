@@ -9,10 +9,10 @@ module;
 #include <stack>
 #include <functional>
 #include <cctype>
-#include "xson/object.hpp"
-#include "xson/builder.hpp"
 
 export module xson:json;
+
+import :object;
 
 export namespace xson::json {
 
