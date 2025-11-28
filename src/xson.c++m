@@ -1,6 +1,7 @@
 module;
 export module xson;
 
+import :trace;
 import :object;
 import :fast;
 import :json;
