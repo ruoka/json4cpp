@@ -8,7 +8,7 @@ import std;
 export namespace xson {
 
 // Type aliases and concepts (from concepts.hpp)
-class object;
+class object;  // Forward declaration
 
 using number_type    = std::double_t;
 using string_type    = std::string;
