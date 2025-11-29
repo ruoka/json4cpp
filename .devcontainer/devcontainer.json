@@ -7,13 +7,13 @@
 	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
-	
+
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [],
-	
+
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "clang++-19 -v && echo 'Dev container ready!'",
-	
+
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
