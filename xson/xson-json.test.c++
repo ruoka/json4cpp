@@ -231,7 +231,10 @@ auto register_tests()
     };
 
     test_case("ParseFile1") = [] {
-        auto fs = std::ifstream{"./test/xson/test1.json"};
+        const auto loc = std::source_location::current();
+        auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
+        auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test1.json";
+        auto fs = std::ifstream{test_file};
         auto ob = json::parse(fs);
         xson::trace("test1.json: "s + json::stringify(ob));
 
@@ -248,7 +251,10 @@ auto register_tests()
     };
 
     test_case("ParseFile2") = [] {
-        auto fs = std::ifstream{"./test/xson/test2.json"};
+        const auto loc = std::source_location::current();
+        auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
+        auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test2.json";
+        auto fs = std::ifstream{test_file};
         auto ob = json::parse(fs);
         xson::trace("test2.json: "s + json::stringify(ob));
 
