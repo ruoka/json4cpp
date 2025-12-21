@@ -276,9 +276,20 @@ public:
         return std::get<array>(m_data);
     }
 
+    template<typename T> requires std::same_as<T,string_type>
+    const auto& get() const
+    {
+        return std::get<string_type>(std::get<value>(m_data));
+    }
+
     object& operator [] (const string_type& name)
     {
         return std::get<map>(m_data)[name];
+    }
+
+    object& operator [] (std::string_view name)
+    {
+        return std::get<map>(m_data)[std::string{name}];
     }
 
     const object& operator [] (const string_type& name) const
@@ -286,6 +297,14 @@ public:
         if(std::get<map>(m_data).contains(name))
             return std::get<map>(m_data).find(name)->second;
         throw std::out_of_range("object has no field with name "s + name);
+    }
+
+    const object& operator [] (std::string_view name) const
+    {
+        auto key = std::string{name};
+        if(std::get<map>(m_data).contains(key))
+            return std::get<map>(m_data).find(key)->second;
+        throw std::out_of_range("object has no field with name "s + key);
     }
 
     object& operator [] (std::size_t idx)
@@ -389,6 +408,14 @@ public:
     {
         if(holds_alternative<map>(m_data))
             return std::get<map>(m_data).contains(name);
+        else
+            return false;
+    }
+
+    bool has(std::string_view name) const
+    {
+        if(holds_alternative<map>(m_data))
+            return std::get<map>(m_data).contains(std::string{name});
         else
             return false;
     }
