@@ -174,7 +174,7 @@ private:
         if(c == Character)
             m_state_machine.pop();
         else
-            throw std::runtime_error{"failed: "s + c + " is not " + Character};
+            throw std::runtime_error{"JSON parse error: expected '"s + std::string{Character} + "', got '"s + c + "'"s};
     }
 
     void string(char c)
@@ -353,7 +353,7 @@ private:
             m_state_machine.top()(*this,c);
         }
         else if(!isws(c))
-            throw std::runtime_error{"value failed: "s + c};
+            throw std::runtime_error{"JSON parse error: unexpected character in value context: '"s + c + "' (0x"s + std::to_string(static_cast<unsigned char>(c)) + ")"s};
     }
 
     void comma(char c)
@@ -368,7 +368,7 @@ private:
             m_state_machine.top()(*this,c);
         }
         else if(!isws(c))
-            throw std::runtime_error{"comma failed: "s + c};
+            throw std::runtime_error{"JSON parse error: expected comma, '}' or ']', got '"s + c + "'"s};
     }
 
     void colon(char c)
@@ -376,7 +376,7 @@ private:
         if(c == ':')
             m_state_machine.pop();
         else if(!isws(c))
-            throw std::runtime_error{"colon failed: "s + c};
+            throw std::runtime_error{"JSON parse error: expected colon ':', got '"s + c + "'"s};
     }
 
     void name(char c)
@@ -406,7 +406,7 @@ private:
             m_state_machine.push(&decoder::name);
         }
         else if(!isws(c))
-            throw std::runtime_error{"object failed: "s + c};
+            throw std::runtime_error{"JSON parse error: unexpected character in object context: '"s + c + "'"s};
     }
 
     struct array
@@ -425,7 +425,7 @@ private:
                 p.m_state_machine.top()(p,c);
             }
             else if(!isws(c))
-                throw std::runtime_error{"array failed: "s + c};
+                throw std::runtime_error{"JSON parse error: unexpected character in array context: '"s + c + "'"s};
 
         }
     };
@@ -453,7 +453,7 @@ private:
             m_state_machine.pop();
         }
         else if(!isws(c))
-            throw std::runtime_error{"document failed: "s + c};
+            throw std::runtime_error{"JSON parse error: unexpected character at document start: '"s + c + "'"s};
     }
 
     static bool isws(char c)

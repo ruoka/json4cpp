@@ -8,8 +8,6 @@ import tester;
 using namespace std::string_literals;
 using namespace xson;
 
-using xson::json::operator <<;
-using xson::json::operator >>;
 
 namespace xson::examples_test {
 
@@ -45,7 +43,7 @@ auto register_tests()
             { "Lucky",        false         }
         };
 
-        std::clog << json::stringify(papa) << std::endl;
+        std::clog << xson::json::stringify(papa, 2) << std::endl;
     };
 
     test_case("Parse") = [] {
@@ -69,9 +67,9 @@ auto register_tests()
 
         std::clog << ss.str() << "\n\n";
 
-        auto result = json::parse(ss);
+        auto result = json::parse(ss.str());
 
-        std::clog << std::setw(2) << result << "\n\n";
+        std::clog << xson::json::stringify(result, 2) << "\n\n";
 
         std::clog << "_id            = " << result["id"s]                << "\n"
                  << "Name           = " << result["Name"s]              << "\n"
