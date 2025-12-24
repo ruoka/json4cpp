@@ -9,7 +9,7 @@ export namespace xson::fast {
 
 inline void encode(std::ostream& os, std::uint8_t b)
 {
-    // xson::trace::trace("std::uint8_t");
+    
     os.put(b);
 }
 
@@ -34,7 +34,7 @@ inline unsigned size(std::uint64_t i)
 
 inline void encode(std::ostream& os, std::uint64_t i)
 {
-    // xson::trace::trace("std::uint64_t");
+    
     switch(size(i))
     {
     // Shifts are logical (unsigned)
@@ -84,7 +84,7 @@ inline unsigned size(std::int64_t i)
 
 inline void encode(std::ostream& os, std::int64_t i)
 {
-    // xson::trace::trace("std::int64_t");
+    
     switch(size(i))
     {
     // Shifts are arithmetic (signed)
@@ -103,19 +103,24 @@ inline void encode(std::ostream& os, std::int64_t i)
 
 inline void encode(std::ostream& os, std::uint32_t i)
 {
-    // xson::trace::trace("std::uint32_t");
+    
     encode(os,static_cast<std::uint64_t>(i));
 }
 
 inline void encode(std::ostream& os, std::int32_t i)
 {
-    // xson::trace::trace("std::uint32_t");
+    
     encode(os,static_cast<std::int64_t>(i));
 }
 
 inline void encode(std::ostream& os, const std::string& str)
 {
-    // xson::trace::trace("std::string");
+    
+    if(str.empty())
+    {
+        os.put(0x80);  // Empty string marker
+        return;
+    }
     auto head = str.cbegin();
     auto tail = head + (str.size() - 1);
     std::copy(head, tail, std::ostream_iterator<char>(os));
@@ -124,12 +129,8 @@ inline void encode(std::ostream& os, const std::string& str)
 
 inline void encode(std::ostream& os, std::double_t d)
 {
-    union {
-        std::double_t d64;
-        std::uint64_t i64;
-    } d2i;
-    d2i.d64 = d;
-    encode(os,d2i.i64);
+    auto i64 = std::bit_cast<std::uint64_t>(d);
+    encode(os, i64);
 }
 
 inline void encode(std::ostream& os, bool b)
@@ -152,7 +153,7 @@ inline void encode(std::ostream& os, const std::chrono::system_clock::time_point
 inline void decode(std::istream& is, std::uint8_t& byte)
 {
     byte = is.get();
-    // xson::trace::trace(byte);
+    
 }
 
 template<typename T> requires std::is_enum_v<T>
@@ -161,7 +162,7 @@ void decode(std::istream& is, T& e)
     std::uint8_t byte;
     decode(is,byte);
     e = static_cast<T>(byte);
-    // xson::trace::trace(e);
+    
 }
 
 inline void decode(std::istream& is, std::uint32_t& i)
@@ -173,7 +174,7 @@ inline void decode(std::istream& is, std::uint32_t& i)
         if(byte & 0x80)
             break;
     }
-    // xson::trace::trace(i);
+    
 }
 
 inline void decode(std::istream& is, std::int32_t& i)
@@ -185,7 +186,7 @@ inline void decode(std::istream& is, std::int32_t& i)
         if(byte & 0x80)
             break;
     }
-    // xson::trace::trace(i);
+    
 }
 
 inline void decode(std::istream& is, std::uint64_t& i)
@@ -197,7 +198,7 @@ inline void decode(std::istream& is, std::uint64_t& i)
         if(byte & 0x80)
             break;
     }
-    // xson::trace::trace(i);
+    
 }
 
 inline void decode(std::istream& is, std::int64_t& i)
@@ -209,7 +210,7 @@ inline void decode(std::istream& is, std::int64_t& i)
         if(byte & 0x80)
             break;
     }
-    // xson::trace::trace(i);
+    
 }
 
 inline void decode(std::istream& is, std::string& str)
@@ -221,18 +222,15 @@ inline void decode(std::istream& is, std::string& str)
         if(byte & 0x80)
             break;
     }
-    // xson::trace::trace(str);
+    
 }
 
 inline void decode(std::istream& is, std::double_t& d)
 {
-    union {
-        std::uint64_t i64;
-        std::double_t d64;
-    } i2d;
-    decode(is,i2d.i64);
-    d = i2d.d64;
-    // xson::trace::trace(d);
+    std::uint64_t i64;
+    decode(is, i64);
+    d = std::bit_cast<std::double_t>(i64);
+    
 }
 
 inline void decode(std::istream& is, bool& b)
@@ -240,7 +238,7 @@ inline void decode(std::istream& is, bool& b)
     std::uint8_t byte;
     decode(is,byte);
     b = static_cast<std::uint8_t>(byte);
-    // xson::trace::trace(b);
+    
 }
 
 inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
@@ -249,7 +247,7 @@ inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
     std::uint64_t i64;
     decode(is,i64);
     dt = system_clock::time_point{milliseconds{i64}};
-    // xson::trace::trace(i64);
+    
 }
 
 } // namespace xson::fast
