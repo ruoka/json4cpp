@@ -125,13 +125,18 @@ public:
     void decode(std::istream& is)
     {
         m_state_machine.push(&decoder::document);
-        while(is)
+        while(is.good())
         {
-            m_state_machine.top()(*this,is.get());
+            auto c = is.get();
+            if(is.eof())
+                break;
+            if(is.fail())
+                throw std::runtime_error{"Stream error while reading JSON input"};
+            m_state_machine.top()(*this, static_cast<char>(c));
             if(m_state_machine.empty()) break;
         }
         if(!m_state_machine.empty())
-            throw std::runtime_error{"Invalid JSON object"s};
+            throw std::runtime_error{"Invalid JSON: incomplete document (unexpected end of input)"s};
     }
 
     void decode(std::string_view sv)
@@ -143,7 +148,7 @@ public:
             if(m_state_machine.empty()) break;
         }
         if(!m_state_machine.empty())
-            throw std::runtime_error{"Invalid JSON object"s};
+            throw std::runtime_error{"Invalid JSON: incomplete document (unexpected end of string)"s};
     }
 
 private:
