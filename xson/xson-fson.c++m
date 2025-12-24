@@ -99,7 +99,7 @@ public:
             break;
 
             default:
-            std::terminate();
+            throw std::runtime_error{"Invalid FSON type encountered during encoding: "s + std::to_string(static_cast<int>(type))};
             break;
         }
     }
@@ -205,7 +205,7 @@ public:
                     break;
 
                 default:
-                    std::terminate();
+                    throw std::runtime_error{"Invalid FSON type encountered during decoding: "s + std::to_string(static_cast<int>(type))};
                     break;
             }
 
