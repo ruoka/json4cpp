@@ -66,19 +66,19 @@ public:
 
     object() : m_data{}
     {
-        // xson::trace::trace('!');
+        
     }
 
     explicit object(const data& d) : m_data{d}
     {
-        // xson::trace::trace('!');
+        
     }
 
     template <typename T> requires (Value<T> and not Null<T>)
     object(const string_type& name, const T& v) :
     object{}
     {
-        // xson::trace::trace('!');
+        
         static_assert(Value<T>);
         auto o = object{};
         o.m_data = value{v};
@@ -89,7 +89,7 @@ public:
     object(const string_type& name, [[maybe_unused]] const T& v) :
     object{}
     {
-        // xson::trace::trace('!');
+        
         auto o = object{};
         o.m_data = value{};
         m_data = map{{name,o}};
@@ -98,7 +98,7 @@ public:
     template <Value T>
     object(const string_type& name, std::initializer_list<T> values)
     {
-        // xson::trace::trace('!');
+        
         m_data = map{};
         auto arr = array{};
         for(auto& v : values)
@@ -109,14 +109,14 @@ public:
     object(const std::string& name, const object& o) :
     object{}
     {
-        // xson::trace::trace("! xxxxxxx");
+        
         m_data = map{};
         std::get<map>(m_data).emplace(name,o);
     }
 
     object(std::initializer_list<object> objects)
     {
-        // xson::trace::trace('!');
+        
         m_data = map{};
         for(auto& o : objects)
             std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
@@ -126,7 +126,7 @@ public:
     object(const string_type& name, T&& data) :
     object{}
     {
-        // xson::trace::trace('!');
+        
         m_data = map{};
         auto arr = array{};
         for(const auto& d : data)
@@ -137,32 +137,32 @@ public:
     object(const object& obj) :
     m_data{obj.m_data}
     {
-        // xson::trace::trace('!');
+        
     }
 
     object(object&& obj) :
     m_data{std::move(obj.m_data)}
     {
-        // xson::trace::trace('!');
+        
     }
 
     object& operator = (const object& o)
     {
-        // xson::trace::trace('!');
+        
         m_data = o.m_data;
         return *this;
     }
 
     object& operator = (object&& obj)
     {
-        // xson::trace::trace('!');
+        
         m_data = std::move(obj.m_data);
         return *this;
     }
 
     object& operator = (const array& arr)
     {
-        // xson::trace::trace('!');
+        
         m_data = arr;
         return *this;
     }
@@ -170,7 +170,7 @@ public:
     template <Value T> requires (not Null<T>)
     object& operator = (const T& val)
     {
-        // xson::trace::trace('!');
+        
         m_data = val;
         return *this;
     }
@@ -178,7 +178,7 @@ public:
     template <Null T>
     object& operator = (const T&)
     {
-        // xson::trace::trace('!');
+        
         m_data = monostate{};
         return *this;
     }
@@ -284,11 +284,15 @@ public:
 
     object& operator [] (const string_type& name)
     {
+        if(!is_object())
+            throw std::logic_error{"Cannot access object field: object is not an object type"};
         return std::get<map>(m_data)[name];
     }
 
     object& operator [] (std::string_view name)
     {
+        if(!is_object())
+            throw std::logic_error{"Cannot access object field: object is not an object type"};
         return std::get<map>(m_data)[std::string{name}];
     }
 
@@ -309,6 +313,10 @@ public:
 
     object& operator [] (std::size_t idx)
     {
+        if(!is_array())
+            throw std::logic_error{"Cannot access array index: object is not an array type"};
+        if(idx >= std::get<array>(m_data).size())
+            throw std::out_of_range{"array has no index with value "s + std::to_string(idx)};
         return std::get<array>(m_data)[idx];
     }
 
@@ -354,7 +362,30 @@ public:
         return std::get<integer_type>(std::get<value>(m_data));
     }
 
-    object& operator + (const object& obj)
+    object operator + (const object& obj) const
+    {
+        auto result = *this;
+        if(holds_alternative<map>(result.m_data))
+            std::get<map>(result.m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
+        else if(holds_alternative<array>(result.m_data))
+            std::get<array>(result.m_data).push_back(obj);
+        return result;
+    }
+
+    object operator + (object&& obj) const
+    {
+        auto result = *this;
+        if(holds_alternative<map>(result.m_data))
+        {
+            auto temp = std::get<map>(std::move(obj.m_data));
+            std::get<map>(result.m_data).merge(temp);
+        }
+        else if(holds_alternative<array>(result.m_data))
+            std::get<array>(result.m_data).push_back(std::move(obj));
+        return result;
+    }
+
+    object& operator += (const object& obj)
     {
         if(holds_alternative<map>(m_data))
             std::get<map>(m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
@@ -363,24 +394,12 @@ public:
         return *this;
     }
 
-    object& operator + (object&& obj)
+    object& operator += (object&& obj)
     {
         if(holds_alternative<map>(m_data))
             std::get<map>(m_data).merge(std::get<map>(obj.m_data));
         else if(holds_alternative<array>(m_data))
             std::get<array>(m_data).push_back(std::move(obj));
-        return *this;
-    }
-
-    object& operator += (const object& obj)
-    {
-        *this = *this + obj;
-        return *this;
-    }
-
-    object& operator += (object&& obj)
-    {
-        *this = *this + std::move(obj);
         return *this;
     }
 
@@ -613,7 +632,7 @@ public:
 
     void start_object()
     {
-        // xson::trace::trace('!');
+        
         if(m_stack.empty())
         {
             m_root = object{object::map{}};
@@ -634,7 +653,7 @@ public:
 
     void end_object()
     {
-        // xson::trace::trace('!');
+        
         m_stack.pop();
         if(not m_stack.empty())
         {
@@ -643,13 +662,13 @@ public:
             else if(m_stack.top().get().is_array())
                 m_type = type::array;
             else
-                std::terminate(); // error
+                throw std::logic_error{"Invalid builder state: expected object or array after end_object"};
         }
     }
 
     void start_array()
     {
-        // xson::trace::trace('!');
+        
         if(m_stack.empty())
         {
             m_root = object{object::array{}};
@@ -670,7 +689,7 @@ public:
 
     void end_array()
     {
-        // xson::trace::trace('!');
+        
         m_stack.pop();
         if(not m_stack.empty())
         {
@@ -679,20 +698,20 @@ public:
             else if(m_stack.top().get().is_array())
                 m_type = type::array;
             else
-                std::terminate(); // error
+                throw std::logic_error{"Invalid builder state: expected object or array after end_array"};
         }
     }
 
     void name(xson::string_type str)
     {
-        // xson::trace::trace(str);
+        
         m_current = std::move(str);
     }
 
     template<Value T> requires (not Null<T>)
     void value(const T& val)
     {
-        // xson::trace::trace(val);
+        
         if(m_type == type::object)
             m_stack.top().get().get<object::map>().emplace(m_current,val);
         else // type::array
@@ -702,7 +721,7 @@ public:
     template<Null T>
     void value(T)
     {
-        // xson::trace::trace("null");
+        
         if(m_type == type::object)
             m_stack.top().get().get<object::map>().emplace(m_current,std::monostate{});
         else // type::array
