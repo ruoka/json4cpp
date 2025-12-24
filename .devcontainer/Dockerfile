@@ -10,7 +10,7 @@ RUN set -ex &&\
     wget --no-check-certificate -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
 	touch /etc/apt/apt.conf.d/99verify-peer.conf && echo >>/etc/apt/apt.conf.d/99verify-peer.conf "Acquire { https::Verify-Peer false }" && \
     apt-get update && \
-    apt-get install --no-install-recommends --yes git cmake make clang-19 lldb-19 lld-19 libc++-19-dev libc++abi-19-dev && \
+    apt-get install --no-install-recommends --yes git cmake make clang-19 lldb-19 lld-19 libc++-19-dev libc++abi-19-dev file && \
     rm -rf /var/lib/apt/lists/*
 
 # https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
