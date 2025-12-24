@@ -23,10 +23,10 @@ auto register_tests()
     test_case("String") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"String", "1234567890"s};
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["String"s].is_string());
         const xson::string_type s = ob["String"s];
@@ -36,10 +36,10 @@ auto register_tests()
     test_case("Double") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"Double", 21.12};
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["Double"s].is_number());
         const xson::number_type d = ob["Double"s];
@@ -49,10 +49,10 @@ auto register_tests()
     test_case("Boolean") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{{"True", true},{"False", false}};
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["True"s].is_boolean());
         const xson::boolean_type t = ob["True"s];
@@ -67,10 +67,10 @@ auto register_tests()
         auto now = system_clock::now();
         auto ss = std::stringstream{};
         ss << xson::object{"Date", now};
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["Date"s].is_string());
         const xson::string_type d = ob["Date"s];
@@ -80,10 +80,10 @@ auto register_tests()
     test_case("Null") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"Null", nullptr};
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["Null"s].is_null());
     };
@@ -95,10 +95,10 @@ auto register_tests()
             {"Min", std::numeric_limits<int>::min()},
             {"Max", std::numeric_limits<int>::max()}
         };
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["Zero"s].is_integer());
         const xson::integer_type zero = ob["Zero"s];
@@ -120,10 +120,10 @@ auto register_tests()
             {"Min", std::numeric_limits<xson::integer_type>::min()},
             {"Max", std::numeric_limits<xson::integer_type>::max()}
         };
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto ob = json::parse(ss);
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob["Zero"s].is_integer());
         const xson::integer_type zero = ob["Zero"s];
@@ -143,16 +143,16 @@ auto register_tests()
         {
             {"Array"s, std::array<std::int64_t,3>{1, 2, 3}}
         };
-        xson::trace("ob1:  " + json::stringify(ob1));
+        succeed("ob1:  " + json::stringify(ob1));
         auto str1 = json::stringify(ob1);
-        xson::trace("str1: " + str1);
+        succeed("str1: " + str1);
 
         auto ss = std::stringstream{str1};
 
         auto ob2 = json::parse(ss);
-        xson::trace("ob2:  " + json::stringify(ob2));
+        succeed("ob2:  " + json::stringify(ob2));
         auto str2 = json::stringify(ob2);
-        xson::trace("str2: " + str2);
+        succeed("str2: " + str2);
 
         check_eq(str1, str2);
     };
@@ -161,9 +161,9 @@ auto register_tests()
         auto json_str = R"( {"array":[["a", "b", "c"], [1 ,2, 3], [0.1, 0.2, 0.3]]} )";
 
         auto ob = json::parse(json_str);
-        xson::trace("ob2:  " + json::stringify(ob));
+        succeed("ob2:  " + json::stringify(ob));
         auto str2 = json::stringify(ob);
-        xson::trace("str2: " + str2);
+        succeed("str2: " + str2);
 
         check_eq(static_cast<xson::string_type>(ob["array"s][0][0]), "a"s);
         check_eq(static_cast<xson::string_type>(ob["array"s][0][1]), "b"s);
@@ -183,16 +183,16 @@ auto register_tests()
         {
             {"Vector"s, std::vector<std::string>{"a", "b", "c", "d", "e", "f"}}
         };
-        xson::trace("ob1:  " + json::stringify(ob1));
+        succeed("ob1:  " + json::stringify(ob1));
         auto str1 = json::stringify(ob1);
-        xson::trace("str1: " + str1);
+        succeed("str1: " + str1);
 
         auto ss = std::stringstream{str1};
 
         auto ob2 = json::parse(ss);
-        xson::trace("ob2:  " + json::stringify(ob2));
+        succeed("ob2:  " + json::stringify(ob2));
         auto str2 = json::stringify(ob2);
-        xson::trace("str2: " + str2);
+        succeed("str2: " + str2);
 
         check_eq(str1, str2);
     };
@@ -210,10 +210,10 @@ auto register_tests()
 
         auto ss = std::stringstream{};
         ss << mix;
-        xson::trace(ss.str());
+        succeed(ss.str());
 
         auto obj = json::parse(ss);
-        xson::trace(json::stringify(obj));
+        succeed(json::stringify(obj));
 
         require_true(obj["Ruoka"s].is_boolean());
         const xson::boolean_type b = obj["Ruoka"s];
@@ -236,7 +236,7 @@ auto register_tests()
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test1.json";
         auto fs = std::ifstream{test_file};
         auto ob = json::parse(fs);
-        xson::trace("test1.json: "s + json::stringify(ob));
+        succeed("test1.json: "s + json::stringify(ob));
 
         require_true(ob["required"s].is_array());
         require_true(ob["required"s][2].is_string());
@@ -256,7 +256,7 @@ auto register_tests()
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test2.json";
         auto fs = std::ifstream{test_file};
         auto ob = json::parse(fs);
-        xson::trace("test2.json: "s + json::stringify(ob));
+        succeed("test2.json: "s + json::stringify(ob));
 
         const xson::boolean_type alive = ob["isAlive"s];
         check_eq(true, alive);

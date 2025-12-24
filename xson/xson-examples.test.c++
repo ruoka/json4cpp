@@ -33,7 +33,7 @@ auto register_tests()
             { "ShoeSize"s, 47.5  }
         };
 
-        xson::trace('X');
+        succeed("X"s);
 
         auto papa = object
         {

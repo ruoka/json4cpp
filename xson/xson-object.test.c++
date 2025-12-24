@@ -27,7 +27,7 @@ auto register_tests()
             { "Second", "Elppu"s  },
             { "Third",  "Jalppu"s }
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("First"s));
         require_true(ob.has("Second"s));
@@ -39,7 +39,7 @@ auto register_tests()
 
     test_case("Mix") = [] {
         auto o1 = object{"Integer"s, 123456789};
-        xson::trace(json::stringify(o1));
+        succeed(json::stringify(o1));
 
         check_false(o1.empty());
         check_true(o1.has("Integer"s));
@@ -56,7 +56,7 @@ auto register_tests()
             {"Object2"s, {{"Boolean"s, false}, {"String"s, "4"s}}},
             {"Array"s, {1, 2, 3, 4, 5, 6}}
         };
-        xson::trace(json::stringify(o2));
+        succeed(json::stringify(o2));
 
         require_false(o2.empty());
         require_true(o2.has("Integer"s));
@@ -89,7 +89,7 @@ auto register_tests()
     test_case("Array") = [] {
         auto arr = std::array<int,9>{1,2,3,4,5,6,7,8,9};
         auto ob = object{"Array"s, arr};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("Array"s));
         require_true(ob["Array"s].is_array());
@@ -106,7 +106,7 @@ auto register_tests()
     test_case("Vector") = [] {
         auto vec = std::vector<std::string>{"a","b","c","d","e","f","g","h","i"};
         auto ob = object{"Vector"s, vec};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("Vector"s));
         require_true(ob["Vector"s].is_array());
@@ -123,7 +123,7 @@ auto register_tests()
     test_case("CArray") = [] {
         double arr[] = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
         auto ob = object{"CArray"s, arr};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("CArray"s));
         require_true(ob["CArray"s].is_array());
@@ -139,7 +139,7 @@ auto register_tests()
 
     test_case("BooleanTrue") = [] {
         auto ob = object{"True"s, true};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("True"s));
         require_true(ob["True"s].is_boolean());
@@ -149,7 +149,7 @@ auto register_tests()
 
     test_case("BooleanFalse") = [] {
         auto ob = object{"False"s, false};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("False"s));
         require_true(ob["False"s].is_boolean());
@@ -159,7 +159,7 @@ auto register_tests()
 
     test_case("Null") = [] {
         auto ob = object{"Null"s, nullptr};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("Null"s));
         require_true(ob["Null"s].is_null());
@@ -168,7 +168,7 @@ auto register_tests()
     test_case("Date") = [] {
         auto now = system_clock::now();
         auto ob = object{"Date"s, now};
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("Date"s));
         require_true(ob["Date"s].is_timestamp());
@@ -182,7 +182,7 @@ auto register_tests()
         {
             "ObjectArray"s, std::array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("ObjectArray"s));
         require_true(ob["ObjectArray"s].is_array());
@@ -205,7 +205,7 @@ auto register_tests()
                 { "Name", "Jalppu"s }
             }
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("Kids"s));
         require_true(ob["Kids"s].is_array());
@@ -222,7 +222,7 @@ auto register_tests()
         {
             "ObjectVector"s, std::vector<object>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_false(ob.empty());
         require_true(ob.has("ObjectVector"s));
         require_true(ob["ObjectVector"s].is_array());
@@ -244,7 +244,7 @@ auto register_tests()
             { "Jalppu", 3                            },
             { "Ages",   std::vector<int>{39, 40, 9, 5, 2} }
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
 
         require_true(ob.has("Ruoka"s));
         require_true(ob["Ruoka"s].is_boolean());
@@ -305,7 +305,7 @@ auto register_tests()
         {
             "List", {1, 2, 3, 4, 5}
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_true(ob["List"s].is_array());
         require_true(ob["List"s][0].is_integer());
         require_true(ob["List"s][1].is_integer());
@@ -319,7 +319,7 @@ auto register_tests()
         {
             "List", {{"A"s,1},{"B"s,false},{"C"s,3.0},{"D"s,"4"s}}
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_true(ob["List"s].is_object());
         require_true(ob["List"s]["A"s].is_integer());
         require_true(ob["List"s]["B"s].is_boolean());
@@ -347,7 +347,7 @@ auto register_tests()
             {"bool", true},
             {"name", "Hepokatti Maantiella"s}
         };
-        xson::trace(json::stringify(ob));
+        succeed(json::stringify(ob));
         require_true(ob.match(object{"id", 987654321}));
         require_false(ob.match(object{"XXXX", 1}));
         require_false(ob.match(object{"id", 1}));
@@ -381,6 +381,355 @@ auto register_tests()
         require_true(o1.match(s));
         require_true(o2.match(s));
         require_true(o3.match(s));
+    };
+
+    test_case("DefaultConstructor") = [] {
+        auto ob = object{};
+        // Default constructor creates an empty map (first variant alternative)
+        // Verify the actual behavior
+        succeed("Default object is_object: "s + (ob.is_object() ? "true"s : "false"s));
+        succeed("Default object has_objects: "s + (ob.has_objects() ? "true"s : "false"s));
+        succeed("Default object has_value: "s + (ob.has_value() ? "true"s : "false"s));
+        require_true(ob.empty());
+        require_true(ob.is_object());  // Default variant holds first alternative (map)
+        require_true(ob.has_objects());
+        require_false(ob.has_value());
+        require_false(ob.is_array());
+        require_eq(0u, ob.size());
+    };
+
+    test_case("CopyConstructor") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = o1;  // Copy constructor
+        require_eq(o1, o2);
+        require_true(o2.has("A"s));
+        require_true(o2.has("B"s));
+        check_eq(static_cast<int>(o2["A"s]), 1);
+        check_eq(static_cast<int>(o2["B"s]), 2);
+    };
+
+    test_case("MoveConstructor") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = std::move(o1);  // Move constructor
+        require_true(o2.has("A"s));
+        require_true(o2.has("B"s));
+        check_eq(static_cast<int>(o2["A"s]), 1);
+        check_eq(static_cast<int>(o2["B"s]), 2);
+        require_true(o1.empty());  // o1 should be empty after move
+    };
+
+    test_case("CopyAssignment") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"C"s, 3}};
+        o2 = o1;  // Copy assignment
+        require_eq(o1, o2);
+        require_true(o2.has("A"s));
+        require_true(o2.has("B"s));
+        require_false(o2.has("C"s));
+    };
+
+    test_case("MoveAssignment") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"C"s, 3}};
+        o2 = std::move(o1);  // Move assignment
+        require_true(o2.has("A"s));
+        require_true(o2.has("B"s));
+        require_false(o2.has("C"s));
+    };
+
+    test_case("AssignmentFromArray") = [] {
+        auto ob = object{{"A"s, 1}};
+        auto arr = object::array{object{1}, object{2}, object{3}};
+        ob = arr;
+        require_true(ob.is_array());
+        require_eq(3u, ob.size());
+        require_eq(static_cast<int>(ob[0]), 1);
+        require_eq(static_cast<int>(ob[1]), 2);
+        require_eq(static_cast<int>(ob[2]), 3);
+    };
+
+    test_case("AssignmentFromValue") = [] {
+        auto ob = object{{"A"s, 1}};
+        ob = 42;
+        require_true(ob.is_integer());
+        require_eq(42, static_cast<int>(ob));
+        
+        ob = "test"s;
+        require_true(ob.is_string());
+        require_eq("test"s, static_cast<std::string>(ob));
+        
+        ob = true;
+        require_true(ob.is_boolean());
+        require_eq(true, static_cast<bool>(ob));
+        
+        ob = 3.14;
+        require_true(ob.is_number());
+        require_eq(3.14, static_cast<double>(ob));
+        
+        ob = nullptr;
+        require_true(ob.is_null());
+    };
+
+    test_case("EmptyArray") = [] {
+        auto ob = object{"EmptyArray"s, std::vector<int>{}};
+        require_true(ob["EmptyArray"s].is_array());
+        require_true(ob["EmptyArray"s].empty());
+        require_eq(0u, ob["EmptyArray"s].size());
+    };
+
+    test_case("EmptyObject") = [] {
+        auto ob = object{object::map{}};
+        require_true(ob.is_object());
+        require_true(ob.empty());
+        require_eq(0u, ob.size());
+    };
+
+    test_case("Size") = [] {
+        auto ob1 = object{{"A"s, 1}, {"B"s, 2}, {"C"s, 3}};
+        require_eq(3u, ob1.size());
+        
+        auto ob2 = object{"Array"s, {1, 2, 3, 4, 5}};
+        require_eq(1u, ob2.size());
+        require_eq(5u, ob2["Array"s].size());
+        
+        auto ob3 = object{42};
+        require_eq(0u, ob3.size());  // Value has size 0
+    };
+
+    test_case("HasValue") = [] {
+        auto ob1 = object{42};
+        require_true(ob1.has_value());
+        require_false(ob1.has_objects());
+        
+        auto ob2 = object{{"A"s, 1}};
+        require_false(ob2.has_value());
+        require_true(ob2.has_objects());
+        
+        auto ob3 = object{object::array{object{1}, object{2}, object{3}}};
+        require_false(ob3.has_value());
+        require_false(ob3.has_objects());
+    };
+
+    test_case("HasObjects") = [] {
+        auto ob1 = object{{"A"s, 1}};
+        require_true(ob1.has_objects());
+        
+        auto ob2 = object{42};
+        require_false(ob2.has_objects());
+        
+        auto ob3 = object{object::array{object{1}, object{2}}};
+        require_false(ob3.has_objects());
+    };
+
+    test_case("GetMethods") = [] {
+        // Test get<value>()
+        auto ob1 = object{42};
+        require_eq(42, std::get<std::int64_t>(ob1.get<object::value>()));
+        
+        // Test get<map>()
+        auto ob2 = object{{"A"s, 1}, {"B"s, 2}};
+        const auto& m = ob2.get<object::map>();
+        require_eq(2u, m.size());
+        require_true(m.contains("A"s));
+        require_true(m.contains("B"s));
+        
+        // Test get<array>()
+        auto ob3 = object{object::array{object{1}, object{2}, object{3}}};
+        const auto& arr = ob3.get<object::array>();
+        require_eq(3u, arr.size());
+        
+        // Test get<string_type>()
+        auto ob4 = object{"test"s};
+        require_eq("test"s, ob4.get<std::string>());
+    };
+
+    test_case("OperatorEquals") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o3 = object{{"A"s, 1}, {"B"s, 3}};
+        
+        require_true(o1 == o2);
+        require_false(o1 == o3);
+        
+        auto a1 = object{object::array{object{1}, object{2}, object{3}}};
+        auto a2 = object{object::array{object{1}, object{2}, object{3}}};
+        auto a3 = object{object::array{object{1}, object{2}, object{4}}};
+        
+        require_true(a1 == a2);
+        require_false(a1 == a3);
+        
+        auto v1 = object{42};
+        auto v2 = object{42};
+        auto v3 = object{43};
+        
+        require_true(v1 == v2);
+        require_false(v1 == v3);
+    };
+
+    test_case("OperatorPlusWithArrays") = [] {
+        auto a1 = object{object::array{object{1}, object{2}}};
+        auto a2 = object{object::array{object{3}, object{4}}};
+        auto a3 = a1 + a2;
+        
+        require_true(a3.is_array());
+        require_eq(3u, a3.size());  // 1, 2, [3, 4] (array appended as single element)
+    };
+
+    test_case("ArrayIndexOutOfBounds") = [] {
+        auto ob = object{object::array{object{1}, object{2}, object{3}}};
+        
+        // Const version
+        require_nothrow([&]{ auto val = ob[2]; });
+        require_throws_as([&]{ auto val = ob[3]; }, std::out_of_range{""});
+        
+        // Non-const version
+        require_nothrow([&]{ ob[2] = 99; });
+        require_throws_as([&]{ ob[3] = 99; }, std::out_of_range{""});
+    };
+
+    test_case("ArrayIndexOnNonArray") = [] {
+        auto ob = object{{"A"s, 1}};
+        
+        require_throws_as([&]{ auto val = ob[0]; }, std::logic_error{""});
+        require_throws_as([&]{ ob[0] = 99; }, std::logic_error{""});
+    };
+
+    test_case("ObjectAccessOnNonObject") = [] {
+        auto ob = object{object::array{object{1}, object{2}, object{3}}};
+        
+        require_throws_as([&]{ auto val = ob["key"s]; }, std::logic_error{""});
+        require_throws_as([&]{ ob["key"s] = 99; }, std::logic_error{""});
+    };
+
+    test_case("NonExistentKey") = [] {
+        auto ob = object{{"A"s, 1}};
+        const auto& c_ob = ob;
+        
+        // The const operator[] directly uses std::get<map> which will throw 
+        // bad_variant_access if not a map, but we're testing with a map.
+        // If the key doesn't exist, it should throw out_of_range.
+        // Test that accessing non-existent key throws some exception
+        bool threw = false;
+        try {
+            [[maybe_unused]] auto val = c_ob["Nonexistent"s];
+        } catch (const std::out_of_range&) {
+            threw = true;
+        } catch (...) {
+            // Might throw bad_variant_access if implementation changes
+            threw = true;
+        }
+        require_true(threw);
+        
+        // Non-const creates new key if doesn't exist
+        require_nothrow([&]{ ob["NewKey"s] = 42; });
+        require_true(ob.has("NewKey"s));
+    };
+
+    test_case("ConversionOperators") = [] {
+        // Number
+        auto ob1 = object{3.14};
+        require_eq(3.14, static_cast<double>(ob1));
+        
+        // String
+        auto ob2 = object{"hello"s};
+        require_eq("hello"s, static_cast<std::string>(ob2));
+        
+        // Boolean
+        auto ob3 = object{true};
+        require_eq(true, static_cast<bool>(ob3));
+        
+        // Integer
+        auto ob4 = object{42ll};
+        require_eq(42ll, static_cast<std::int64_t>(ob4));
+        
+        // Timestamp
+        auto now = std::chrono::system_clock::now();
+        auto ob5 = object{now};
+        require_eq(now, static_cast<std::chrono::system_clock::time_point>(ob5));
+        
+        // Value reference
+        auto ob6 = object{42};
+        const auto& val = static_cast<const object::value&>(ob6);
+        require_true(std::holds_alternative<std::int64_t>(val));
+    };
+
+    test_case("MatchArray") = [] {
+        auto a1 = object{object::array{object{1}, object{2}, object{3}}};
+        auto a2 = object{object::array{object{1}, object{2}, object{3}}};
+        auto a3 = object{object::array{object{1}, object{2}, object{4}}};
+        
+        require_true(a1.match(a2));
+        require_false(a1.match(a3));
+        require_true(a1.match(object{object::array{}}));  // Empty subset matches
+    };
+
+    test_case("MatchWithOperators") = [] {
+        auto ob = object{42};
+        
+        // $eq
+        require_true(ob.match(object{{"$eq"s, 42}}));
+        require_false(ob.match(object{{"$eq"s, 43}}));
+        
+        // $ne
+        require_true(ob.match(object{{"$ne"s, 43}}));
+        require_false(ob.match(object{{"$ne"s, 42}}));
+        
+        // $lt
+        require_true(ob.match(object{{"$lt"s, 50}}));
+        require_false(ob.match(object{{"$lt"s, 40}}));
+        
+        // $lte
+        require_true(ob.match(object{{"$lte"s, 42}}));
+        require_true(ob.match(object{{"$lte"s, 50}}));
+        require_false(ob.match(object{{"$lte"s, 40}}));
+        
+        // $gt
+        require_true(ob.match(object{{"$gt"s, 40}}));
+        require_false(ob.match(object{{"$gt"s, 50}}));
+        
+        // $gte
+        require_true(ob.match(object{{"$gte"s, 42}}));
+        require_true(ob.match(object{{"$gte"s, 40}}));
+        require_false(ob.match(object{{"$gte"s, 50}}));
+    };
+
+    test_case("MatchValueWithObject") = [] {
+        auto ob = object{42};
+        auto subset = object{{"$eq"s, 42}};
+        require_true(ob.match(subset));
+    };
+
+    test_case("StringViewAccess") = [] {
+        auto ob = object{{"Key"s, 42}};
+        std::string_view key{"Key"};
+        
+        require_true(ob.has(key));
+        require_eq(42, static_cast<int>(ob[key]));
+        
+        // Non-const creates new if doesn't exist
+        std::string_view new_key{"NewKey"};
+        ob[new_key] = 99;
+        require_true(ob.has("NewKey"s));
+    };
+
+    test_case("OperatorPlusMove") = [] {
+        auto o1 = object{{"A"s, 1}};
+        auto o2 = object{{"B"s, 2}};
+        auto o3 = o1 + std::move(o2);
+        
+        require_true(o3.has("A"s));
+        require_true(o3.has("B"s));
+        require_true(o2.empty());  // o2 moved from
+    };
+
+    test_case("OperatorPlusEqualsMove") = [] {
+        auto o1 = object{{"A"s, 1}};
+        auto o2 = object{{"B"s, 2}};
+        o1 += std::move(o2);
+        
+        require_true(o1.has("A"s));
+        require_true(o1.has("B"s));
+        require_true(o2.empty());  // o2 moved from
     };
 
     return 0;
