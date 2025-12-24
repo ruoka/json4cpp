@@ -179,13 +179,83 @@ private:
 
     void string(char c)
     {
-        if(c != '\"')
+        if(c == '\\')
+        {
+            m_state_machine.push(&decoder::escape);
+        }
+        else if(c != '\"')
+        {
             m_string += c;
+        }
         else
         {
             m_builder.value(std::move(m_string));
             m_state_machine.pop();
             m_string = ""s;
+        }
+    }
+
+    void escape(char c)
+    {
+        m_state_machine.pop();
+        switch(c)
+        {
+            case '\"': m_string += '\"'; break;
+            case '\\': m_string += '\\'; break;
+            case '/':  m_string += '/'; break;
+            case 'b':  m_string += '\b'; break;
+            case 'f':  m_string += '\f'; break;
+            case 'n':  m_string += '\n'; break;
+            case 'r':  m_string += '\r'; break;
+            case 't':  m_string += '\t'; break;
+            case 'u':
+                m_state_machine.push(&decoder::unicode_escape);
+                m_unicode_value = 0;
+                m_unicode_digits = 0;
+                break;
+            default:
+                throw std::runtime_error{"Invalid escape sequence: \\"s + c};
+        }
+    }
+
+    void unicode_escape(char c)
+    {
+        if(std::isxdigit(c))
+        {
+            m_unicode_value *= 16;
+            if(std::isdigit(c))
+                m_unicode_value += (c - '0');
+            else if(c >= 'a' && c <= 'f')
+                m_unicode_value += (c - 'a' + 10);
+            else if(c >= 'A' && c <= 'F')
+                m_unicode_value += (c - 'A' + 10);
+            
+            ++m_unicode_digits;
+            if(m_unicode_digits == 4)
+            {
+                if(m_unicode_value <= 0x7F)
+                {
+                    m_string += static_cast<char>(m_unicode_value);
+                }
+                else if(m_unicode_value <= 0x7FF)
+                {
+                    m_string += static_cast<char>(0xC0 | (m_unicode_value >> 6));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                else
+                {
+                    m_string += static_cast<char>(0xE0 | (m_unicode_value >> 12));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 6) & 0x3F));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                m_state_machine.pop();
+                m_unicode_value = 0;
+                m_unicode_digits = 0;
+            }
+        }
+        else
+        {
+            throw std::runtime_error{"Invalid Unicode escape sequence: expected hex digit, got "s + c};
         }
     }
 
@@ -404,6 +474,9 @@ private:
     xson::number_type m_number = 0;
 
     xson::integer_type m_place = 1;
+
+    std::uint32_t m_unicode_value = 0;
+    int m_unicode_digits = 0;
 
 }; // class decoder
 
