@@ -102,3 +102,22 @@ The library is organized as C++23 modules:
 - **FSON Support**: Binary serialization format for efficient storage
 - **Type-Safe**: Strong typing with `integer_type`, `number_type`, `string_type`, etc.
 - **Extensible**: Support for custom types via timestamp and integer types
+- **Large Number Support**: Automatic handling of numbers exceeding `int64_t` range
+
+## Number Parsing Behavior
+
+The JSON parser handles numbers intelligently based on their magnitude:
+
+- **Integers within range**: Numbers from `INT64_MIN` (-9223372036854775808) to `INT64_MAX` (9223372036854775807) are stored as `integer_type` (`std::int64_t`)
+- **Large integers**: Numbers exceeding `INT64_MAX` are automatically stored as `number_type` (`std::double_t`) to preserve precision
+- **Type checking**: Use `is_integer()` to check if a value is stored as an integer, or `is_number()` to check if it's stored as a number (includes both integers and floats)
+
+**Example:**
+```cpp
+auto json_str = R"({"small": 42, "large": 9223372036854775808})";
+auto ob = json::parse(json_str);
+
+ob["small"s].is_integer();  // true - stored as int64_t
+ob["large"s].is_integer();  // false - stored as double
+ob["large"s].is_number();   // true - stored as double
+```
