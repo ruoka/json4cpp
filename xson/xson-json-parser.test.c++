@@ -596,7 +596,8 @@ auto register_tests()
     test_case("DeepNesting") = [] {
         // Test nesting up to a reasonable depth (10 levels to avoid test slowness)
         // Build a deeply nested structure manually for reliability
-        auto json_str = R"({"a":{"b":{"c":{"d":{"e":{"f":{"g":{"h":{"i":{"j":{"value":42}}}}}}}}}}}})";
+        // Note: braces must balance (this is a valid JSON document)
+        auto json_str = R"({"a":{"b":{"c":{"d":{"e":{"f":{"g":{"h":{"i":{"j":{"value":42}}}}}}}}}}})";
         auto ob = json::parse(json_str);
         
         // Verify we can access deeply nested value

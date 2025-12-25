@@ -261,11 +261,22 @@ auto register_tests()
         const auto loc = std::source_location::current();
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test1.json";
+        
+        // Check if file exists
+        require_true(std::filesystem::exists(test_file));
+        
         auto fs = std::ifstream{test_file};
+        require_true(fs.is_open());
+        
         auto ob = json::parse(static_cast<std::istream&>(fs));
         succeed("test1.json: "s + json::stringify(ob));
 
+        // Verify the object was parsed (not empty)
+        require_true(ob.is_object());
+        require_true(ob.size() > 0);
+
         require_true(ob["required"s].is_array());
+        require_true(ob["required"s].size() >= 3);
         require_true(ob["required"s][2].is_string());
         const xson::string_type price = ob["required"s][2];
         check_eq("price"s, price);

@@ -97,7 +97,7 @@ The library is organized as C++23 modules:
 ## Features
 
 - **C++23 Modules**: Fast compilation with module interfaces
-- **JSON Support**: Full JSON parsing and stringification with scientific notation
+- **JSON Support**: RFC 8259 style JSON parsing and stringification with scientific notation
 - **FSON Support**: Binary serialization format for efficient storage
 - **Type-Safe**: Strong typing with `integer_type`, `number_type`, `string_type`, etc.
 - **Extensible**: Support for custom types via timestamp and integer types
@@ -111,6 +111,18 @@ The JSON parser handles numbers intelligently based on their magnitude:
 - **Integers within range**: Numbers from `INT64_MIN` (-9223372036854775808) to `INT64_MAX` (9223372036854775807) are stored as `integer_type` (`std::int64_t`)
 - **Large integers**: Numbers exceeding `INT64_MAX` are automatically stored as `number_type` (`std::double_t`) to preserve precision
 - **Type checking**: Use `is_integer()` to check if a value is stored as an integer, or `is_number()` to check if it's stored as a number (includes both integers and floats)
+
+## JSON Parsing Strictness (RFC 8259 oriented)
+
+- **Standalone JSON values**: A JSON text can be a value (not only object/array).
+- **No trailing garbage**: Any non-whitespace after a complete JSON text is rejected.
+- **Strings**:
+  - Rejects **unescaped control characters** (U+0000..U+001F).
+  - Supports `\\uXXXX` escapes including **surrogate pairs**.
+- **Numbers**:
+  - Rejects **leading zeros** in the integer part (e.g. `01`, `-01`).
+  - Requires at least one digit after `.` (e.g. `2.` is invalid).
+- **Duplicate object keys**: If the same key appears multiple times, the **last value wins**.
 
 **Example:**
 ```cpp

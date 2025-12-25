@@ -78,11 +78,23 @@ auto register_tests()
                  << "Lucky Number 2 = " << result["Lucky Numbers"s][1]  << "\n"
                  << "Lucky Number 3 = " << result["Lucky Numbers"s][2]  << "\n\n";
 
-        [[maybe_unused]] integer_type id = result["id"s];
-
-        [[maybe_unused]] string_type name = result["Name"s];
-
-        [[maybe_unused]] integer_type number = result["Lucky Numbers"s][1];
+        // Add assertions to verify parsing worked correctly
+        require_true(result.is_object());
+        require_true(result["id"s].is_integer());
+        require_eq(2, static_cast<integer_type>(result["id"s]));
+        
+        require_true(result["Name"s].is_string());
+        require_eq("Ruoka"s, static_cast<string_type>(result["Name"s]));
+        
+        require_true(result["Embedded"s].is_object());
+        require_true(result["Embedded"s]["Name"s].is_string());
+        require_eq("Tuma"s, static_cast<string_type>(result["Embedded"s]["Name"s]));
+        
+        require_true(result["Lucky Numbers"s].is_array());
+        require_eq(3, result["Lucky Numbers"s].size());
+        require_eq(2, static_cast<integer_type>(result["Lucky Numbers"s][0]));
+        require_eq(22, static_cast<integer_type>(result["Lucky Numbers"s][1]));
+        require_eq(2112, static_cast<integer_type>(result["Lucky Numbers"s][2]));
     };
 
     return 0;

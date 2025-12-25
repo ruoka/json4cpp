@@ -169,7 +169,7 @@ auto register_tests()
         };
 
         auto json_str = json::stringify(obj, 2);
-        
+
         // Verify the stringified output contains the keys
         require_true(json_str.contains("big_int"));
         require_true(json_str.contains("small_int"));

@@ -112,13 +112,15 @@ private:
 
         if(o.is_array()) return fson::type::array;
 
+        if(o.is_integer()) return fson::type::integer;
+
+        // Note: JSON "numbers" include integers, but FSON has a dedicated integer type.
+        // So we must check is_integer() before is_number().
         if(o.is_number()) return fson::type::number;
 
         if(o.is_string()) return fson::type::string;
 
         if(o.is_boolean()) return fson::type::boolean;
-
-        if(o.is_integer()) return fson::type::integer;
 
         if(o.is_timestamp()) return fson::type::timestamp;
 

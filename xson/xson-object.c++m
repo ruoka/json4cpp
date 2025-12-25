@@ -167,7 +167,7 @@ public:
     object& operator = (const T& val)
     {
         
-        m_data = val;
+        m_data = value{val};
         return *this;
     }
 
@@ -175,7 +175,7 @@ public:
     object& operator = (const T&)
     {
         
-        m_data = monostate{};
+        m_data = value{monostate{}};
         return *this;
     }
 
@@ -197,7 +197,11 @@ public:
     constexpr auto is_number() const noexcept
     {
         if(holds_alternative<value>(m_data))
-            return holds_alternative<number_type>(std::get<value>(m_data));
+        {
+            const auto& v = std::get<value>(m_data);
+            // JSON numbers can be either integer_type or number_type
+            return holds_alternative<number_type>(v) || holds_alternative<integer_type>(v);
+        }
         return false;
     }
 
@@ -336,7 +340,12 @@ public:
 
     operator number_type () const
     {
-        return std::get<number_type>(std::get<value>(m_data));
+        const auto& v = std::get<value>(m_data);
+        if(std::holds_alternative<number_type>(v))
+            return std::get<number_type>(v);
+        if(std::holds_alternative<integer_type>(v))
+            return static_cast<number_type>(std::get<integer_type>(v));
+        throw std::runtime_error{"Cannot convert to number_type: value is not a number"s};
     }
 
     operator const string_type& () const
@@ -642,8 +651,10 @@ public:
         }
         else if(m_type == type::object)
         {
-            m_stack.top().get().get<object::map>().emplace(m_current,object::map{});
-            m_stack.push(m_stack.top().get().get<object::map>().at(m_current));
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last value).
+            auto& mp = m_stack.top().get().get<object::map>();
+            mp[m_current] = object{}; // default object is an empty map (object)
+            m_stack.push(mp.at(m_current));
         }
         else // type::array
         {
@@ -655,7 +666,11 @@ public:
 
     void end_object()
     {
-        
+        if(m_stack.empty())
+            throw std::runtime_error{"Invalid builder state: end_object() with empty stack"s};
+        if(!m_stack.top().get().is_object())
+            throw std::runtime_error{"Invalid builder state: end_object() when current value is not an object"s};
+
         m_stack.pop();
         if(not m_stack.empty())
         {
@@ -664,7 +679,7 @@ public:
             else if(m_stack.top().get().is_array())
                 m_type = type::array;
             else
-                throw std::logic_error{"Invalid builder state: expected object or array after end_object"};
+                throw std::runtime_error{"Invalid builder state: expected object or array after end_object()"s};
         }
     }
 
@@ -678,8 +693,10 @@ public:
         }
         else if(m_type == type::object)
         {
-            m_stack.top().get().get<object::map>().emplace(m_current,object::array{});
-            m_stack.push(m_stack.top().get().get<object::map>().at(m_current));
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last value).
+            auto& mp = m_stack.top().get().get<object::map>();
+            mp[m_current] = object::array{};
+            m_stack.push(mp.at(m_current));
         }
         else // type::array
         {
@@ -691,7 +708,11 @@ public:
 
     void end_array()
     {
-        
+        if(m_stack.empty())
+            throw std::runtime_error{"Invalid builder state: end_array() with empty stack"s};
+        if(!m_stack.top().get().is_array())
+            throw std::runtime_error{"Invalid builder state: end_array() when current value is not an array"s};
+
         m_stack.pop();
         if(not m_stack.empty())
         {
@@ -700,7 +721,7 @@ public:
             else if(m_stack.top().get().is_array())
                 m_type = type::array;
             else
-                throw std::logic_error{"Invalid builder state: expected object or array after end_array"};
+                throw std::runtime_error{"Invalid builder state: expected object or array after end_array()"s};
         }
     }
 
@@ -713,21 +734,42 @@ public:
     template<Value T> requires (not Null<T>)
     void value(const T& val)
     {
-        
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,val);
+        if(m_stack.empty())
+        {
+            // Standalone value (not inside object/array) - set root directly
+            // Use assignment operator which wraps val in value variant
+            m_root = val;
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last value).
+            m_stack.top().get().get<object::map>()[m_current] = val;
+        }
         else // type::array
+        {
             m_stack.top().get().get<object::array>().emplace_back(val);
+        }
     }
 
     template<Null T>
     void value(T)
     {
-        
-        if(m_type == type::object)
-            m_stack.top().get().get<object::map>().emplace(m_current,std::monostate{});
+        if(m_stack.empty())
+        {
+            // Standalone null value (not inside object/array) - set root directly
+            // Use assignment operator which sets m_data to monostate
+            m_root = nullptr;
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last value).
+            m_stack.top().get().get<object::map>()[m_current] = nullptr;
+        }
         else // type::array
-            m_stack.top().get().get<object::array>().emplace_back(std::monostate{});
+        {
+            m_stack.top().get().get<object::array>().emplace_back(object{});
+            m_stack.top().get().get<object::array>().back() = nullptr;
+        }
     }
 
 private:
