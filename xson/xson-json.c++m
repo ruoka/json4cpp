@@ -265,52 +265,92 @@ private:
     template<int Sign>
     void number(char c)
     {
+        // Check if we had INT64_MIN flag set and we see another digit (overflow case)
+        if(m_is_int64_min && std::isdigit(c))
+        {
+            // INT64_MIN with more digits - this is overflow, switch to float mode
+            m_number = static_cast<xson::number_type>(std::numeric_limits<xson::integer_type>::min()) * 10.0 + static_cast<xson::number_type>(c - '0');
+            m_is_int64_min = false;
+            m_integer = 0;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::integer_overflow<Sign>);
+            return;
+        }
+        
         if(std::isdigit(c))
         {
-            // Check for integer overflow before arithmetic operations
-            if constexpr(Sign == 1)
+            constexpr auto max_int = std::numeric_limits<xson::integer_type>::max();
+            constexpr auto max_int_div_10 = max_int / 10;
+            constexpr auto max_int_mod_10 = max_int % 10;
+            const auto digit = static_cast<xson::integer_type>(c - '0');
+            
+            // Check for overflow before performing the operation
+            // For positive numbers: overflow if m_integer > max_int/10 or 
+            // (m_integer == max_int/10 && digit > max_int%10)
+            // For negative numbers: we need to allow INT64_MIN = -9223372036854775808
+            // which has absolute value INT64_MAX + 1 = 9223372036854775808
+            // So we allow one more: overflow if m_integer > max_int/10 or
+            // (m_integer == max_int/10 && digit > max_int%10 + 1)
+            // Note: max_int_mod_10 = 7, so max_int_mod_10 + 1 = 8, which is valid for a digit
+            bool would_overflow = false;
+            if(m_integer > max_int_div_10)
             {
-                // Positive numbers: check against INT64_MAX
-                constexpr auto max_before_multiply = std::numeric_limits<xson::integer_type>::max() / 10;
-                constexpr auto max_digit = std::numeric_limits<xson::integer_type>::max() % 10;
-
-                if(m_integer > max_before_multiply ||
-                   (m_integer == max_before_multiply && (c-'0') > max_digit))
+                would_overflow = true;
+            }
+            else if(m_integer == max_int_div_10)
+            {
+                // When m_integer == max_int_div_10, m_integer * 10 = max_int - max_int_mod_10
+                // So we can add up to max_int_mod_10 for positive, or max_int_mod_10 + 1 for negative
+                constexpr auto max_allowed_digit = max_int_mod_10;
+                constexpr auto max_allowed_digit_negative = max_int_mod_10 + 1;
+                
+                if(Sign < 0)
                 {
-                    // Overflow detected, switch to floating point
-                    m_number = static_cast<xson::number_type>(m_integer);
+                    // For negative numbers, allow digit 8 (for INT64_MIN)
+                    would_overflow = (digit > max_allowed_digit_negative);
+                }
+                else
+                {
+                    // For positive numbers, standard overflow check
+                    would_overflow = (digit > max_allowed_digit);
+                }
+            }
+            
+            // Special case: INT64_MIN for negative numbers
+            // When Sign < 0, m_integer == max_int_div_10, and digit == 8,
+            // we have INT64_MIN = -9223372036854775808
+            // The absolute value 9223372036854775808 = INT64_MAX + 1 overflows int64_t.
+            // We handle this by setting a flag. The next character will determine:
+            // - If it's a digit: overflow (INT64_MIN + more digits)
+            // - If it's not a digit: INT64_MIN (handled in else branch)
+            if constexpr(Sign < 0)
+            {
+                if(m_integer == max_int_div_10 && digit == max_int_mod_10 + 1)
+                {
+                    // This is exactly INT64_MIN. Set flag and clear m_integer.
+                    // Don't accumulate the digit (it would overflow).
+                    m_is_int64_min = true;
                     m_integer = 0;
-                    m_state_machine.pop();
-                    m_state_machine.push(&decoder::fractions<Sign>);
-                    m_state_machine.top()(*this, c);
+                    // Continue to process next character (which will be handled in else branch if non-digit,
+                    // or will trigger overflow check if digit)
                     return;
                 }
+            }
+            
+            if(would_overflow)
+            {
+                // Overflow detected: switch to float mode, continue as integer digits
+                m_number = static_cast<xson::number_type>(m_integer) * 10.0 + static_cast<xson::number_type>(digit);
+                m_integer = 0;
+                m_state_machine.pop();
+                m_state_machine.push(&decoder::integer_overflow<Sign>);
             }
             else
             {
-                // Negative numbers: use unsigned arithmetic to check overflow
-                // This properly handles INT64_MIN which is more negative than INT64_MAX is positive
-                constexpr auto min_before_multiply = std::numeric_limits<std::uint64_t>::max() / 10;
-                constexpr auto min_digit = std::numeric_limits<std::uint64_t>::max() % 10;
-
-                // Use unsigned to avoid signed overflow issues
-                auto unsigned_int = static_cast<std::uint64_t>(m_integer);
-
-                if(unsigned_int > min_before_multiply ||
-                   (unsigned_int == min_before_multiply && static_cast<int>(c-'0') > min_digit))
-                {
-                    // Overflow detected, switch to floating point
-                    m_number = static_cast<xson::number_type>(m_integer);
-                    m_integer = 0;
-                    m_state_machine.pop();
-                    m_state_machine.push(&decoder::fractions<Sign>);
-                    m_state_machine.top()(*this, c);
-                    return;
-                }
+                // Safe to perform the operation
+                m_integer *= 10;
+                m_integer += digit;
             }
-
-            m_integer *= 10;
-            m_integer += (c-'0');
         }
         else if(c == '.')
         {
@@ -321,7 +361,43 @@ private:
         }
         else
         {
-            m_builder.value(static_cast<xson::number_type>(Sign) * static_cast<xson::number_type>(m_integer));
+            // Check if we're handling INT64_MIN (flag was set when we saw the last digit)
+            if(m_is_int64_min)
+            {
+                // This is INT64_MIN - the next character is non-digit, so we're done
+                m_builder.value(std::numeric_limits<xson::integer_type>::min());
+                m_is_int64_min = false;
+                m_integer = 0;
+            }
+            else
+            {
+                m_builder.value(Sign * m_integer);
+                m_integer = 0;
+            }
+            m_state_machine.pop();
+            m_state_machine.top()(*this,c);
+        }
+    }
+
+    template<int Sign>
+    void integer_overflow(char c)
+    {
+        // Continue accumulating integer digits in float mode (multiply by 10 for each digit)
+        if(std::isdigit(c))
+        {
+            m_number = m_number * 10.0 + static_cast<xson::number_type>(c - '0');
+        }
+        else if(c == '.')
+        {
+            // Switch to fractional mode
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::fractions<Sign>);
+        }
+        else
+        {
+            const xson::number_type final_value = Sign * m_number;
+            m_builder.value(final_value);
+            m_number = 0;
             m_integer = 0;
             m_state_machine.pop();
             m_state_machine.top()(*this,c);
@@ -522,6 +598,8 @@ private:
 
     std::uint32_t m_unicode_value = 0;
     int m_unicode_digits = 0;
+    
+    bool m_is_int64_min = false; // Flag to track if we're parsing INT64_MIN
 
 }; // class decoder
 
