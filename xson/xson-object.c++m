@@ -281,46 +281,52 @@ public:
     object& operator [] (const string_type& name)
     {
         if(!is_object())
-            throw std::logic_error{"Cannot access object field: object is not an object type"};
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
         return std::get<map>(m_data)[name];
     }
 
     object& operator [] (std::string_view name)
     {
         if(!is_object())
-            throw std::logic_error{"Cannot access object field: object is not an object type"};
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
         return std::get<map>(m_data)[std::string{name}];
     }
 
     const object& operator [] (const string_type& name) const
     {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
         if(std::get<map>(m_data).contains(name))
             return std::get<map>(m_data).find(name)->second;
-        throw std::out_of_range("object has no field with name "s + name);
+        throw std::runtime_error{"object has no field with name "s + name};
     }
 
     const object& operator [] (std::string_view name) const
     {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
         auto key = std::string{name};
         if(std::get<map>(m_data).contains(key))
             return std::get<map>(m_data).find(key)->second;
-        throw std::out_of_range("object has no field with name "s + key);
+        throw std::runtime_error{"object has no field with name "s + key};
     }
 
     object& operator [] (std::size_t idx)
     {
         if(!is_array())
-            throw std::logic_error{"Cannot access array index: object is not an array type"};
+            throw std::runtime_error{"Cannot access array index: object is not an array type"s};
         if(idx >= std::get<array>(m_data).size())
-            throw std::out_of_range{"array has no index with value "s + std::to_string(idx)};
+            throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
         return std::get<array>(m_data)[idx];
     }
 
     const object& operator [] (std::size_t idx) const
     {
-        if(idx < std::get<array>(m_data).size())
-            return std::get<array>(m_data)[idx];
-        throw std::out_of_range("array has no index with value "s + std::to_string(idx));
+        if(!is_array())
+            throw std::runtime_error{"Cannot access array index: object is not an array type"s};
+        if(idx >= std::get<array>(m_data).size())
+            throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
+        return std::get<array>(m_data)[idx];
     }
 
     operator const object::value& () const

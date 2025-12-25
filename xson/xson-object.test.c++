@@ -580,25 +580,25 @@ auto register_tests()
         
         // Const version
         require_nothrow([&]{ auto val = ob[2]; });
-        require_throws_as([&]{ auto val = ob[3]; }, std::out_of_range{""});
+        require_throws_as([&]{ auto val = ob[3]; }, std::runtime_error{""});
         
         // Non-const version
         require_nothrow([&]{ ob[2] = 99; });
-        require_throws_as([&]{ ob[3] = 99; }, std::out_of_range{""});
+        require_throws_as([&]{ ob[3] = 99; }, std::runtime_error{""});
     };
 
     test_case("ArrayIndexOnNonArray") = [] {
         auto ob = object{{"A"s, 1}};
         
-        require_throws_as([&]{ auto val = ob[0]; }, std::logic_error{""});
-        require_throws_as([&]{ ob[0] = 99; }, std::logic_error{""});
+        require_throws_as([&]{ auto val = ob[0]; }, std::runtime_error{""});
+        require_throws_as([&]{ ob[0] = 99; }, std::runtime_error{""});
     };
 
     test_case("ObjectAccessOnNonObject") = [] {
         auto ob = object{object::array{object{1}, object{2}, object{3}}};
         
-        require_throws_as([&]{ auto val = ob["key"s]; }, std::logic_error{""});
-        require_throws_as([&]{ ob["key"s] = 99; }, std::logic_error{""});
+        require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
+        require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
     };
 
     test_case("NonExistentKey") = [] {

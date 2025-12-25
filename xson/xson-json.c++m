@@ -121,8 +121,17 @@ template<typename Builder>
 class decoder
 {
 public:
+    // Constants for overflow protection
+    static constexpr int max_exponent = 308;  // Maximum safe exponent for double (10^308)
+    static constexpr int min_exponent = -308; // Minimum safe exponent for double (10^-308)
+    static constexpr int max_exponent_digits = 3; // Maximum digits for safe exponent (308 has 3 digits)
+    
+    // Input size limits for DoS protection
+    static constexpr std::size_t max_string_length = 100 * 1024 * 1024; // 100 MB
+    static constexpr std::size_t max_nesting_depth = 1000;
+    static constexpr std::size_t max_array_size = 100 * 1024 * 1024; // 100 million elements
 
-    decoder(Builder& b) : m_builder{b}
+    decoder(Builder& b) : m_builder{b}, m_nesting_depth{0}
     {}
 
     void decode(std::istream& is)
@@ -177,7 +186,15 @@ private:
         if(c == Character)
             m_state_machine.pop();
         else
-            throw std::runtime_error{"JSON parse error: expected '"s + std::string{Character} + "', got '"s + c + "'"s};
+        {
+            // Optimize error message construction
+            auto msg = "JSON parse error: expected '"s;
+            msg += Character;
+            msg += "', got '"s;
+            msg += c;
+            msg += "'"s;
+            throw std::runtime_error{msg};
+        }
     }
 
     void string(char c)
@@ -188,6 +205,11 @@ private:
         }
         else if(c != '\"')
         {
+            // Check string length limit
+            if(m_string.length() >= max_string_length)
+            {
+                throw std::runtime_error{"JSON parse error: string length exceeds maximum allowed size"s};
+            }
             m_string += c;
         }
         else
@@ -236,6 +258,20 @@ private:
             ++m_unicode_digits;
             if(m_unicode_digits == 4)
             {
+                // Validate Unicode value is in valid range
+                // Reject surrogate pairs (0xD800-0xDFFF) as they should be encoded as two \u sequences
+                if(m_unicode_value >= 0xD800 && m_unicode_value <= 0xDFFF)
+                {
+                    throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (must be encoded as two \\u sequences)"s};
+                }
+                
+                // Validate value doesn't exceed maximum Unicode code point
+                if(m_unicode_value > 0x10FFFF)
+                {
+                    throw std::runtime_error{"JSON parse error: Unicode code point exceeds maximum value (0x10FFFF)"s};
+                }
+                
+                // Encode UTF-8
                 if(m_unicode_value <= 0x7F)
                 {
                     m_string += static_cast<char>(m_unicode_value);
@@ -245,9 +281,17 @@ private:
                     m_string += static_cast<char>(0xC0 | (m_unicode_value >> 6));
                     m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
                 }
-                else
+                else if(m_unicode_value <= 0xFFFF)
                 {
                     m_string += static_cast<char>(0xE0 | (m_unicode_value >> 12));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 6) & 0x3F));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                else
+                {
+                    // 4-byte UTF-8 encoding for code points > 0xFFFF
+                    m_string += static_cast<char>(0xF0 | (m_unicode_value >> 18));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 12) & 0x3F));
                     m_string += static_cast<char>(0x80 | ((m_unicode_value >> 6) & 0x3F));
                     m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
                 }
@@ -379,10 +423,10 @@ private:
                 m_builder.value(std::numeric_limits<xson::integer_type>::min());
                 m_is_int64_min = false;
                 m_integer = 0;
-        }
-        else
-        {
-            m_builder.value(Sign * m_integer);
+            }
+            else
+            {
+                m_builder.value(Sign * m_integer);
                 m_integer = 0;
             }
             m_state_machine.pop();
@@ -488,8 +532,22 @@ private:
     {
         if(std::isdigit(c))
         {
-            m_exponent = m_exponent * 10 + static_cast<int>(c - '0');
+            const int digit = static_cast<int>(c - '0');
+            // Check for exponent overflow before multiplication
+            // Prevent integer overflow in m_exponent calculation
+            if(m_exponent > (std::numeric_limits<int>::max() - digit) / 10)
+            {
+                throw std::runtime_error{"JSON parse error: exponent value too large"s};
+            }
+            m_exponent = m_exponent * 10 + digit;
             m_has_exponent_digit = true;
+            
+            // Check if exponent exceeds safe range for double precision
+            const int abs_exponent = m_exponent_sign > 0 ? m_exponent : -m_exponent;
+            if(abs_exponent > max_exponent)
+            {
+                throw std::runtime_error{"JSON parse error: exponent exceeds maximum safe value (308)"s};
+            }
         }
         else
         {
@@ -503,6 +561,12 @@ private:
             const xson::number_type base = Sign * m_number;
             const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
             const xson::number_type final_value = base * std::pow(10.0, exponent_value);
+            
+            // Validate pow result - check for infinity and NaN
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: scientific notation result is not finite (infinity or NaN)"s};
+            }
             
             m_builder.value(final_value);
             m_number = 0;
@@ -559,6 +623,11 @@ private:
         }
         else if(c == '{' || c == '[')
         {
+            // Check nesting depth limit before entering nested structure
+            if(++m_nesting_depth > max_nesting_depth)
+            {
+                throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+            }
             m_state_machine.push(&decoder::document);
             m_state_machine.top()(*this,c);
         }
@@ -610,6 +679,7 @@ private:
     {
         if(c == '}')
         {
+            --m_nesting_depth;
             m_state_machine.pop();
             m_state_machine.top()(*this,c);
         }
@@ -630,6 +700,7 @@ private:
         {
             if(c == ']')
             {
+                --p.m_nesting_depth;
                 p.m_state_machine.pop();
                 p.m_state_machine.top()(p,c);
             }
@@ -649,21 +720,40 @@ private:
     {
         if(c == '{')
         {
+            // For top-level document, increment nesting depth (nested structures already incremented in value())
+            // Check if we're at the top level by seeing if nesting depth is 0
+            if(m_nesting_depth == 0)
+            {
+                if(++m_nesting_depth > max_nesting_depth)
+                {
+                    throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+                }
+            }
             m_builder.start_object();
             m_state_machine.push(&decoder::object);
         }
         else if(c == '}')
         {
+            // Don't decrement here - object() already decremented
             m_builder.end_object();
             m_state_machine.pop();
         }
         else if(c == '[')
         {
+            // For top-level document, increment nesting depth (nested structures already incremented in value())
+            if(m_nesting_depth == 0)
+            {
+                if(++m_nesting_depth > max_nesting_depth)
+                {
+                    throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+                }
+            }
             m_builder.start_array();
             m_state_machine.push(array{});
         }
         else if(c == ']')
         {
+            // Don't decrement here - array already decremented
             m_builder.end_array();
             m_state_machine.pop();
         }
@@ -698,6 +788,7 @@ private:
     int m_exponent = 0; // Exponent value for scientific notation
     int m_exponent_sign = 1; // Sign of the exponent (+1 or -1)
     bool m_has_exponent_digit = false; // Flag to track if at least one exponent digit was parsed
+    std::size_t m_nesting_depth = 0; // Track nesting depth for DoS protection
 
 }; // class decoder
 
