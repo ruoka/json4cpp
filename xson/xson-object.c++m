@@ -49,10 +49,13 @@ using namespace std::chrono_literals;
 using monostate = std::monostate;
 
 // Object class (from object.hpp)
+// Represents JSON-like objects with ordered key-value pairs for predictable serialization
 class object
 {
 public:
 
+    // Use ordered map to preserve key order for consistent JSON output
+    // Consider std::unordered_map for better performance if order doesn't matter
     using map = std::map<std::string,object>;
     using array = std::vector<object>;
     using value = std::variant<monostate,     // \x0A

@@ -15,7 +15,10 @@ class encoder
 {
 public:
 
-    encoder(std::streamsize indent = 2) : m_pretty{indent}
+    // Default indentation level for pretty-printed JSON
+    static constexpr std::streamsize default_indent = 2;
+
+    encoder(std::streamsize indent = default_indent) : m_pretty{indent}
     {}
 
     void encode(std::ostream& os, const object& o)
@@ -497,7 +500,11 @@ inline object parse(std::string_view sv)
     return b.get();
 }
 
-inline std::string stringify(const object& ob, unsigned indent = 2)
+// Convert object to JSON string with optional pretty-printing
+// @param ob Object to stringify
+// @param indent Indentation level (0 = compact, >0 = pretty-printed)
+// @return JSON string representation
+inline std::string stringify(const object& ob, unsigned indent = encoder::default_indent)
 {
     auto ss = std::stringstream{};
     encoder{indent}.encode(ss,ob);
