@@ -64,15 +64,9 @@ public:
                               >;
     using data = std::variant<map,array,value>;
 
-    object() : m_data{}
-    {
-        
-    }
+    object() = default;
 
-    explicit object(const data& d) : m_data{d}
-    {
-        
-    }
+    explicit object(const data& d) : m_data{d} {}
 
     template <typename T> requires (Value<T> and not Null<T>)
     object(const string_type& name, const T& v) :
