@@ -235,6 +235,8 @@ private:
             case 't':  m_string += '\t'; break;
             case 'u':
                 m_state_machine.push(&decoder::unicode_escape);
+                // Always reset for a new unicode escape sequence
+                // If we have a high surrogate waiting, it will be used when we parse the low surrogate
                 m_unicode_value = 0;
                 m_unicode_digits = 0;
                 break;
@@ -258,11 +260,35 @@ private:
             ++m_unicode_digits;
             if(m_unicode_digits == 4)
             {
-                // Validate Unicode value is in valid range
-                // Reject surrogate pairs (0xD800-0xDFFF) as they should be encoded as two \u sequences
-                if(m_unicode_value >= 0xD800 && m_unicode_value <= 0xDFFF)
+                // Check if this is a high surrogate (0xD800-0xDBFF)
+                // If so, we need to wait for a low surrogate (0xDC00-0xDFFF) in the next \u sequence
+                if(m_unicode_value >= 0xD800 && m_unicode_value <= 0xDBFF)
                 {
-                    throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (must be encoded as two \\u sequences)"s};
+                    // High surrogate detected - store it and pop back to string state
+                    // The next \u sequence will be handled as the low surrogate
+                    m_high_surrogate = m_unicode_value;
+                    m_unicode_value = 0;
+                    m_unicode_digits = 0;
+                    m_state_machine.pop(); // Return to string state
+                    // Don't process current character - it was the last hex digit
+                    // Next character will be processed by string state
+                    return;
+                }
+                
+                // Check if this is a low surrogate (0xDC00-0xDFFF)
+                if(m_unicode_value >= 0xDC00 && m_unicode_value <= 0xDFFF)
+                {
+                    // Low surrogate without preceding high surrogate is invalid
+                    if(m_high_surrogate == 0)
+                    {
+                        throw std::runtime_error{"JSON parse error: invalid Unicode low surrogate without high surrogate"s};
+                    }
+                    
+                    // Combine high and low surrogates into actual code point
+                    // code_point = 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00)
+                    std::uint32_t code_point = 0x10000 + ((m_high_surrogate - 0xD800) << 10) + (m_unicode_value - 0xDC00);
+                    m_unicode_value = code_point;
+                    m_high_surrogate = 0; // Reset for next potential surrogate pair
                 }
                 
                 // Validate value doesn't exceed maximum Unicode code point
@@ -298,7 +324,13 @@ private:
                 m_state_machine.pop();
                 m_unicode_value = 0;
                 m_unicode_digits = 0;
+                m_high_surrogate = 0;
             }
+        }
+        else if(m_high_surrogate != 0)
+        {
+            // We have a high surrogate but didn't get a valid hex digit for low surrogate
+            throw std::runtime_error{"JSON parse error: expected low surrogate \\u sequence after high surrogate"s};
         }
         else
         {
@@ -782,6 +814,7 @@ private:
 
     std::uint32_t m_unicode_value = 0;
     int m_unicode_digits = 0;
+    std::uint32_t m_high_surrogate = 0; // Track high surrogate when waiting for low surrogate
     
     bool m_is_int64_min = false; // Flag to track if we're parsing INT64_MIN
     
