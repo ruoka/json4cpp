@@ -48,7 +48,6 @@ using namespace std::string_literals;
 using namespace std::chrono_literals;
 using monostate = std::monostate;
 
-// Object class (from object.hpp)
 // Represents JSON-like objects with ordered key-value pairs for predictable serialization
 class object
 {
@@ -180,57 +179,57 @@ public:
         return *this;
     }
 
-    friend bool operator == (const object& lhs, const object& rhs)
+    friend bool operator == (const object& lhs, const object& rhs) noexcept
     {
         return lhs.m_data == rhs.m_data;
     }
 
-    constexpr auto is_object() const
+    constexpr auto is_object() const noexcept
     {
         return holds_alternative<map>(m_data);
     }
 
-    constexpr auto is_array() const
+    constexpr auto is_array() const noexcept
     {
         return holds_alternative<array>(m_data);
     }
 
-    constexpr auto is_number() const
+    constexpr auto is_number() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<number_type>(std::get<value>(m_data));
         return false;
     }
 
-    constexpr auto is_string() const
+    constexpr auto is_string() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<string_type>(std::get<value>(m_data));
         return false;
     }
 
-    constexpr auto is_boolean() const
+    constexpr auto is_boolean() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<boolean_type>(std::get<value>(m_data));
         return false;
     }
 
-    constexpr auto is_timestamp() const
+    constexpr auto is_timestamp() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<timestamp_type>(std::get<value>(m_data));
         return false;
     }
 
-    constexpr auto is_integer() const
+    constexpr auto is_integer() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<integer_type>(std::get<value>(m_data));
         return false;
     }
 
-    constexpr auto is_null() const
+    constexpr auto is_null() const noexcept
     {
         if(holds_alternative<value>(m_data))
             return holds_alternative<std::monostate>(std::get<value>(m_data));
@@ -400,17 +399,17 @@ public:
         return *this;
     }
 
-    bool has_value() const
+    bool has_value() const noexcept
     {
         return holds_alternative<value>(m_data);
     }
 
-    bool has_objects() const
+    bool has_objects() const noexcept
     {
         return holds_alternative<map>(m_data);
     }
 
-    bool empty() const
+    bool empty() const noexcept
     {
         if(holds_alternative<map>(m_data))
             return std::get<map>(m_data).empty();
@@ -420,7 +419,7 @@ public:
             return false;
     }
 
-    bool has(const std::string& name) const
+    bool has(const std::string& name) const noexcept
     {
         if(holds_alternative<map>(m_data))
             return std::get<map>(m_data).contains(name);
@@ -428,7 +427,7 @@ public:
             return false;
     }
 
-    bool has(std::string_view name) const
+    bool has(std::string_view name) const noexcept
     {
         if(holds_alternative<map>(m_data))
             return std::get<map>(m_data).contains(std::string{name});
@@ -437,7 +436,7 @@ public:
     }
 
 
-    std::size_t size() const
+    std::size_t size() const noexcept
     {
         if(holds_alternative<map>(m_data))
             return std::get<map>(m_data).size();
@@ -592,7 +591,7 @@ constexpr const std::string& to_string(const std::string& str) noexcept
     return str;
 }
 
-inline std::string to_string(const object::value& val)
+inline std::string to_string(const object::value& val) noexcept
 {
     return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
 }
