@@ -267,19 +267,61 @@ private:
     {
         if(std::isdigit(c))
         {
+            // Check for integer overflow before arithmetic operations
+            if constexpr(Sign == 1)
+            {
+                // Positive numbers: check against INT64_MAX
+                constexpr auto max_before_multiply = std::numeric_limits<xson::integer_type>::max() / 10;
+                constexpr auto max_digit = std::numeric_limits<xson::integer_type>::max() % 10;
+
+                if(m_integer > max_before_multiply ||
+                   (m_integer == max_before_multiply && (c-'0') > max_digit))
+                {
+                    // Overflow detected, switch to floating point
+                    m_number = static_cast<xson::number_type>(m_integer);
+                    m_integer = 0;
+                    m_state_machine.pop();
+                    m_state_machine.push(&decoder::fractions<Sign>);
+                    m_state_machine.top()(*this, c);
+                    return;
+                }
+            }
+            else
+            {
+                // Negative numbers: use unsigned arithmetic to check overflow
+                // This properly handles INT64_MIN which is more negative than INT64_MAX is positive
+                constexpr auto min_before_multiply = std::numeric_limits<std::uint64_t>::max() / 10;
+                constexpr auto min_digit = std::numeric_limits<std::uint64_t>::max() % 10;
+
+                // Use unsigned to avoid signed overflow issues
+                auto unsigned_int = static_cast<std::uint64_t>(m_integer);
+
+                if(unsigned_int > min_before_multiply ||
+                   (unsigned_int == min_before_multiply && static_cast<int>(c-'0') > min_digit))
+                {
+                    // Overflow detected, switch to floating point
+                    m_number = static_cast<xson::number_type>(m_integer);
+                    m_integer = 0;
+                    m_state_machine.pop();
+                    m_state_machine.push(&decoder::fractions<Sign>);
+                    m_state_machine.top()(*this, c);
+                    return;
+                }
+            }
+
             m_integer *= 10;
             m_integer += (c-'0');
         }
         else if(c == '.')
         {
-            m_number = m_integer;
+            m_number = static_cast<xson::number_type>(m_integer);
             m_integer = 0;
             m_state_machine.pop();
             m_state_machine.push(&decoder::fractions<Sign>);
         }
         else
         {
-            m_builder.value(Sign * m_integer);
+            m_builder.value(static_cast<xson::number_type>(Sign) * static_cast<xson::number_type>(m_integer));
             m_integer = 0;
             m_state_machine.pop();
             m_state_machine.top()(*this,c);
