@@ -22,7 +22,7 @@ auto register_tests()
 
     test_case("Array") = [] {
         auto o1 = object{"Test"s, {"A"s, "B"s, "C"s}};
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_true(o1["Test"s].is_array());
         check_true(o1["Test"s][0].is_string());
@@ -33,7 +33,7 @@ auto register_tests()
         xson::fson::encoder{}.encode(ss, o1);
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
-        succeed(xson::json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
         check_eq(o1["Test"s][0], o2["Test"s][0]);
@@ -43,7 +43,7 @@ auto register_tests()
 
     test_case("Object") = [] {
         auto o1 = object{"Test"s, {{"A"s, 1}, {"B"s, 2.0}, {"C"s, false}}};
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_true(o1["Test"s].is_object());
         check_true(o1["Test"s]["A"s].is_integer());
@@ -54,7 +54,7 @@ auto register_tests()
         xson::fson::encoder{}.encode(ss, o1);
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
-        succeed(xson::json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
         check_eq(o1["Test"s]["A"s], o2["Test"s]["A"s]);
@@ -68,7 +68,7 @@ auto register_tests()
     test_case("Int32") = [] {
         auto o1 = object{"Test"s, 57};
 
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_true(o1["Test"s].is_integer());
 
@@ -77,7 +77,7 @@ auto register_tests()
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
 
-        succeed(xson::json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
@@ -114,7 +114,7 @@ auto register_tests()
     test_case("String") = [] {
         auto o1 = object{"Test"s, "Tulppu"s};
 
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_true(o1["Test"s].is_string());
 
@@ -123,7 +123,7 @@ auto register_tests()
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
 
-        succeed(xson::json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
@@ -132,7 +132,7 @@ auto register_tests()
     test_case("Boolean") = [] {
         auto o1 = object{"Test"s, true};
 
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_true(o1["Test"s].is_boolean());
 
@@ -141,7 +141,7 @@ auto register_tests()
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
 
-        succeed(xson::json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
@@ -161,11 +161,11 @@ auto register_tests()
 
         auto ss = std::stringstream{};
         xson::fson::encoder{}.encode(ss, o1);
-        std::clog << xson::json::stringify(o1) << std::endl;
+        std::clog << xson::json::stringify(o1, 2) << std::endl;
 
         auto o2 = object{};
         o2 = xson::fson::parse(ss);
-        std::clog << json::stringify(o2) << std::endl;
+        std::clog << xson::json::stringify(o2, 2) << std::endl;
 
         require_true(o2["Test"s].is_timestamp());
         require_true(o2["A"s].is_boolean());

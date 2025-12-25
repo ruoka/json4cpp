@@ -359,6 +359,17 @@ private:
             m_state_machine.pop();
             m_state_machine.push(&decoder::fractions<Sign>);
         }
+        else if(c == 'e' || c == 'E')
+        {
+            // Scientific notation: convert integer to float and parse exponent
+            m_number = static_cast<xson::number_type>(m_integer);
+            m_integer = 0;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
         else
         {
             // Check if we're handling INT64_MIN (flag was set when we saw the last digit)
@@ -368,10 +379,10 @@ private:
                 m_builder.value(std::numeric_limits<xson::integer_type>::min());
                 m_is_int64_min = false;
                 m_integer = 0;
-            }
-            else
-            {
-                m_builder.value(Sign * m_integer);
+        }
+        else
+        {
+            m_builder.value(Sign * m_integer);
                 m_integer = 0;
             }
             m_state_machine.pop();
@@ -393,6 +404,15 @@ private:
             m_state_machine.pop();
             m_state_machine.push(&decoder::fractions<Sign>);
         }
+        else if(c == 'e' || c == 'E')
+        {
+            // Scientific notation: parse exponent
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
         else
         {
             const xson::number_type final_value = Sign * m_number;
@@ -412,6 +432,15 @@ private:
             m_place *= 10;
             m_number += (static_cast<xson::number_type>(c-'0')/m_place);
         }
+        else if(c == 'e' || c == 'E')
+        {
+            // Scientific notation: parse exponent
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
         else
         {
             m_builder.value(Sign * m_number);
@@ -419,6 +448,71 @@ private:
             m_place = 1;
             m_state_machine.pop();
             m_state_machine.top()(*this,c);
+        }
+    }
+
+    template<int Sign>
+    void exponent_sign(char c)
+    {
+        if(c == '+')
+        {
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+        }
+        else if(c == '-')
+        {
+            m_exponent_sign = -1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+        }
+        else if(std::isdigit(c))
+        {
+            // No sign, exponent starts with a digit
+            m_exponent_sign = 1;
+            m_has_exponent_digit = true;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+            m_state_machine.top()(*this, c);
+        }
+        else
+        {
+            throw std::runtime_error{"JSON parse error: expected exponent sign or digit after 'e'/'E', got '"s + c + "'"s};
+        }
+    }
+
+    template<int Sign>
+    void exponent_digits(char c)
+    {
+        if(std::isdigit(c))
+        {
+            m_exponent = m_exponent * 10 + static_cast<int>(c - '0');
+            m_has_exponent_digit = true;
+        }
+        else
+        {
+            // Exponent parsing complete - must have at least one digit
+            if(!m_has_exponent_digit)
+            {
+                throw std::runtime_error{"JSON parse error: exponent must have at least one digit"s};
+            }
+            
+            // Calculate final value
+            const xson::number_type base = Sign * m_number;
+            const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
+            const xson::number_type final_value = base * std::pow(10.0, exponent_value);
+            
+            m_builder.value(final_value);
+            m_number = 0;
+            m_integer = 0;
+            m_place = 1;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.top()(*this, c);
         }
     }
 
@@ -600,6 +694,10 @@ private:
     int m_unicode_digits = 0;
     
     bool m_is_int64_min = false; // Flag to track if we're parsing INT64_MIN
+    
+    int m_exponent = 0; // Exponent value for scientific notation
+    int m_exponent_sign = 1; // Sign of the exponent (+1 or -1)
+    bool m_has_exponent_digit = false; // Flag to track if at least one exponent digit was parsed
 
 }; // class decoder
 

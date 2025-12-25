@@ -27,7 +27,7 @@ auto register_tests()
             { "Second", "Elppu"s  },
             { "Third",  "Jalppu"s }
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("First"s));
         require_true(ob.has("Second"s));
@@ -39,7 +39,7 @@ auto register_tests()
 
     test_case("Mix") = [] {
         auto o1 = object{"Integer"s, 123456789};
-        succeed(json::stringify(o1));
+        succeed(xson::json::stringify(o1, 2));
 
         check_false(o1.empty());
         check_true(o1.has("Integer"s));
@@ -56,7 +56,7 @@ auto register_tests()
             {"Object2"s, {{"Boolean"s, false}, {"String"s, "4"s}}},
             {"Array"s, {1, 2, 3, 4, 5, 6}}
         };
-        succeed(json::stringify(o2));
+        succeed(xson::json::stringify(o2, 2));
 
         require_false(o2.empty());
         require_true(o2.has("Integer"s));
@@ -89,7 +89,7 @@ auto register_tests()
     test_case("Array") = [] {
         auto arr = std::array<int,9>{1,2,3,4,5,6,7,8,9};
         auto ob = object{"Array"s, arr};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("Array"s));
         require_true(ob["Array"s].is_array());
@@ -106,7 +106,7 @@ auto register_tests()
     test_case("Vector") = [] {
         auto vec = std::vector<std::string>{"a","b","c","d","e","f","g","h","i"};
         auto ob = object{"Vector"s, vec};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("Vector"s));
         require_true(ob["Vector"s].is_array());
@@ -123,7 +123,7 @@ auto register_tests()
     test_case("CArray") = [] {
         double arr[] = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
         auto ob = object{"CArray"s, arr};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("CArray"s));
         require_true(ob["CArray"s].is_array());
@@ -139,7 +139,7 @@ auto register_tests()
 
     test_case("BooleanTrue") = [] {
         auto ob = object{"True"s, true};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("True"s));
         require_true(ob["True"s].is_boolean());
@@ -149,7 +149,7 @@ auto register_tests()
 
     test_case("BooleanFalse") = [] {
         auto ob = object{"False"s, false};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("False"s));
         require_true(ob["False"s].is_boolean());
@@ -159,7 +159,7 @@ auto register_tests()
 
     test_case("Null") = [] {
         auto ob = object{"Null"s, nullptr};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("Null"s));
         require_true(ob["Null"s].is_null());
@@ -168,7 +168,7 @@ auto register_tests()
     test_case("Date") = [] {
         auto now = system_clock::now();
         auto ob = object{"Date"s, now};
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("Date"s));
         require_true(ob["Date"s].is_timestamp());
@@ -182,7 +182,7 @@ auto register_tests()
         {
             "ObjectArray"s, std::array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("ObjectArray"s));
         require_true(ob["ObjectArray"s].is_array());
@@ -205,7 +205,7 @@ auto register_tests()
                 { "Name", "Jalppu"s }
             }
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("Kids"s));
         require_true(ob["Kids"s].is_array());
@@ -222,7 +222,7 @@ auto register_tests()
         {
             "ObjectVector"s, std::vector<object>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
         require_true(ob.has("ObjectVector"s));
         require_true(ob["ObjectVector"s].is_array());
@@ -244,7 +244,7 @@ auto register_tests()
             { "Jalppu", 3                            },
             { "Ages",   std::vector<int>{39, 40, 9, 5, 2} }
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
 
         require_true(ob.has("Ruoka"s));
         require_true(ob["Ruoka"s].is_boolean());
@@ -305,7 +305,7 @@ auto register_tests()
         {
             "List", {1, 2, 3, 4, 5}
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_true(ob["List"s].is_array());
         require_true(ob["List"s][0].is_integer());
         require_true(ob["List"s][1].is_integer());
@@ -319,7 +319,7 @@ auto register_tests()
         {
             "List", {{"A"s,1},{"B"s,false},{"C"s,3.0},{"D"s,"4"s}}
         };
-        succeed(json::stringify(ob));
+        succeed(xson::json::stringify(ob, 2));
         require_true(ob["List"s].is_object());
         require_true(ob["List"s]["A"s].is_integer());
         require_true(ob["List"s]["B"s].is_boolean());

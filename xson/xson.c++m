@@ -1,7 +1,6 @@
 module;
 export module xson;
 
-import :trace;
 import :object;
 import :fast;
 import :json;
@@ -18,7 +17,6 @@ export namespace xson
     using xson::timestamp_type;
     using xson::to_iso8601;
     using xson::to_string;
-    using xson::trace::trace;
 }
 
 export namespace xson::json

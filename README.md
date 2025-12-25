@@ -93,16 +93,16 @@ The library is organized as C++23 modules:
 - `xson:fson` - FSON (Fast JSON) binary serialization
 - `xson:object` - Core object, array, and builder types
 - `xson:fast` - Fast encoding/decoding utilities
-- `xson:trace` - Debug tracing functionality
 
 ## Features
 
 - **C++23 Modules**: Fast compilation with module interfaces
-- **JSON Support**: Full JSON parsing and stringification
+- **JSON Support**: Full JSON parsing and stringification with scientific notation
 - **FSON Support**: Binary serialization format for efficient storage
 - **Type-Safe**: Strong typing with `integer_type`, `number_type`, `string_type`, etc.
 - **Extensible**: Support for custom types via timestamp and integer types
 - **Large Number Support**: Automatic handling of numbers exceeding `int64_t` range
+- **Scientific Notation**: Full support for JSON scientific notation (e.g., `1e2`, `1.5e-3`, `1e+10`)
 
 ## Number Parsing Behavior
 
@@ -120,4 +120,23 @@ auto ob = json::parse(json_str);
 ob["small"s].is_integer();  // true - stored as int64_t
 ob["large"s].is_integer();  // false - stored as double
 ob["large"s].is_number();   // true - stored as double
+```
+
+## Scientific Notation Support
+
+The JSON parser fully supports scientific notation as specified in the JSON standard:
+
+- **Positive exponents**: `1e2`, `1e+2` → 100.0
+- **Negative exponents**: `1e-2`, `0.5e-3` → 0.01, 0.0005
+- **Decimal numbers**: `1.5e2`, `3.14159e+0` → 150.0, 3.14159
+- **Large/small numbers**: `1e308`, `1e-323` → Handles near double limits
+
+**Example:**
+```cpp
+auto json_str = R"({"normal": 123, "scientific": 1e2, "negative": 1e-2})";
+auto ob = json::parse(json_str);
+
+ob["normal"s].is_integer();      // true - stored as int64_t
+ob["scientific"s].is_number();   // true - stored as double (100.0)
+ob["negative"s].is_number();     // true - stored as double (0.01)
 ```

@@ -23,7 +23,7 @@ auto register_tests()
     test_case("String") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"String", "1234567890"s};
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["String"s].is_string());
         const xson::string_type s = ob["String"s];
@@ -33,7 +33,7 @@ auto register_tests()
     test_case("Double") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"Double", 21.12};
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["Double"s].is_number());
         const xson::number_type d = ob["Double"s];
@@ -43,7 +43,7 @@ auto register_tests()
     test_case("Boolean") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{{"True", true},{"False", false}};
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["True"s].is_boolean());
         const xson::boolean_type t = ob["True"s];
@@ -58,7 +58,7 @@ auto register_tests()
         auto now = system_clock::now();
         auto ss = std::stringstream{};
         ss << xson::object{"Date", now};
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["Date"s].is_string());
         const xson::string_type d = ob["Date"s];
@@ -68,7 +68,7 @@ auto register_tests()
     test_case("Null") = [] {
         auto ss = std::stringstream{};
         ss << xson::object{"Null", nullptr};
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["Null"s].is_null());
     };
@@ -80,7 +80,7 @@ auto register_tests()
             {"Min", std::numeric_limits<int>::min()},
             {"Max", std::numeric_limits<int>::max()}
         };
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["Zero"s].is_integer());
         const xson::integer_type zero = ob["Zero"s];
@@ -102,7 +102,7 @@ auto register_tests()
             {"Min", std::numeric_limits<xson::integer_type>::min()},
             {"Max", std::numeric_limits<xson::integer_type>::max()}
         };
-        auto ob = json::parse(ss);
+        auto ob = json::parse(ss.str());
 
         require_true(ob["Zero"s].is_integer());
         const xson::integer_type zero = ob["Zero"s];
@@ -271,64 +271,64 @@ auto register_tests()
 
     // ===== ERROR HANDLING TESTS =====
 
-    // test_case("InvalidJSON") = [] {
-    //     // Test that malformed JSON throws exceptions
-    //     // Test each case individually to ensure exceptions are properly caught
-    //     
-    //     // Missing closing brace
-    //     bool threw1 = false;
-    //     try {
-    //         auto ob = json::parse(R"({invalid})");
-    //     } catch(...) {
-    //         threw1 = true;
-    //     }
-    //     require_true(threw1);
-    //     
-    //     // Missing quote
-    //     bool threw2 = false;
-    //     try {
-    //         auto ob = json::parse(R"({"unclosed": "string)");
-    //     } catch(...) {
-    //         threw2 = true;
-    //     }
-    //     require_true(threw2);
-    //     
-    //     // Missing closing bracket
-    //     bool threw3 = false;
-    //     try {
-    //         auto ob = json::parse(R"([1,2,3)");
-    //     } catch(...) {
-    //         threw3 = true;
-    //     }
-    //     require_true(threw3);
-    //     
-    //     // Unquoted value
-    //     bool threw4 = false;
-    //     try {
-    //         auto ob = json::parse(R"({"key": value})");
-    //     } catch(...) {
-    //         threw4 = true;
-    //     }
-    //     require_true(threw4);
-    //     
-    //     // Wrong closing bracket
-    //     bool threw5 = false;
-    //     try {
-    //         auto ob = json::parse(R"({"key": 123])");
-    //     } catch(...) {
-    //         threw5 = true;
-    //     }
-    //     require_true(threw5);
-    //     
-    //     // Empty array with just bracket
-    //     bool threw6 = false;
-    //     try {
-    //         auto ob = json::parse(R"([)");
-    //     } catch(...) {
-    //         threw6 = true;
-    //     }
-    //     require_true(threw6);
-    // };
+    test_case("InvalidJSON") = [] {
+        // Test that malformed JSON throws exceptions
+        // Test each case individually to ensure exceptions are properly caught
+        
+        // Missing closing brace
+        bool threw1 = false;
+        try {
+            auto ob = json::parse(R"({invalid})");
+        } catch(...) {
+            threw1 = true;
+        }
+        require_true(threw1);
+        
+        // Missing quote
+        bool threw2 = false;
+        try {
+            auto ob = json::parse(R"({"unclosed": "string)");
+        } catch(...) {
+            threw2 = true;
+        }
+        require_true(threw2);
+        
+        // Missing closing bracket
+        bool threw3 = false;
+        try {
+            auto ob = json::parse(R"([1,2,3)");
+        } catch(...) {
+            threw3 = true;
+        }
+        require_true(threw3);
+        
+        // Unquoted value
+        bool threw4 = false;
+        try {
+            auto ob = json::parse(R"({"key": value})");
+        } catch(...) {
+            threw4 = true;
+        }
+        require_true(threw4);
+        
+        // Wrong closing bracket
+        bool threw5 = false;
+        try {
+            auto ob = json::parse(R"({"key": 123])");
+        } catch(...) {
+            threw5 = true;
+        }
+        require_true(threw5);
+        
+        // Empty array with just bracket
+        bool threw6 = false;
+        try {
+            auto ob = json::parse(R"([)");
+        } catch(...) {
+            threw6 = true;
+        }
+        require_true(threw6);
+    };
 
     test_case("RoundTripConsistency") = [] {
         // Test that parsing -> stringifying -> parsing produces consistent results
@@ -358,21 +358,124 @@ auto register_tests()
         require_true(parsed["null"s].is_null());
     };
 
-    // test_case("ScientificNotation") = [] {
-    //     // Test parsing of scientific notation - simplified test
-    //     auto json_str = R"({"normal": 123, "simple": 1e2})";
-    //     auto ob = json::parse(json_str);
+    test_case("ScientificNotation") = [] {
+        // Test basic scientific notation
+        auto json_str = R"({"normal": 123, "simple": 1e2})";
+        auto ob = json::parse(json_str);
 
-    //     // Test normal number first
-    //     require_true(ob["normal"s].is_integer());
-    //     const xson::integer_type normal = ob["normal"s];
-    //     require_eq(123, normal);
+        // Test normal number first
+        require_true(ob["normal"s].is_integer());
+        const xson::integer_type normal = ob["normal"s];
+        require_eq(123, normal);
 
-    //     // Test scientific notation
-    //     require_true(ob["simple"s].is_number());
-    //     const xson::number_type value = ob["simple"s];
-    //     require_eq(100.0, value);  // 1 * 10^2 = 100
-    // };
+        // Test scientific notation
+        require_true(ob["simple"s].is_number());
+        const xson::number_type value = ob["simple"s];
+        require_eq(100.0, value);  // 1 * 10^2 = 100
+    };
+
+    test_case("ScientificNotationEdgeCases") = [] {
+        // Test various scientific notation formats
+        auto json_str = R"({
+            "pos_exp": 1e2,
+            "neg_exp": 1e-2,
+            "pos_exp_signed": 1e+2,
+            "neg_exp_signed": 1e-10,
+            "decimal_pos": 1.5e2,
+            "decimal_neg": 0.5e-3,
+            "large_exp": 1e308,
+            "small_exp": 1e-323,
+            "integer_exp": 42e2,
+            "zero_base": 0e10,
+            "zero_exp": 1e0
+        })";
+        auto ob = json::parse(json_str);
+
+        // Positive exponent
+        require_true(ob["pos_exp"s].is_number());
+        require_eq(100.0, static_cast<xson::number_type>(ob["pos_exp"s]));
+
+        // Negative exponent
+        require_true(ob["neg_exp"s].is_number());
+        require_eq(0.01, static_cast<xson::number_type>(ob["neg_exp"s]));
+
+        // Positive exponent with explicit sign
+        require_true(ob["pos_exp_signed"s].is_number());
+        require_eq(100.0, static_cast<xson::number_type>(ob["pos_exp_signed"s]));
+
+        // Negative exponent with explicit sign
+        require_true(ob["neg_exp_signed"s].is_number());
+        require_eq(1e-10, static_cast<xson::number_type>(ob["neg_exp_signed"s]));
+
+        // Decimal with positive exponent
+        require_true(ob["decimal_pos"s].is_number());
+        require_eq(150.0, static_cast<xson::number_type>(ob["decimal_pos"s]));
+
+        // Decimal with negative exponent
+        require_true(ob["decimal_neg"s].is_number());
+        require_eq(0.0005, static_cast<xson::number_type>(ob["decimal_neg"s]));
+
+        // Large exponent (near double max)
+        require_true(ob["large_exp"s].is_number());
+        const auto large_val = static_cast<xson::number_type>(ob["large_exp"s]);
+        require_true(large_val > 1e300);
+
+        // Small exponent (near double min)
+        require_true(ob["small_exp"s].is_number());
+        const auto small_val = static_cast<xson::number_type>(ob["small_exp"s]);
+        require_true(small_val > 0 && small_val < 1e-300);
+
+        // Integer with scientific notation (becomes float)
+        require_true(ob["integer_exp"s].is_number());
+        require_eq(4200.0, static_cast<xson::number_type>(ob["integer_exp"s]));
+
+        // Zero base
+        require_true(ob["zero_base"s].is_number());
+        require_eq(0.0, static_cast<xson::number_type>(ob["zero_base"s]));
+
+        // Zero exponent
+        require_true(ob["zero_exp"s].is_number());
+        require_eq(1.0, static_cast<xson::number_type>(ob["zero_exp"s]));
+    };
+
+    test_case("ScientificNotationErrors") = [] {
+        // Test error cases for scientific notation
+        // Missing exponent digits
+        bool threw1 = false;
+        try {
+            auto ob = json::parse(R"({"invalid": 1e})");
+        } catch(...) {
+            threw1 = true;
+        }
+        require_true(threw1);
+
+        // Missing exponent digits after plus
+        bool threw2 = false;
+        try {
+            auto ob = json::parse(R"({"invalid": 1e+})");
+        } catch(...) {
+            threw2 = true;
+        }
+        require_true(threw2);
+
+        // Missing exponent digits after minus
+        bool threw3 = false;
+        try {
+            auto ob = json::parse(R"({"invalid": 1e-})");
+        } catch(...) {
+            threw3 = true;
+        }
+        require_true(threw3);
+
+        // Invalid character after e
+        bool threw4 = false;
+        try {
+            auto ob = json::parse(R"({"invalid": 1ex})");
+        } catch(...) {
+            threw4 = true;
+        }
+        require_true(threw4);
+    };
 
     test_case("UnicodeAndSpecialChars") = [] {
         // Test handling of Unicode and special characters

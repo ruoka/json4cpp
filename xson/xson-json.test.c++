@@ -8,10 +8,6 @@ import tester;
 using namespace std::chrono;
 using namespace std::string_literals;
 using namespace xson;
-using namespace xson::json;
-
-using xson::json::operator <<;
-using xson::json::operator >>;
 
 namespace xson::json_test {
 
@@ -21,109 +17,143 @@ auto register_tests()
     using namespace tester::assertions;
 
     test_case("String") = [] {
+        using xson::json::operator <<;
+        auto obj = object{"String", "1234567890"s};
         auto ss = std::stringstream{};
-        ss << xson::object{"String", "1234567890"s};
+        ss << obj;
         succeed(ss.str());
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
+        auto ob = json::parse(ss.str());
+        ss.str("");
+        ss << ob;
+        succeed(ss.str());
 
         require_true(ob["String"s].is_string());
-        const xson::string_type s = ob["String"s];
+        const auto s = ob["String"s];
         require_eq("1234567890"s, s);
     };
 
     test_case("Double") = [] {
+        using xson::json::operator <<;
+        auto obj = object{"Double", 21.12};
         auto ss = std::stringstream{};
-        ss << xson::object{"Double", 21.12};
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
+
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
         succeed(ss.str());
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
-
         require_true(ob["Double"s].is_number());
-        const xson::number_type d = ob["Double"s];
+        const auto d = ob["Double"s];
         require_eq(21.12, d);
     };
 
     test_case("Boolean") = [] {
+        using xson::json::operator <<;
+        auto obj = object{{"True", true},{"False", false}};
         auto ss = std::stringstream{};
-        ss << xson::object{{"True", true},{"False", false}};
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
+
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
         succeed(ss.str());
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
-
         require_true(ob["True"s].is_boolean());
-        const xson::boolean_type t = ob["True"s];
+        const auto t = ob["True"s];
         require_eq(true, t);
 
         require_true(ob["False"s].is_boolean());
-        const xson::boolean_type f = ob["False"s];
+        const auto f = ob["False"s];
         require_eq(false, f);
     };
 
     test_case("Date2String") = [] {
+        using xson::json::operator <<;
         auto now = system_clock::now();
+        auto obj = object{"Date", now};
         auto ss = std::stringstream{};
-        ss << xson::object{"Date", now};
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
+
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
         succeed(ss.str());
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
-
         require_true(ob["Date"s].is_string());
-        const xson::string_type d = ob["Date"s];
+        const auto d = ob["Date"s];
         require_eq(xson::to_string(now), d);
     };
 
     test_case("Null") = [] {
+        using xson::json::operator <<;
+        auto obj = object{"Null", nullptr};
         auto ss = std::stringstream{};
-        ss << xson::object{"Null", nullptr};
-        succeed(ss.str());
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
+        succeed(ss.str());
 
         require_true(ob["Null"s].is_null());
     };
 
     test_case("Int32") = [] {
-        auto ss = std::stringstream{};
-        ss << xson::object{
+        using xson::json::operator <<;
+        auto obj = object{
             {"Zero", std::int32_t{0}},
             {"Min", std::numeric_limits<int>::min()},
             {"Max", std::numeric_limits<int>::max()}
         };
+        auto ss = std::stringstream{};
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
+
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
         succeed(ss.str());
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
-
         require_true(ob["Zero"s].is_integer());
-        const xson::integer_type zero = ob["Zero"s];
+        const auto zero = ob["Zero"s];
         require_eq(0, zero);
 
         require_true(ob["Min"s].is_integer());
-        const xson::integer_type min = ob["Min"s];
+        const auto min = ob["Min"s];
         require_eq(std::numeric_limits<int>::min(), min);
 
         require_true(ob["Max"s].is_integer());
-        const xson::integer_type max = ob["Max"s];
+        const auto max = ob["Max"s];
         require_eq(std::numeric_limits<int>::max(), max);
     };
 
     test_case("Integer") = [] {
-        auto ss = std::stringstream{};
-        ss << xson::object{
+        using xson::json::operator <<;
+        auto obj = object{
             {"Zero", std::int64_t{0}},
-            {"Min", std::numeric_limits<xson::integer_type>::min()},
-            {"Max", std::numeric_limits<xson::integer_type>::max()}
+            {"Min", std::numeric_limits<integer_type>::min()},
+            {"Max", std::numeric_limits<integer_type>::max()}
         };
-        succeed(ss.str());
+        auto ss = std::stringstream{};
+        ss << obj;
+        auto json_str = ss.str();
+        succeed(json_str);
 
-        auto ob = json::parse(ss);
-        succeed(json::stringify(ob));
+        auto ob = json::parse(json_str);
+        ss.str("");
+        ss << ob;
+        succeed(ss.str());
 
         require_true(ob["Zero"s].is_integer());
         const xson::integer_type zero = ob["Zero"s];
@@ -147,9 +177,7 @@ auto register_tests()
         auto str1 = json::stringify(ob1);
         succeed("str1: " + str1);
 
-        auto ss = std::stringstream{str1};
-
-        auto ob2 = json::parse(ss);
+        auto ob2 = json::parse(str1);
         succeed("ob2:  " + json::stringify(ob2));
         auto str2 = json::stringify(ob2);
         succeed("str2: " + str2);
@@ -187,9 +215,7 @@ auto register_tests()
         auto str1 = json::stringify(ob1);
         succeed("str1: " + str1);
 
-        auto ss = std::stringstream{str1};
-
-        auto ob2 = json::parse(ss);
+        auto ob2 = json::parse(str1);
         succeed("ob2:  " + json::stringify(ob2));
         auto str2 = json::stringify(ob2);
         succeed("str2: " + str2);
@@ -198,6 +224,7 @@ auto register_tests()
     };
 
     test_case("Complex") = [] {
+        using xson::json::operator <<;
         auto mix = xson::object
             {
             { "Ruoka",  true                     },
@@ -212,7 +239,7 @@ auto register_tests()
         ss << mix;
         succeed(ss.str());
 
-        auto obj = json::parse(ss);
+        auto obj = json::parse(ss.str());
         succeed(json::stringify(obj));
 
         require_true(obj["Ruoka"s].is_boolean());
@@ -235,7 +262,7 @@ auto register_tests()
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test1.json";
         auto fs = std::ifstream{test_file};
-        auto ob = json::parse(fs);
+        auto ob = json::parse(static_cast<std::istream&>(fs));
         succeed("test1.json: "s + json::stringify(ob));
 
         require_true(ob["required"s].is_array());
@@ -255,7 +282,7 @@ auto register_tests()
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test2.json";
         auto fs = std::ifstream{test_file};
-        auto ob = json::parse(fs);
+        auto ob = json::parse(static_cast<std::istream&>(fs));
         succeed("test2.json: "s + json::stringify(ob));
 
         const xson::boolean_type alive = ob["isAlive"s];
