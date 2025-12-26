@@ -266,6 +266,86 @@ auto register_tests()
         check_eq(36028797018963968ll, max);
     };
 
+    test_case("RootPrimitiveRoundTrip") = [] {
+        // FSON supports non-container top-level values as well.
+        auto round_trip = [](const xson::object& in) {
+            auto ss = std::stringstream{};
+            xson::fson::encoder{}.encode(ss, in);
+            return xson::fson::parse(ss);
+        };
+
+        {
+            auto v = xson::object{};
+            v = nullptr;
+            const auto out = round_trip(v);
+            require_true(out.is_null());
+        }
+        {
+            auto v = xson::object{};
+            v = true;
+            const auto out = round_trip(v);
+            require_true(out.is_boolean());
+            require_true(static_cast<boolean_type>(out));
+        }
+        {
+            auto v = xson::object{};
+            v = std::int64_t{42};
+            const auto out = round_trip(v);
+            require_true(out.is_integer());
+            require_eq(42, static_cast<integer_type>(out));
+        }
+        {
+            auto v = xson::object{};
+            v = 3.5;
+            const auto out = round_trip(v);
+            require_true(out.is_number());
+            require_eq(3.5, static_cast<number_type>(out));
+        }
+        {
+            auto v = xson::object{};
+            v = "hi"s;
+            const auto out = round_trip(v);
+            require_true(out.is_string());
+            require_eq("hi"s, static_cast<string_type>(out));
+        }
+    };
+
+    test_case("Malformed_NameInsideArray_Throws") = [] {
+        // type::name is invalid inside arrays; decoder should reject it (not crash).
+        auto ss = std::stringstream{};
+        xson::fast::encode(ss, xson::fson::type::array);
+        xson::fast::encode(ss, xson::fson::type::name);
+        xson::fast::encode(ss, "bad"s);
+        xson::fast::encode(ss, xson::fson::type::end);
+
+        bool threw = false;
+        try {
+            auto ob = xson::fson::parse(ss);
+        } catch(...) {
+            threw = true;
+        }
+        require_true(threw);
+    };
+
+    test_case("Malformed_TruncatedObject_Throws") = [] {
+        // Missing type::end should be reported as truncated input.
+        auto ss = std::stringstream{};
+        xson::fast::encode(ss, xson::fson::type::object);
+        xson::fast::encode(ss, xson::fson::type::name);
+        xson::fast::encode(ss, "a"s);
+        xson::fast::encode(ss, xson::fson::type::integer);
+        xson::fast::encode(ss, std::int64_t{1});
+        // no end marker
+
+        bool threw = false;
+        try {
+            auto ob = xson::fson::parse(ss);
+        } catch(...) {
+            threw = true;
+        }
+        require_true(threw);
+    };
+
     return 0;
 }
 

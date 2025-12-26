@@ -143,8 +143,13 @@ public:
 
         while(is)
         {
-            auto type = xson::fson::type{};
-            fast::decode(is,type);
+            auto tag = xson::fson::type{};
+            fast::decode(is, tag);
+
+            // If we failed to read a tag, treat it as EOF for a complete document,
+            // otherwise report truncated/corrupt input below.
+            if(!is)
+                break;
 
             xson::string_type name;
             xson::number_type d;
@@ -153,66 +158,77 @@ public:
             xson::boolean_type b;
             xson::integer_type i;
 
-            switch(type)
+            switch(tag)
             {
-                case type::object: // x03
+                case type::object:
                     parent.push(type::object);
                     m_builder.start_object();
                     break;
 
                 case type::name:
+                    // Names are only valid when the current container is an object.
+                    if(parent.empty() || parent.top() != type::object)
+                        throw std::runtime_error{"Invalid FSON: name outside object"s};
                     fast::decode(is,name);
                     m_builder.name(name);
                     break;
 
-                case type::array:  // x04
+                case type::array:
                     parent.push(type::array);
                     m_builder.start_array();
                     break;
 
-                case type::number: // x01
+                case type::number:
                     fast::decode(is,d);
                     m_builder.value(d);
                     break;
 
-                case type::string: // x02
+                case type::string:
                     fast::decode(is,str);
                     m_builder.value(str);
                     break;
 
-                case type::boolean: // x08
+                case type::boolean:
                     fast::decode(is,b);
                     m_builder.value(b);
                     break;
 
-                case type::null:    // x0A
+                case type::null:
                     m_builder.value(nullptr);
                     break;
 
-                case type::timestamp:    // x09
+                case type::timestamp:
                     fast::decode(is,dt);
                     m_builder.value(dt);
                     break;
 
-                case type::integer: // x12
+                case type::integer:
                     fast::decode(is,i);
                     m_builder.value(i);
                     break;
 
-                case type::end:     // x00
-                    if(parent.empty()) return;  // End of document
-                    if(parent.top() == type::object) m_builder.end_object();
-                    if(parent.top() == type::array) m_builder.end_array();
+                case type::end:
+                    if(parent.empty())
+                        return;  // End of document
+                    if(parent.top() == type::object)
+                        m_builder.end_object();
+                    else if(parent.top() == type::array)
+                        m_builder.end_array();
                     parent.pop();
                     break;
 
                 default:
-                    throw std::runtime_error{"Invalid FSON type encountered during decoding: "s + std::to_string(static_cast<int>(type))};
+                    throw std::runtime_error{"Invalid FSON type encountered during decoding: "s + std::to_string(static_cast<int>(tag))};
                     break;
             }
 
-            if(parent.empty()) return;
+            if(parent.empty())
+                return;
         }
+
+        // Stream ended before closing all open containers.
+        if(!parent.empty())
+            throw std::runtime_error{"Invalid FSON: truncated input (unexpected end of stream)"s};
     }
 
 private:
