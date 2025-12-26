@@ -16,6 +16,27 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
+    test_case("ReadmeCreateStringify") = [] {
+        // Mirrors README "Create + stringify" snippet.
+        auto document = object{
+            { "Name"s, "Papa"s },
+            { "Age"s,  40      },
+            { "LuckyNumbers"s, {2, 22, 2112} },
+            { "Lucky"s, false }
+        };
+
+        const auto json_str = xson::json::stringify(document);
+        const auto parsed = xson::json::parse(json_str);
+
+        require_true(parsed.is_object());
+        require_eq("Papa"s, static_cast<string_type>(parsed["Name"s]));
+        require_eq(40, static_cast<integer_type>(parsed["Age"s]));
+        require_false(static_cast<boolean_type>(parsed["Lucky"s]));
+        require_true(parsed["LuckyNumbers"s].is_array());
+        require_eq(3u, parsed["LuckyNumbers"s].size());
+        require_eq(22, static_cast<integer_type>(parsed["LuckyNumbers"s][1]));
+    };
+
     test_case("Stringify") = [] {
         auto kids = std::vector<object>
         {
