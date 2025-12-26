@@ -19,6 +19,8 @@ auto register_tests()
 {
     using tester::basic::test_case;
     using namespace tester::assertions;
+    using xson::json::operator <<;
+    using xson::json::operator >>;
 
     test_case("Simple") = [] {
         auto ob = object
