@@ -110,6 +110,55 @@ auto register_tests()
         require_true(parsed.has("float"s));
     };
 
+    test_case("StringifyRootPrimitives") = [] {
+        // Stringify should handle non-container top-level values too.
+        {
+            auto v = xson::object{};
+            v = true;
+            const auto s = json::stringify(v, 0);
+            require_eq("true"s, s);
+            const auto parsed = json::parse(s);
+            require_true(parsed.is_boolean());
+            require_true(static_cast<xson::boolean_type>(parsed));
+        }
+        {
+            auto v = xson::object{};
+            v = nullptr;
+            const auto s = json::stringify(v, 0);
+            require_eq("null"s, s);
+            const auto parsed = json::parse(s);
+            require_true(parsed.is_null());
+        }
+        {
+            auto v = xson::object{};
+            v = std::int64_t{42};
+            const auto s = json::stringify(v, 0);
+            require_eq("42"s, s);
+            const auto parsed = json::parse(s);
+            require_true(parsed.is_integer());
+            require_eq(42, static_cast<xson::integer_type>(parsed));
+        }
+        {
+            auto v = xson::object{};
+            v = 1.25;
+            const auto s = json::stringify(v, 0);
+            require_true(!s.empty());
+            require_true(s.front() != '{' && s.front() != '[');
+            const auto parsed = json::parse(s);
+            require_true(parsed.is_number());
+            require_eq(1.25, static_cast<xson::number_type>(parsed));
+        }
+        {
+            auto v = xson::object{};
+            v = "hi"s;
+            const auto s = json::stringify(v, 0);
+            require_eq("\"hi\""s, s);
+            const auto parsed = json::parse(s);
+            require_true(parsed.is_string());
+            require_eq("hi"s, static_cast<xson::string_type>(parsed));
+        }
+    };
+
     test_case("StringifyEmptyStructures") = [] {
         auto obj = xson::object{
             {"empty_object", xson::object{}},

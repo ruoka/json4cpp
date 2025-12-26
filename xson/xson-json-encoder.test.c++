@@ -44,6 +44,29 @@ auto register_tests()
         }
     };
 
+    test_case("OstreamRootPrimitives") = [] {
+        // Stream encoder should also handle non-container top-level values.
+        for (const auto indent : {0, 4}) {
+            {
+                auto v = xson::object{};
+                v = true;
+                auto ss = std::stringstream{};
+                ss << std::setw(indent) << v;
+                require_eq("true"s, ss.str());
+            }
+            {
+                auto v = xson::object{};
+                v = "hi"s;
+                auto ss = std::stringstream{};
+                ss << std::setw(indent) << v;
+                const auto out = ss.str();
+                const auto parsed = json::parse(out);
+                require_true(parsed.is_string());
+                require_eq("hi"s, static_cast<xson::string_type>(parsed));
+            }
+        }
+    };
+
     return 0;
 }
 

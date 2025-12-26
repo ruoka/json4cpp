@@ -120,6 +120,59 @@ auto register_tests()
         require_true(threw6);
     };
 
+    test_case("DecodeRootPrimitives") = [] {
+        // Ensure the decoder accepts non-container top-level JSON values.
+        const auto t = json::parse("true");
+        require_true(t.is_boolean());
+        require_true(static_cast<xson::boolean_type>(t));
+
+        const auto f = json::parse(" \nfalse\t");
+        require_true(f.is_boolean());
+        require_false(static_cast<xson::boolean_type>(f));
+
+        const auto n = json::parse("null");
+        require_true(n.is_null());
+
+        const auto i = json::parse("  -123  ");
+        require_true(i.is_integer());
+        require_eq(-123, static_cast<xson::integer_type>(i));
+
+        const auto d = json::parse(" 1.25 ");
+        require_true(d.is_number());
+        require_eq(1.25, static_cast<xson::number_type>(d));
+
+        const auto s = json::parse("\"hi\"");
+        require_true(s.is_string());
+        require_eq("hi"s, static_cast<xson::string_type>(s));
+    };
+
+    test_case("DecodeRootPrimitiveTrailingGarbage") = [] {
+        // After a complete top-level value, only whitespace is allowed.
+        bool threw1 = false;
+        try {
+            auto ob = json::parse("truex");
+        } catch(...) {
+            threw1 = true;
+        }
+        require_true(threw1);
+
+        bool threw2 = false;
+        try {
+            auto ob = json::parse("42 43");
+        } catch(...) {
+            threw2 = true;
+        }
+        require_true(threw2);
+
+        bool threw3 = false;
+        try {
+            auto ob = json::parse("\"a\" \"b\"");
+        } catch(...) {
+            threw3 = true;
+        }
+        require_true(threw3);
+    };
+
     test_case("ScientificNotation") = [] {
         // Test basic scientific notation
         auto json_str = R"({"normal": 123, "simple": 1e2})";

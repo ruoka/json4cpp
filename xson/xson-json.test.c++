@@ -257,6 +257,42 @@ auto register_tests()
         require_eq(2, i2);
     };
 
+    test_case("RootPrimitives") = [] {
+        // JSON documents are allowed to be any value, not only object/array.
+        {
+            const auto v = json::parse("true");
+            require_true(v.is_boolean());
+            require_true(static_cast<xson::boolean_type>(v));
+        }
+        {
+            const auto v = json::parse(" null \n");
+            require_true(v.is_null());
+        }
+        {
+            const auto v = json::parse(" 42 ");
+            require_true(v.is_integer());
+            require_eq(42, static_cast<xson::integer_type>(v));
+        }
+        {
+            const auto v = json::parse(" 1.25 ");
+            require_true(v.is_number());
+            require_eq(1.25, static_cast<xson::number_type>(v));
+        }
+        {
+            const auto v = json::parse("\"hello\"");
+            require_true(v.is_string());
+            require_eq("hello"s, static_cast<xson::string_type>(v));
+        }
+        {
+            // Also validate the istream overload.
+            auto ss = std::stringstream{};
+            ss << "\tfalse\r\n";
+            const auto v = json::parse(static_cast<std::istream&>(ss));
+            require_true(v.is_boolean());
+            require_false(static_cast<xson::boolean_type>(v));
+        }
+    };
+
     test_case("RoundTripConsistency") = [] {
         // Test that stringifying -> parsing -> stringifying is stable for a mixed object.
         auto original = xson::object{
