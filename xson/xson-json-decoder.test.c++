@@ -10,7 +10,7 @@ using namespace std::string_literals;
 using namespace xson;
 using namespace xson::json;
 
-namespace xson::json_parser_test {
+namespace xson::json_decoder_test {
 
 auto register_tests()
 {
@@ -583,5 +583,5 @@ auto register_tests()
 
 const auto _ = register_tests();
 
-} // namespace xson::json_parser_test
+} // namespace xson::json_decoder_test
 
