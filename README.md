@@ -48,7 +48,6 @@ import xson;
 using namespace std::string_literals;
 using namespace xson;
 using xson::json::operator <<;
-using xson::json::operator >>;
 
 auto ss = std::stringstream{R"(
     {
@@ -82,6 +81,26 @@ std::clog << "_id            = " << result["_id"s]               << "\n"
 xson::integer_type id = result["_id"s];
 xson::string_type name = result["Name"s];
 xson::integer_type number = result["Lucky Numbers"s][1];
+```
+
+### Standalone (Top-Level) JSON Values
+
+JSON texts are allowed to be *any* value, not only an object/array:
+
+```cpp
+import std;
+import xson;
+
+using namespace std::string_literals;
+using namespace xson;
+
+auto v1 = json::parse("true");
+auto v2 = json::parse("42");
+auto v3 = json::parse("\"hello\"");
+
+std::clog << json::stringify(v1) << "\n"; // true
+std::clog << json::stringify(v2) << "\n"; // 42
+std::clog << json::stringify(v3) << "\n"; // "hello"
 ```
 
 ## Module Structure

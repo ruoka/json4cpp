@@ -51,10 +51,10 @@ auto register_tests()
 
         auto ss = std::stringstream{R"(
             {
-                "id" : 2,
+                "_id" : 2,
                 "Name" : "Ruoka",
                 "Embedded" : {
-                    "id" : 5,
+                    "_id" : 5,
                     "Name" : "Tuma"
                 },
                 "Lucky Numbers" : [
@@ -67,11 +67,11 @@ auto register_tests()
 
         std::clog << ss.str() << "\n\n";
 
-        auto result = json::parse(ss.str());
+        auto result = json::parse(static_cast<std::istream&>(ss));
 
         std::clog << xson::json::stringify(result, 2) << "\n\n";
 
-        std::clog << "_id            = " << result["id"s]                << "\n"
+        std::clog << "_id            = " << result["_id"s]               << "\n"
                  << "Name           = " << result["Name"s]              << "\n"
                  << "Embeded.Name   = " << result["Embedded"s]["Name"s] << "\n"
                  << "Lucky Number 1 = " << result["Lucky Numbers"s][0]  << "\n"
@@ -80,8 +80,8 @@ auto register_tests()
 
         // Add assertions to verify parsing worked correctly
         require_true(result.is_object());
-        require_true(result["id"s].is_integer());
-        require_eq(2, static_cast<integer_type>(result["id"s]));
+        require_true(result["_id"s].is_integer());
+        require_eq(2, static_cast<integer_type>(result["_id"s]));
         
         require_true(result["Name"s].is_string());
         require_eq("Ruoka"s, static_cast<string_type>(result["Name"s]));
@@ -95,6 +95,27 @@ auto register_tests()
         require_eq(2, static_cast<integer_type>(result["Lucky Numbers"s][0]));
         require_eq(22, static_cast<integer_type>(result["Lucky Numbers"s][1]));
         require_eq(2112, static_cast<integer_type>(result["Lucky Numbers"s][2]));
+    };
+
+    test_case("RootValues") = [] {
+        using namespace xson::json;
+
+        const auto v1 = json::parse("true");
+        require_true(v1.is_boolean());
+        require_true(static_cast<boolean_type>(v1));
+
+        const auto v2 = json::parse("42");
+        require_true(v2.is_integer());
+        require_eq(42, static_cast<integer_type>(v2));
+
+        const auto v3 = json::parse("\"hello\"");
+        require_true(v3.is_string());
+        require_eq("hello"s, static_cast<string_type>(v3));
+
+        // Ensure stringify round-trip is stable for root values.
+        require_eq("true"s, json::stringify(v1, 0));
+        require_eq("42"s, json::stringify(v2, 0));
+        require_eq("\"hello\""s, json::stringify(v3, 0));
     };
 
     return 0;
