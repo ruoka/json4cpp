@@ -257,6 +257,30 @@ auto register_tests()
         require_eq(2, i2);
     };
 
+    test_case("RoundTripConsistency") = [] {
+        // Test that stringifying -> parsing -> stringifying is stable for a mixed object.
+        auto original = xson::object{
+            {"string", "hello world"s},
+            {"integer", 42},
+            {"float", 3.14159},
+            {"boolean", true},
+            {"null", nullptr},
+            {"array", std::vector<int>{1, 2, 3}},
+            {"nested", xson::object{{"inner", "value"s}}}
+        };
+
+        const auto json1 = json::stringify(original);
+        const auto parsed = json::parse(json1);
+        const auto json2 = json::stringify(parsed);
+
+        require_eq(json1, json2);
+        require_eq(static_cast<xson::string_type>(parsed["string"s]), "hello world"s);
+        require_eq(static_cast<xson::integer_type>(parsed["integer"s]), 42);
+        require_eq(static_cast<xson::number_type>(parsed["float"s]), 3.14159);
+        require_true(static_cast<xson::boolean_type>(parsed["boolean"s]));
+        require_true(parsed["null"s].is_null());
+    };
+
     test_case("ParseFile1") = [] {
         const auto loc = std::source_location::current();
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});

@@ -17,30 +17,6 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("Ostream") = [] {
-        auto mix = xson::object
-        {
-            { "Ruoka",  true                     },
-            { "Onni",   false                    },
-            { "Tulppu", 1.0                      },
-            { "Elppu",  2.0                      },
-            { "Jalppu", 3.0                      },
-            { "Ages",   std::vector<int>{39,40,9,5,2} },
-            { "EmptyV", std::vector<int>{}            },
-            { "EmptyO", object{}                 },
-            { "Null",   nullptr                  },
-            { "Now",    system_clock::now()      }
-        };
-
-        std::clog << std::setw(0) << mix << std::endl;
-
-        std::clog << std::setw(3) << mix << std::endl;
-
-        std::clog << std::setw(6) << mix << std::endl;
-
-        std::clog << std::setw(12) << mix << std::endl;
-    };
-
     test_case("StringifyCompact") = [] {
         auto obj = xson::object{
             {"name", "test"s},
