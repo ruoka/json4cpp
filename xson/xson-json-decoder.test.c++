@@ -146,6 +146,26 @@ auto register_tests()
         require_eq("hi"s, static_cast<xson::string_type>(s));
     };
 
+    test_case("DecodeStringViewTrailingNul") = [] {
+        // Accept a trailing NUL byte (common when a caller uses a NUL-terminated buffer).
+        const auto input = std::string{"true\0", 5};
+        const auto v = json::parse(std::string_view{input.data(), input.size()});
+        require_true(v.is_boolean());
+        require_true(static_cast<xson::boolean_type>(v));
+    };
+
+    test_case("DecodeStringViewEmbeddedNulRejects") = [] {
+        // Reject embedded NUL bytes; they must be represented as escapes in JSON strings.
+        const auto input = std::string{"true\0false", 9};
+        bool threw = false;
+        try {
+            auto v = json::parse(std::string_view{input.data(), input.size()});
+        } catch(...) {
+            threw = true;
+        }
+        require_true(threw);
+    };
+
     test_case("DecodeRootPrimitiveTrailingGarbage") = [] {
         // After a complete top-level value, only whitespace is allowed.
         bool threw1 = false;

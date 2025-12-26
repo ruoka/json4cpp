@@ -131,7 +131,7 @@ public:
     static constexpr std::size_t max_nesting_depth = 1000;
     static constexpr std::size_t max_array_size = 100 * 1024 * 1024; // 100 million elements
 
-    decoder(Builder& b) : m_builder{b}, m_nesting_depth{0}, m_has_parsed_content{false}
+    decoder(Builder& b) : m_builder{b}, m_has_parsed_content{false}, m_nesting_depth{0}
     {}
 
     void decode(std::istream& is)
@@ -179,7 +179,16 @@ public:
     {
         m_state_machine.push(&decoder::document);
         bool finished = false;
-        for(auto c : sv)
+
+        // Some callers (notably HTTP stacks) may append a trailing NUL. Accept and ignore
+        // trailing NUL bytes, but reject embedded NUL bytes as invalid JSON input.
+        auto trimmed = sv;
+        while(!trimmed.empty() && trimmed.back() == '\0')
+            trimmed.remove_suffix(1);
+        if(trimmed.find('\0') != std::string_view::npos)
+            throw std::runtime_error{"Invalid JSON: NUL byte in input"s};
+
+        for(auto c : trimmed)
         {
             if(finished)
             {

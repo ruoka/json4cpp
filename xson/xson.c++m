@@ -1,41 +1,7 @@
 module;
 export module xson;
 
-import :object;
-import :fast;
-import :json;
-import :fson;
-
-export namespace xson
-{
-    using xson::object;
-    using xson::array;
-    using xson::integer_type;
-    using xson::number_type;
-    using xson::string_type;
-    using xson::boolean_type;
-    using xson::timestamp_type;
-    using xson::to_iso8601;
-    using xson::to_string;
-}
-
-export namespace xson::json
-{
-    using xson::json::parse;
-    using xson::json::stringify;
-    using xson::json::operator >>;
-    using xson::json::operator <<;
-}
-export namespace xson::fson
-{
-    using xson::fson::decoder;
-    using xson::fson::encoder;
-    using xson::fson::parse;
-    using xson::fson::operator >>;
-    using xson::fson::operator <<;
-}
-export namespace xson::fast
-{
-    using fast::decode;
-    using fast::encode;
-}
+export import :object;
+export import :fast;
+export import :json;
+export import :fson;
