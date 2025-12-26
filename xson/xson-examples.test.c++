@@ -48,6 +48,7 @@ auto register_tests()
 
     test_case("Parse") = [] {
         using namespace xson::json;
+        using xson::json::operator >>;
 
         auto ss = std::stringstream{R"(
             {
@@ -95,6 +96,26 @@ auto register_tests()
         require_eq(2, static_cast<integer_type>(result["Lucky Numbers"s][0]));
         require_eq(22, static_cast<integer_type>(result["Lucky Numbers"s][1]));
         require_eq(2112, static_cast<integer_type>(result["Lucky Numbers"s][2]));
+
+        // Also validate the stream operator>> form (README example).
+        auto ss2 = std::stringstream{R"(
+            {
+                "_id" : 2,
+                "Name" : "Ruoka",
+                "Embedded" : {
+                    "_id" : 5,
+                    "Name" : "Tuma"
+                },
+                "Lucky Numbers" : [
+                    2,
+                    22,
+                    2112
+                ]
+            }
+        )"};
+        auto result2 = xson::object{};
+        ss2 >> result2;
+        require_eq(result, result2);
     };
 
     test_case("RootValues") = [] {

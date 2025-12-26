@@ -48,6 +48,7 @@ import xson;
 using namespace std::string_literals;
 using namespace xson;
 using xson::json::operator <<;
+using xson::json::operator >>;
 
 auto ss = std::stringstream{R"(
     {
@@ -67,7 +68,13 @@ auto ss = std::stringstream{R"(
 
 std::clog << ss.str() << "\n\n";
 
+// Option A: explicit parse
 auto result = json::parse(ss);
+
+// Option B: stream operator (equivalent to json::parse(ss))
+// Note: requires `using xson::json::operator >>;`
+// auto result = xson::object{};
+// ss >> result;
 
 std::clog << std::setw(2) << result << "\n\n";
 
