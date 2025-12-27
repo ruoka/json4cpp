@@ -607,20 +607,8 @@ auto register_tests()
         auto ob = object{{"A"s, 1}};
         const auto& c_ob = ob;
         
-        // The const operator[] directly uses std::get<map> which will throw 
-        // bad_variant_access if not a map, but we're testing with a map.
-        // If the key doesn't exist, it should throw out_of_range.
-        // Test that accessing non-existent key throws some exception
-        bool threw = false;
-        try {
-            [[maybe_unused]] auto val = c_ob["Nonexistent"s];
-        } catch (const std::out_of_range&) {
-            threw = true;
-        } catch (...) {
-            // Might throw bad_variant_access if implementation changes
-            threw = true;
-        }
-        require_true(threw);
+        // Test that accessing non-existent key throws some exception using tester assertions
+        require_throws([&]{ [[maybe_unused]] auto val = c_ob["Nonexistent"s]; });
         
         // Non-const creates new key if doesn't exist
         require_nothrow([&]{ ob["NewKey"s] = 42; });

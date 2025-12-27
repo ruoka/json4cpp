@@ -62,62 +62,24 @@ auto register_tests()
     // ===== ERROR HANDLING TESTS =====
 
     test_case("InvalidJSON") = [] {
-        // Test that malformed JSON throws exceptions
-        // Test each case individually to ensure exceptions are properly caught
-        
+        // Test that malformed JSON throws exceptions using tester assertions
         // Missing closing brace
-        bool threw1 = false;
-        try {
-            auto ob = json::parse(R"({invalid})");
-        } catch(...) {
-            threw1 = true;
-        }
-        require_true(threw1);
+        require_throws([&]{ auto ob = json::parse(R"({invalid})"); });
         
         // Missing quote
-        bool threw2 = false;
-        try {
-            auto ob = json::parse(R"({"unclosed": "string)");
-        } catch(...) {
-            threw2 = true;
-        }
-        require_true(threw2);
+        require_throws([&]{ auto ob = json::parse(R"({"unclosed": "string)"); });
         
         // Missing closing bracket
-        bool threw3 = false;
-        try {
-            auto ob = json::parse(R"([1,2,3)");
-        } catch(...) {
-            threw3 = true;
-        }
-        require_true(threw3);
+        require_throws([&]{ auto ob = json::parse(R"([1,2,3)"); });
         
         // Unquoted value
-        bool threw4 = false;
-        try {
-            auto ob = json::parse(R"({"key": value})");
-        } catch(...) {
-            threw4 = true;
-        }
-        require_true(threw4);
+        require_throws([&]{ auto ob = json::parse(R"({"key": value})"); });
         
         // Wrong closing bracket
-        bool threw5 = false;
-        try {
-            auto ob = json::parse(R"({"key": 123])");
-        } catch(...) {
-            threw5 = true;
-        }
-        require_true(threw5);
+        require_throws([&]{ auto ob = json::parse(R"({"key": 123])"); });
         
         // Empty array with just bracket
-        bool threw6 = false;
-        try {
-            auto ob = json::parse(R"([)");
-        } catch(...) {
-            threw6 = true;
-        }
-        require_true(threw6);
+        require_throws([&]{ auto ob = json::parse(R"([)"); });
     };
 
     test_case("DecodeRootPrimitives") = [] {
@@ -157,40 +119,14 @@ auto register_tests()
     test_case("DecodeStringViewEmbeddedNulRejects") = [] {
         // Reject embedded NUL bytes; they must be represented as escapes in JSON strings.
         const auto input = std::string{"true\0false", 9};
-        bool threw = false;
-        try {
-            auto v = json::parse(std::string_view{input.data(), input.size()});
-        } catch(...) {
-            threw = true;
-        }
-        require_true(threw);
+        require_throws([&]{ auto v = json::parse(std::string_view{input.data(), input.size()}); });
     };
 
     test_case("DecodeRootPrimitiveTrailingGarbage") = [] {
         // After a complete top-level value, only whitespace is allowed.
-        bool threw1 = false;
-        try {
-            auto ob = json::parse("truex");
-        } catch(...) {
-            threw1 = true;
-        }
-        require_true(threw1);
-
-        bool threw2 = false;
-        try {
-            auto ob = json::parse("42 43");
-        } catch(...) {
-            threw2 = true;
-        }
-        require_true(threw2);
-
-        bool threw3 = false;
-        try {
-            auto ob = json::parse("\"a\" \"b\"");
-        } catch(...) {
-            threw3 = true;
-        }
-        require_true(threw3);
+        require_throws([&]{ auto ob = json::parse("truex"); });
+        require_throws([&]{ auto ob = json::parse("42 43"); });
+        require_throws([&]{ auto ob = json::parse("\"a\" \"b\""); });
     };
 
     test_case("ScientificNotation") = [] {
@@ -274,42 +210,18 @@ auto register_tests()
     };
 
     test_case("ScientificNotationErrors") = [] {
-        // Test error cases for scientific notation
+        // Test error cases for scientific notation using tester assertions
         // Missing exponent digits
-        bool threw1 = false;
-        try {
-            auto ob = json::parse(R"({"invalid": 1e})");
-        } catch(...) {
-            threw1 = true;
-        }
-        require_true(threw1);
+        require_throws([&]{ auto ob = json::parse(R"({"invalid": 1e})"); });
 
         // Missing exponent digits after plus
-        bool threw2 = false;
-        try {
-            auto ob = json::parse(R"({"invalid": 1e+})");
-        } catch(...) {
-            threw2 = true;
-        }
-        require_true(threw2);
+        require_throws([&]{ auto ob = json::parse(R"({"invalid": 1e+})"); });
 
         // Missing exponent digits after minus
-        bool threw3 = false;
-        try {
-            auto ob = json::parse(R"({"invalid": 1e-})");
-        } catch(...) {
-            threw3 = true;
-        }
-        require_true(threw3);
+        require_throws([&]{ auto ob = json::parse(R"({"invalid": 1e-})"); });
 
         // Invalid character after e
-        bool threw4 = false;
-        try {
-            auto ob = json::parse(R"({"invalid": 1ex})");
-        } catch(...) {
-            threw4 = true;
-        }
-        require_true(threw4);
+        require_throws([&]{ auto ob = json::parse(R"({"invalid": 1ex})"); });
     };
 
     test_case("UnicodeAndSpecialChars") = [] {

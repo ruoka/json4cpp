@@ -318,13 +318,7 @@ auto register_tests()
         xson::fast::encode(ss, "bad"s);
         xson::fast::encode(ss, xson::fson::type::end);
 
-        bool threw = false;
-        try {
-            auto ob = xson::fson::parse(ss);
-        } catch(...) {
-            threw = true;
-        }
-        require_true(threw);
+        require_throws([&]{ auto ob = xson::fson::parse(ss); });
     };
 
     test_case("Malformed_TruncatedObject_Throws") = [] {
@@ -337,13 +331,7 @@ auto register_tests()
         xson::fast::encode(ss, std::int64_t{1});
         // no end marker
 
-        bool threw = false;
-        try {
-            auto ob = xson::fson::parse(ss);
-        } catch(...) {
-            threw = true;
-        }
-        require_true(threw);
+        require_throws([&]{ auto ob = xson::fson::parse(ss); });
     };
 
     return 0;
