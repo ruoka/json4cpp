@@ -295,11 +295,13 @@ auto register_tests()
         require_eq(static_cast<int>(ob4["B"s]), 2);
         require_eq(static_cast<int>(ob4["C"s]), 3);
         require_eq(static_cast<int>(ob4["D"s]), 4);
-        require_eq(static_cast<int>(ob4["array"s][0]), 39);
-        require_eq(static_cast<int>(ob4["array"s][1]), 40);
-        require_eq(static_cast<int>(ob4["array"s][2]),  9);
-        require_eq(static_cast<int>(ob4["array"s][3]),  5);
-        require_eq(static_cast<int>(ob4["array"s][4]),  2);
+        const auto& arr = ob4["array"s].get<object::array>();
+        std::vector<int> arr_values;
+        arr_values.reserve(arr.size());
+        for (const auto& val : arr) {
+            arr_values.push_back(static_cast<int>(val));
+        }
+        require_container_eq(arr_values, std::vector<int>{39, 40, 9, 5, 2});
     };
 
     test_case("InitializerList1") = [] {

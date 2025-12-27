@@ -27,8 +27,8 @@ auto register_tests()
         auto compact = json::stringify(obj, 0);  // Compact (no indentation)
 
         // Should not contain newlines or extra spaces
-        check_eq(compact.find('\n'), std::string::npos);
-        check_eq(compact.find("  "), std::string::npos);  // No double spaces
+        check_false(compact.contains('\n'));
+        check_false(compact.contains("  "));  // No double spaces
 
         // Should be parseable back
         auto parsed = json::parse(compact);
@@ -52,8 +52,8 @@ auto register_tests()
         auto pretty = json::stringify(obj, 2);  // Pretty print with 2-space indent
 
         // Should contain newlines and proper indentation
-        require_true(pretty.contains('\n'));
-        require_true(pretty.contains("  "));  // Should have indentation
+        require_contains(pretty, '\n');
+        require_contains(pretty, "  ");  // Should have indentation
 
         // Should be parseable back
         auto parsed = json::parse(pretty);
@@ -78,22 +78,22 @@ auto register_tests()
         auto json_str = json::stringify(obj, 2);
 
         // Verify all types are represented correctly
-        require_true(json_str.contains("\"string\""));
-        require_true(json_str.contains("\"hello world\""));
-        require_true(json_str.contains("\"integer\""));
-        require_true(json_str.contains("42"));
-        require_true(json_str.contains("\"float\""));
-        require_true(json_str.contains("3.14159"));
-        require_true(json_str.contains("\"boolean_true\""));
-        require_true(json_str.contains("true"));
-        require_true(json_str.contains("\"boolean_false\""));
-        require_true(json_str.contains("false"));
-        require_true(json_str.contains("\"null_value\""));
-        require_true(json_str.contains("null"));
-        require_true(json_str.contains("\"array\""));
-        require_true(json_str.contains("\"nested\""));
-        require_true(json_str.contains("\"inner\""));
-        require_true(json_str.contains("\"value\""));
+        require_contains(json_str, "\"string\"");
+        require_contains(json_str, "\"hello world\"");
+        require_contains(json_str, "\"integer\"");
+        require_contains(json_str, "42");
+        require_contains(json_str, "\"float\"");
+        require_contains(json_str, "3.14159");
+        require_contains(json_str, "\"boolean_true\"");
+        require_contains(json_str, "true");
+        require_contains(json_str, "\"boolean_false\"");
+        require_contains(json_str, "false");
+        require_contains(json_str, "\"null_value\"");
+        require_contains(json_str, "null");
+        require_contains(json_str, "\"array\"");
+        require_contains(json_str, "\"nested\"");
+        require_contains(json_str, "\"inner\"");
+        require_contains(json_str, "\"value\"");
 
         // Parse and verify all content (more robust than string matching)
         auto parsed = json::parse(json_str);
@@ -101,10 +101,12 @@ auto register_tests()
         require_true(parsed.has("array"s));
         require_true(parsed["array"s].is_array());
         const auto& arr = parsed["array"s].get<xson::object::array>();
-        require_eq(3, static_cast<int>(arr.size()));
-        require_eq(1, static_cast<int>(arr[0]));
-        require_eq(2, static_cast<int>(arr[1]));
-        require_eq(3, static_cast<int>(arr[2]));
+        std::vector<int> arr_values;
+        arr_values.reserve(arr.size());
+        for (const auto& val : arr) {
+            arr_values.push_back(static_cast<int>(val));
+        }
+        require_container_eq(arr_values, std::vector<int>{1, 2, 3});
         require_true(parsed.has("string"s));
         require_true(parsed.has("integer"s));
         require_true(parsed.has("float"s));
@@ -143,7 +145,7 @@ auto register_tests()
             v = 1.25;
             const auto s = json::stringify(v, 0);
             require_true(!s.empty());
-            require_true(s.front() != '{' && s.front() != '[');
+            require_false(s.starts_with('{') || s.starts_with('['));
             const auto parsed = json::parse(s);
             require_true(parsed.is_number());
             require_eq(1.25, static_cast<xson::number_type>(parsed));
@@ -172,10 +174,10 @@ auto register_tests()
         auto json_str = json::stringify(obj, 2);
 
         // Should contain empty objects and arrays
-        require_true(json_str.contains("\"empty_object\""));
-        require_true(json_str.contains("{}"));
-        require_true(json_str.contains("\"empty_array\""));
-        require_true(json_str.contains("[]"));
+        require_contains(json_str, "\"empty_object\"");
+        require_contains(json_str, "{}");
+        require_contains(json_str, "\"empty_array\"");
+        require_contains(json_str, "[]");
 
         // Should be parseable back
         auto parsed = json::parse(json_str);
@@ -196,10 +198,10 @@ auto register_tests()
         auto json_str = json::stringify(obj, 2);
 
         // Verify the stringified output contains the keys
-        require_true(json_str.contains("big_int"));
-        require_true(json_str.contains("small_int"));
-        require_true(json_str.contains("large_float"));
-        require_true(json_str.contains("small_float"));
+        require_contains(json_str, "big_int");
+        require_contains(json_str, "small_int");
+        require_contains(json_str, "large_float");
+        require_contains(json_str, "small_float");
         
         // Should be parseable back
         auto parsed = json::parse(json_str);
