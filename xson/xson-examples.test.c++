@@ -16,7 +16,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("ReadmeCreateStringify") = [] {
+    test_case("ReadmeCreateStringify, [xson]") = [] {
         // Mirrors README "Create + stringify" snippet.
         auto document = object{
             { "Name"s, "Papa"s },
@@ -37,7 +37,7 @@ auto register_tests()
         require_eq(22, static_cast<integer_type>(parsed["LuckyNumbers"s][1]));
     };
 
-    test_case("Stringify") = [] {
+    test_case("Stringify, [xson]") = [] {
         auto kids = std::vector<object>
         {
             { "Name"s, "Tulppu"s },
@@ -67,7 +67,7 @@ auto register_tests()
         std::clog << xson::json::stringify(papa, 2) << std::endl;
     };
 
-    test_case("Parse") = [] {
+    test_case("Parse, [xson]") = [] {
         using namespace xson::json;
         using xson::json::operator >>;
 
@@ -139,7 +139,7 @@ auto register_tests()
         require_eq(result, result2);
     };
 
-    test_case("RootValues") = [] {
+    test_case("RootValues, [xson]") = [] {
         using namespace xson::json;
 
         const auto v1 = json::parse("true");

@@ -15,7 +15,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("Byte") = [] {
+    test_case("Byte, [xson]") = [] {
         auto ss = std::stringstream{};
 
         auto b1 = std::uint8_t{1};
@@ -27,7 +27,7 @@ auto register_tests()
         require_eq(b1, b2);
     };
 
-    test_case("UInteger32") = [] {
+    test_case("UInteger32, [xson]") = [] {
         auto ss = std::stringstream{};
 
         auto i1 = std::uint32_t{1234567};
@@ -39,7 +39,7 @@ auto register_tests()
         require_eq(i1, i2);
     };
 
-    test_case("Integer32") = [] {
+    test_case("Integer32, [xson]") = [] {
         auto ss = std::stringstream{};
 
         auto i1 = std::int32_t{-1234567};
@@ -51,7 +51,7 @@ auto register_tests()
         require_eq(i1, i2);
     };
 
-    test_case("UInteger64") = [] {
+    test_case("UInteger64, [xson]") = [] {
         auto ss = std::stringstream{};
 
         auto i1 = std::uint64_t{1234567};
@@ -63,7 +63,7 @@ auto register_tests()
         require_eq(i1, i2);
     };
 
-    test_case("Integer64") = [] {
+    test_case("Integer64, [xson]") = [] {
         auto ss = std::stringstream{};
 
         auto i1 = std::int64_t{-1234567898765432};
@@ -74,7 +74,7 @@ auto register_tests()
         require_eq(i1, i2);
     };
 
-    test_case("String") = [] {
+    test_case("String, [xson]") = [] {
         auto ss = std::stringstream{};
 
         const auto s1 = "1234567 Kaius Ruokonen \n\t x"s;

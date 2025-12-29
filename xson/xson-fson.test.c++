@@ -20,7 +20,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("Array") = [] {
+    test_case("Array, [xson]") = [] {
         auto o1 = object{"Test"s, {"A"s, "B"s, "C"s}};
         succeed(xson::json::stringify(o1, 2));
 
@@ -41,7 +41,7 @@ auto register_tests()
         check_eq(o1["Test"s][2], o2["Test"s][2]);
     };
 
-    test_case("Object") = [] {
+    test_case("Object, [xson]") = [] {
         auto o1 = object{"Test"s, {{"A"s, 1}, {"B"s, 2.0}, {"C"s, false}}};
         succeed(xson::json::stringify(o1, 2));
 
@@ -65,7 +65,7 @@ auto register_tests()
         check_eq(o1["Test"s]["C"s].get<object::value>(), o2["Test"s]["C"s].get<object::value>());
     };
 
-    test_case("Int32") = [] {
+    test_case("Int32, [xson]") = [] {
         auto o1 = object{"Test"s, 57};
 
         succeed(xson::json::stringify(o1, 2));
@@ -83,7 +83,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("Int64") = [] {
+    test_case("Int64, [xson]") = [] {
         auto o1 = object{"Test"s,  57ll};
 
         check_true(o1["Test"s].is_integer());
@@ -97,7 +97,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("Double") = [] {
+    test_case("Double, [xson]") = [] {
         auto o1 = object{"Test"s, 57.99999 };
 
         check_true(o1["Test"s].is_number());
@@ -111,7 +111,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("String") = [] {
+    test_case("String, [xson]") = [] {
         auto o1 = object{"Test"s, "Tulppu"s};
 
         succeed(xson::json::stringify(o1, 2));
@@ -129,7 +129,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("Boolean") = [] {
+    test_case("Boolean, [xson]") = [] {
         auto o1 = object{"Test"s, true};
 
         succeed(xson::json::stringify(o1, 2));
@@ -147,7 +147,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("Date") = [] {
+    test_case("Date, [xson]") = [] {
         auto o1 = object
         {
             {"Test"s, floor<milliseconds>(system_clock::now()) },
@@ -176,7 +176,7 @@ auto register_tests()
         check_eq(xson::to_string(expected), xson::to_string(actual));
     };
 
-    test_case("Null") = [] {
+    test_case("Null, [xson]") = [] {
         auto o1 = object{"Test"s, nullptr};
 
         check_true(o1["Test"s].is_null());
@@ -190,7 +190,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<object::value>(), o2["Test"s].get<object::value>());
     };
 
-    test_case("Int32MinMax") = [] {
+    test_case("Int32MinMax, [xson]") = [] {
         auto o1 = object
         {
             { "Zero"s, std::int32_t{0}                          },
@@ -218,7 +218,7 @@ auto register_tests()
         check_eq(std::numeric_limits<int>::max(), max);
     };
 
-    test_case("Int64MinMax1") = [] {
+    test_case("Int64MinMax1, [xson]") = [] {
         auto o1 = object
         {
             { "Zero"s, std::int64_t{0}},
@@ -238,7 +238,7 @@ auto register_tests()
         check_eq(std::numeric_limits<std::int64_t>::max(), max);
     };
 
-    test_case("Int64MinMax2") = [] {
+    test_case("Int64MinMax2, [xson]") = [] {
         auto o1 = object
         {
             { "Zero"s, 0ll                  },
@@ -266,7 +266,7 @@ auto register_tests()
         check_eq(36028797018963968ll, max);
     };
 
-    test_case("RootPrimitiveRoundTrip") = [] {
+    test_case("RootPrimitiveRoundTrip, [xson]") = [] {
         // FSON supports non-container top-level values as well.
         auto round_trip = [](const xson::object& in) {
             auto ss = std::stringstream{};
@@ -310,7 +310,7 @@ auto register_tests()
         }
     };
 
-    test_case("Malformed_NameInsideArray_Throws") = [] {
+    test_case("Malformed_NameInsideArray_Throws, [xson]") = [] {
         // type::name is invalid inside arrays; decoder should reject it (not crash).
         auto ss = std::stringstream{};
         xson::fast::encode(ss, xson::fson::type::array);
@@ -321,7 +321,7 @@ auto register_tests()
         require_throws([&]{ auto ob = xson::fson::parse(ss); });
     };
 
-    test_case("Malformed_TruncatedObject_Throws") = [] {
+    test_case("Malformed_TruncatedObject_Throws, [xson]") = [] {
         // Missing type::end should be reported as truncated input.
         auto ss = std::stringstream{};
         xson::fast::encode(ss, xson::fson::type::object);

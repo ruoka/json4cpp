@@ -22,7 +22,7 @@ auto register_tests()
     using xson::json::operator <<;
     using xson::json::operator >>;
 
-    test_case("Simple") = [] {
+    test_case("Simple, [xson]") = [] {
         auto ob = object
         {
             { "First",  "Tulppu"s },
@@ -39,7 +39,7 @@ auto register_tests()
         require_true(ob["Third"s].is_string());
     };
 
-    test_case("Mix") = [] {
+    test_case("Mix, [xson]") = [] {
         auto o1 = object{"Integer"s, 123456789};
         succeed(xson::json::stringify(o1, 2));
 
@@ -88,7 +88,7 @@ auto register_tests()
         require_eq("4"s, s);
     };
 
-    test_case("Array") = [] {
+    test_case("Array, [xson]") = [] {
         auto arr = std::array<int,9>{1,2,3,4,5,6,7,8,9};
         auto ob = object{"Array"s, arr};
         succeed(xson::json::stringify(ob, 2));
@@ -105,7 +105,7 @@ auto register_tests()
         }
     };
 
-    test_case("Vector") = [] {
+    test_case("Vector, [xson]") = [] {
         auto vec = std::vector<std::string>{"a","b","c","d","e","f","g","h","i"};
         auto ob = object{"Vector"s, vec};
         succeed(xson::json::stringify(ob, 2));
@@ -122,7 +122,7 @@ auto register_tests()
         }
     };
 
-    test_case("CArray") = [] {
+    test_case("CArray, [xson]") = [] {
         double arr[] = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
         auto ob = object{"CArray"s, arr};
         succeed(xson::json::stringify(ob, 2));
@@ -139,7 +139,7 @@ auto register_tests()
         }
     };
 
-    test_case("BooleanTrue") = [] {
+    test_case("BooleanTrue, [xson]") = [] {
         auto ob = object{"True"s, true};
         succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
@@ -149,7 +149,7 @@ auto register_tests()
         require_eq(true, b);
     };
 
-    test_case("BooleanFalse") = [] {
+    test_case("BooleanFalse, [xson]") = [] {
         auto ob = object{"False"s, false};
         succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
@@ -159,7 +159,7 @@ auto register_tests()
         require_eq(false, b);
     };
 
-    test_case("Null") = [] {
+    test_case("Null, [xson]") = [] {
         auto ob = object{"Null"s, nullptr};
         succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
@@ -167,7 +167,7 @@ auto register_tests()
         require_true(ob["Null"s].is_null());
     };
 
-    test_case("Date") = [] {
+    test_case("Date, [xson]") = [] {
         auto now = system_clock::now();
         auto ob = object{"Date"s, now};
         succeed(xson::json::stringify(ob, 2));
@@ -179,7 +179,7 @@ auto register_tests()
         require_eq(duration_cast<milliseconds>(now.time_since_epoch()).count(), duration_cast<milliseconds>(tp.time_since_epoch()).count());
     };
 
-    test_case("ObjectWithArray") = [] {
+    test_case("ObjectWithArray, [xson]") = [] {
         auto ob = object
         {
             "ObjectArray"s, std::array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
@@ -196,7 +196,7 @@ auto register_tests()
         require_true(ob["ObjectArray"s][2]["C"s].is_integer());
     };
 
-    test_case("ObjectWithVector1") = [] {
+    test_case("ObjectWithVector1, [xson]") = [] {
         auto ob = object
         {
             "Kids",
@@ -219,7 +219,7 @@ auto register_tests()
         require_true(ob["Kids"s][2]["Name"s].is_string());
     };
 
-    test_case("ObjectWithVector2") = [] {
+    test_case("ObjectWithVector2, [xson]") = [] {
         auto ob = object
         {
             "ObjectVector"s, std::vector<object>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
@@ -236,7 +236,7 @@ auto register_tests()
         require_true(ob["ObjectVector"s][2]["C"s].is_integer());
     };
 
-    test_case("Complex") = [] {
+    test_case("Complex, [xson]") = [] {
         auto ob = object
         {
             { "Ruoka",  true                         },
@@ -266,7 +266,7 @@ auto register_tests()
         require_eq(2, i2);
     };
 
-    test_case("Plus") = [] {
+    test_case("Plus, [xson]") = [] {
         auto o1 = object
         {
             { "A"s, 1},
@@ -304,7 +304,7 @@ auto register_tests()
         require_container_eq(arr_values, std::vector<int>{39, 40, 9, 5, 2});
     };
 
-    test_case("InitializerList1") = [] {
+    test_case("InitializerList1, [xson]") = [] {
         auto ob = object
         {
             "List", {1, 2, 3, 4, 5}
@@ -318,7 +318,7 @@ auto register_tests()
         require_true(ob["List"s][4].is_integer());
     };
 
-    test_case("InitializerList2") = [] {
+    test_case("InitializerList2, [xson]") = [] {
         auto ob = object
         {
             "List", {{"A"s,1},{"B"s,false},{"C"s,3.0},{"D"s,"4"s}}
@@ -330,7 +330,7 @@ auto register_tests()
         require_true(ob["List"s]["C"s].is_number());
     };
 
-    test_case("InitializerList3") = [] {
+    test_case("InitializerList3, [xson]") = [] {
         auto ob = object
         {
             {"id",  987654321},
@@ -342,7 +342,7 @@ auto register_tests()
         std::clog << ob << std::endl;
     };
 
-    test_case("Match1") = [] {
+    test_case("Match1, [xson]") = [] {
         auto ob = object
         {
             {"id",  987654321},
@@ -367,7 +367,7 @@ auto register_tests()
         require_true(ob.match(object{"name", object{}}));
     };
 
-    test_case("Match2") = [] {
+    test_case("Match2, [xson]") = [] {
         auto ob = object
         {
             {"id",  987654321},
@@ -376,7 +376,7 @@ auto register_tests()
         require_false(ob.match(object{{"id", 987654321}, {"fail", 1}}));
     };
 
-    test_case("Match3") = [] {
+    test_case("Match3, [xson]") = [] {
         auto o1 = object{{"id"s, 1}, {"A"s, 1}},
              o2 = object{{"id"s, 1}, {"A"s, 1}, {"B"s, 2}},
              o3 = object{{"id"s, 1}, {"A"s, 1}, {"B"s, 2}, {"C"s, 3}},
@@ -387,7 +387,7 @@ auto register_tests()
         require_true(o3.match(s));
     };
 
-    test_case("DefaultConstructor") = [] {
+    test_case("DefaultConstructor, [xson]") = [] {
         auto ob = object{};
         // Default constructor creates an empty map (first variant alternative)
         // Verify the actual behavior
@@ -402,7 +402,7 @@ auto register_tests()
         require_eq(0u, ob.size());
     };
 
-    test_case("CopyConstructor") = [] {
+    test_case("CopyConstructor, [xson]") = [] {
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = o1;  // Copy constructor
         require_eq(o1, o2);
@@ -412,7 +412,7 @@ auto register_tests()
         check_eq(static_cast<int>(o2["B"s]), 2);
     };
 
-    test_case("MoveConstructor") = [] {
+    test_case("MoveConstructor, [xson]") = [] {
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = std::move(o1);  // Move constructor
         require_true(o2.has("A"s));
@@ -422,7 +422,7 @@ auto register_tests()
         require_true(o1.empty());  // o1 should be empty after move
     };
 
-    test_case("CopyAssignment") = [] {
+    test_case("CopyAssignment, [xson]") = [] {
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"C"s, 3}};
         o2 = o1;  // Copy assignment
@@ -432,7 +432,7 @@ auto register_tests()
         require_false(o2.has("C"s));
     };
 
-    test_case("MoveAssignment") = [] {
+    test_case("MoveAssignment, [xson]") = [] {
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"C"s, 3}};
         o2 = std::move(o1);  // Move assignment
@@ -441,7 +441,7 @@ auto register_tests()
         require_false(o2.has("C"s));
     };
 
-    test_case("AssignmentFromArray") = [] {
+    test_case("AssignmentFromArray, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         auto arr = object::array{object{1}, object{2}, object{3}};
         ob = arr;
@@ -452,7 +452,7 @@ auto register_tests()
         require_eq(static_cast<int>(ob[2]), 3);
     };
 
-    test_case("AssignmentFromValue") = [] {
+    test_case("AssignmentFromValue, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         ob = 42;
         require_true(ob.is_integer());
@@ -474,21 +474,21 @@ auto register_tests()
         require_true(ob.is_null());
     };
 
-    test_case("EmptyArray") = [] {
+    test_case("EmptyArray, [xson]") = [] {
         auto ob = object{"EmptyArray"s, std::vector<int>{}};
         require_true(ob["EmptyArray"s].is_array());
         require_true(ob["EmptyArray"s].empty());
         require_eq(0u, ob["EmptyArray"s].size());
     };
 
-    test_case("EmptyObject") = [] {
+    test_case("EmptyObject, [xson]") = [] {
         auto ob = object{object::map{}};
         require_true(ob.is_object());
         require_true(ob.empty());
         require_eq(0u, ob.size());
     };
 
-    test_case("Size") = [] {
+    test_case("Size, [xson]") = [] {
         auto ob1 = object{{"A"s, 1}, {"B"s, 2}, {"C"s, 3}};
         require_eq(3u, ob1.size());
         
@@ -500,7 +500,7 @@ auto register_tests()
         require_eq(0u, ob3.size());  // Value has size 0
     };
 
-    test_case("HasValue") = [] {
+    test_case("HasValue, [xson]") = [] {
         auto ob1 = object{42};
         require_true(ob1.has_value());
         require_false(ob1.has_objects());
@@ -514,7 +514,7 @@ auto register_tests()
         require_false(ob3.has_objects());
     };
 
-    test_case("HasObjects") = [] {
+    test_case("HasObjects, [xson]") = [] {
         auto ob1 = object{{"A"s, 1}};
         require_true(ob1.has_objects());
         
@@ -525,7 +525,7 @@ auto register_tests()
         require_false(ob3.has_objects());
     };
 
-    test_case("GetMethods") = [] {
+    test_case("GetMethods, [xson]") = [] {
         // Test get<value>()
         auto ob1 = object{42};
         require_eq(42, std::get<std::int64_t>(ob1.get<object::value>()));
@@ -547,7 +547,7 @@ auto register_tests()
         require_eq("test"s, ob4.get<std::string>());
     };
 
-    test_case("OperatorEquals") = [] {
+    test_case("OperatorEquals, [xson]") = [] {
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"A"s, 1}, {"B"s, 2}};
         auto o3 = object{{"A"s, 1}, {"B"s, 3}};
@@ -570,7 +570,7 @@ auto register_tests()
         require_false(v1 == v3);
     };
 
-    test_case("OperatorPlusWithArrays") = [] {
+    test_case("OperatorPlusWithArrays, [xson]") = [] {
         auto a1 = object{object::array{object{1}, object{2}}};
         auto a2 = object{object::array{object{3}, object{4}}};
         auto a3 = a1 + a2;
@@ -579,7 +579,7 @@ auto register_tests()
         require_eq(3u, a3.size());  // 1, 2, [3, 4] (array appended as single element)
     };
 
-    test_case("ArrayIndexOutOfBounds") = [] {
+    test_case("ArrayIndexOutOfBounds, [xson]") = [] {
         auto ob = object{object::array{object{1}, object{2}, object{3}}};
         
         // Const version
@@ -591,21 +591,21 @@ auto register_tests()
         require_throws_as([&]{ ob[3] = 99; }, std::runtime_error{""});
     };
 
-    test_case("ArrayIndexOnNonArray") = [] {
+    test_case("ArrayIndexOnNonArray, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         
         require_throws_as([&]{ auto val = ob[0]; }, std::runtime_error{""});
         require_throws_as([&]{ ob[0] = 99; }, std::runtime_error{""});
     };
 
-    test_case("ObjectAccessOnNonObject") = [] {
+    test_case("ObjectAccessOnNonObject, [xson]") = [] {
         auto ob = object{object::array{object{1}, object{2}, object{3}}};
         
         require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
         require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
     };
 
-    test_case("NonExistentKey") = [] {
+    test_case("NonExistentKey, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         const auto& c_ob = ob;
         
@@ -617,7 +617,7 @@ auto register_tests()
         require_true(ob.has("NewKey"s));
     };
 
-    test_case("ConversionOperators") = [] {
+    test_case("ConversionOperators, [xson]") = [] {
         // Number
         auto ob1 = object{3.14};
         require_eq(3.14, static_cast<double>(ob1));
@@ -645,7 +645,7 @@ auto register_tests()
         require_true(std::holds_alternative<std::int64_t>(val));
     };
 
-    test_case("MatchArray") = [] {
+    test_case("MatchArray, [xson]") = [] {
         auto a1 = object{object::array{object{1}, object{2}, object{3}}};
         auto a2 = object{object::array{object{1}, object{2}, object{3}}};
         auto a3 = object{object::array{object{1}, object{2}, object{4}}};
@@ -655,7 +655,7 @@ auto register_tests()
         require_true(a1.match(object{object::array{}}));  // Empty subset matches
     };
 
-    test_case("MatchWithOperators") = [] {
+    test_case("MatchWithOperators, [xson]") = [] {
         auto ob = object{42};
         
         // $eq
@@ -685,13 +685,13 @@ auto register_tests()
         require_false(ob.match(object{{"$gte"s, 50}}));
     };
 
-    test_case("MatchValueWithObject") = [] {
+    test_case("MatchValueWithObject, [xson]") = [] {
         auto ob = object{42};
         auto subset = object{{"$eq"s, 42}};
         require_true(ob.match(subset));
     };
 
-    test_case("StringViewAccess") = [] {
+    test_case("StringViewAccess, [xson]") = [] {
         auto ob = object{{"Key"s, 42}};
         std::string_view key{"Key"};
         
@@ -704,7 +704,7 @@ auto register_tests()
         require_true(ob.has("NewKey"s));
     };
 
-    test_case("OperatorPlusMove") = [] {
+    test_case("OperatorPlusMove, [xson]") = [] {
         auto o1 = object{{"A"s, 1}};
         auto o2 = object{{"B"s, 2}};
         auto o3 = o1 + std::move(o2);
@@ -714,7 +714,7 @@ auto register_tests()
         require_true(o2.empty());  // o2 moved from
     };
 
-    test_case("OperatorPlusEqualsMove") = [] {
+    test_case("OperatorPlusEqualsMove, [xson]") = [] {
         auto o1 = object{{"A"s, 1}};
         auto o2 = object{{"B"s, 2}};
         o1 += std::move(o2);

@@ -17,7 +17,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("StringifyCompact") = [] {
+    test_case("StringifyCompact, [xson]") = [] {
         auto obj = xson::object{
             {"name", "test"s},
             {"value", 42},
@@ -37,7 +37,7 @@ auto register_tests()
         require_true(static_cast<xson::boolean_type>(parsed["active"s]));
     };
 
-    test_case("StringifyPretty") = [] {
+    test_case("StringifyPretty, [xson]") = [] {
         auto obj = xson::object{
             {"users", std::vector<xson::object>{
                 {{"name", "Alice"s}, {"age", 30}},
@@ -63,7 +63,7 @@ auto register_tests()
         require_eq(static_cast<xson::integer_type>(parsed["users"s][0]["age"s]), 30);
     };
 
-    test_case("StringifyAllTypes") = [] {
+    test_case("StringifyAllTypes, [xson]") = [] {
         auto obj = xson::object{
             {"string", "hello world"s},
             {"integer", std::int64_t{42}},
@@ -112,7 +112,7 @@ auto register_tests()
         require_true(parsed.has("float"s));
     };
 
-    test_case("StringifyRootPrimitives") = [] {
+    test_case("StringifyRootPrimitives, [xson]") = [] {
         // Stringify should handle non-container top-level values too.
         {
             auto v = xson::object{};
@@ -161,7 +161,7 @@ auto register_tests()
         }
     };
 
-    test_case("StringifyEmptyStructures") = [] {
+    test_case("StringifyEmptyStructures, [xson]") = [] {
         auto obj = xson::object{
             {"empty_object", xson::object{}},
             {"empty_array", std::vector<int>{}},
@@ -187,7 +187,7 @@ auto register_tests()
         require_eq(0u, parsed["empty_array"s].size());
     };
 
-    test_case("StringifyLargeNumbers") = [] {
+    test_case("StringifyLargeNumbers, [xson]") = [] {
         auto obj = xson::object{
             {"big_int", std::numeric_limits<std::int64_t>::max()},
             {"small_int", std::numeric_limits<std::int64_t>::min()},

@@ -16,7 +16,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("String") = [] {
+    test_case("String, [xson], [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{"String", "1234567890"s};
         auto ss = std::stringstream{};
@@ -33,7 +33,7 @@ auto register_tests()
         require_eq("1234567890"s, s);
     };
 
-    test_case("Double") = [] {
+    test_case("Double, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{"Double", 21.12};
         auto ss = std::stringstream{};
@@ -51,7 +51,7 @@ auto register_tests()
         require_eq(21.12, d);
     };
 
-    test_case("Boolean") = [] {
+    test_case("Boolean, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{{"True", true},{"False", false}};
         auto ss = std::stringstream{};
@@ -73,7 +73,7 @@ auto register_tests()
         require_eq(false, f);
     };
 
-    test_case("Date2String") = [] {
+    test_case("Date2String, [xson]") = [] {
         using xson::json::operator <<;
         auto now = system_clock::now();
         auto obj = object{"Date", now};
@@ -92,7 +92,7 @@ auto register_tests()
         require_eq(xson::to_string(now), d);
     };
 
-    test_case("Null") = [] {
+    test_case("Null, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{"Null", nullptr};
         auto ss = std::stringstream{};
@@ -108,7 +108,7 @@ auto register_tests()
         require_true(ob["Null"s].is_null());
     };
 
-    test_case("Int32") = [] {
+    test_case("Int32, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{
             {"Zero", std::int32_t{0}},
@@ -138,7 +138,7 @@ auto register_tests()
         require_eq(std::numeric_limits<int>::max(), max);
     };
 
-    test_case("Integer") = [] {
+    test_case("Integer, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{
             {"Zero", std::int64_t{0}},
@@ -168,7 +168,7 @@ auto register_tests()
         require_eq(std::numeric_limits<std::int64_t>::max(), max);
     };
 
-    test_case("Array") = [] {
+    test_case("Array, [xson]") = [] {
         auto ob1 = xson::object
         {
             {"Array"s, std::array<std::int64_t,3>{1, 2, 3}}
@@ -185,7 +185,7 @@ auto register_tests()
         check_eq(str1, str2);
     };
 
-    test_case("NestedArrays") = [] {
+    test_case("NestedArrays, [xson]") = [] {
         auto json_str = R"( {"array":[["a", "b", "c"], [1 ,2, 3], [0.1, 0.2, 0.3]]} )";
 
         auto ob = json::parse(json_str);
@@ -206,7 +206,7 @@ auto register_tests()
         check_eq(static_cast<xson::number_type>(ob["array"s][2][2]), 0.3);
     };
 
-    test_case("Vector") = [] {
+    test_case("Vector, [xson]") = [] {
         auto ob1 = xson::object
         {
             {"Vector"s, std::vector<std::string>{"a", "b", "c", "d", "e", "f"}}
@@ -223,7 +223,7 @@ auto register_tests()
         check_eq(str1, str2);
     };
 
-    test_case("Complex") = [] {
+    test_case("Complex, [xson]") = [] {
         using xson::json::operator <<;
         auto mix = xson::object
             {
@@ -257,7 +257,7 @@ auto register_tests()
         require_eq(2, i2);
     };
 
-    test_case("RootPrimitives") = [] {
+    test_case("RootPrimitives, [xson]") = [] {
         // JSON documents are allowed to be any value, not only object/array.
         {
             const auto v = json::parse("true");
@@ -293,7 +293,7 @@ auto register_tests()
         }
     };
 
-    test_case("RoundTripConsistency") = [] {
+    test_case("RoundTripConsistency, [xson]") = [] {
         // Test that stringifying -> parsing -> stringifying is stable for a mixed object.
         auto original = xson::object{
             {"string", "hello world"s},
@@ -317,7 +317,7 @@ auto register_tests()
         require_true(parsed["null"s].is_null());
     };
 
-    test_case("ParseFile1") = [] {
+    test_case("ParseFile1, [xson]") = [] {
         const auto loc = std::source_location::current();
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test1.json";
@@ -348,7 +348,7 @@ auto register_tests()
         check_eq(0, minimum);
     };
 
-    test_case("ParseFile2") = [] {
+    test_case("ParseFile2, [xson]") = [] {
         const auto loc = std::source_location::current();
         auto source_path = std::filesystem::absolute(std::filesystem::path{loc.file_name()});
         auto test_file = source_path.parent_path().parent_path() / "test" / "xson" / "test2.json";

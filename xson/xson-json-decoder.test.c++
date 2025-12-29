@@ -22,7 +22,7 @@ auto register_tests()
 
     // ===== OVERFLOW/UNDERFLOW TESTS =====
 
-    test_case("LargeIntegerToFloat") = [] {
+    test_case("LargeIntegerToFloat, [xson], [xson]") = [] {
         // Test number larger than INT64_MAX (should become float)
         auto json_str = R"({"big_num": 9223372036854775808})";
         auto ob = json::parse(json_str);
@@ -32,7 +32,7 @@ auto register_tests()
         require_false(ob["big_num"s].is_integer());
     };
 
-    test_case("VeryLargeInteger") = [] {
+    test_case("VeryLargeInteger, [xson], [xson]") = [] {
         // Test extremely large number that definitely exceeds int64
         auto json_str = R"({"huge_num": 999999999999999999999})";
         auto ob = json::parse(json_str);
@@ -41,7 +41,7 @@ auto register_tests()
         require_false(ob["huge_num"s].is_integer());
     };
 
-    test_case("SmallIntegerRemainsInt") = [] {
+    test_case("SmallIntegerRemainsInt, [xson]") = [] {
         // Test that small integers remain as integers
         auto json_str = R"({"small": 42, "zero": 0, "negative": -123})";
         auto ob = json::parse(json_str);
@@ -61,7 +61,7 @@ auto register_tests()
 
     // ===== ERROR HANDLING TESTS =====
 
-    test_case("InvalidJSON") = [] {
+    test_case("InvalidJSON, [xson]") = [] {
         // Test that malformed JSON throws exceptions using tester assertions
         // Missing closing brace
         require_throws([&]{ auto ob = json::parse(R"({invalid})"); });
@@ -82,7 +82,7 @@ auto register_tests()
         require_throws([&]{ auto ob = json::parse(R"([)"); });
     };
 
-    test_case("DecodeRootPrimitives") = [] {
+    test_case("DecodeRootPrimitives, [xson]") = [] {
         // Ensure the decoder accepts non-container top-level JSON values.
         const auto t = json::parse("true");
         require_true(t.is_boolean());
@@ -108,7 +108,7 @@ auto register_tests()
         require_eq("hi"s, static_cast<xson::string_type>(s));
     };
 
-    test_case("DecodeStringViewTrailingNul") = [] {
+    test_case("DecodeStringViewTrailingNul, [xson]") = [] {
         // Accept a trailing NUL byte (common when a caller uses a NUL-terminated buffer).
         const auto input = std::string{"true\0", 5};
         const auto v = json::parse(std::string_view{input.data(), input.size()});
@@ -116,20 +116,20 @@ auto register_tests()
         require_true(static_cast<xson::boolean_type>(v));
     };
 
-    test_case("DecodeStringViewEmbeddedNulRejects") = [] {
+    test_case("DecodeStringViewEmbeddedNulRejects, [xson]") = [] {
         // Reject embedded NUL bytes; they must be represented as escapes in JSON strings.
         const auto input = std::string{"true\0false", 9};
         require_throws([&]{ auto v = json::parse(std::string_view{input.data(), input.size()}); });
     };
 
-    test_case("DecodeRootPrimitiveTrailingGarbage") = [] {
+    test_case("DecodeRootPrimitiveTrailingGarbage, [xson]") = [] {
         // After a complete top-level value, only whitespace is allowed.
         require_throws([&]{ auto ob = json::parse("truex"); });
         require_throws([&]{ auto ob = json::parse("42 43"); });
         require_throws([&]{ auto ob = json::parse("\"a\" \"b\""); });
     };
 
-    test_case("ScientificNotation") = [] {
+    test_case("ScientificNotation, [xson]") = [] {
         // Test basic scientific notation
         auto json_str = R"({"normal": 123, "simple": 1e2})";
         auto ob = json::parse(json_str);
@@ -145,7 +145,7 @@ auto register_tests()
         require_eq(100.0, value);  // 1 * 10^2 = 100
     };
 
-    test_case("ScientificNotationEdgeCases") = [] {
+    test_case("ScientificNotationEdgeCases, [xson]") = [] {
         // Test various scientific notation formats
         auto json_str = R"({
             "pos_exp": 1e2,
@@ -209,7 +209,7 @@ auto register_tests()
         require_eq(1.0, static_cast<xson::number_type>(ob["zero_exp"s]));
     };
 
-    test_case("ScientificNotationErrors") = [] {
+    test_case("ScientificNotationErrors, [xson]") = [] {
         // Test error cases for scientific notation using tester assertions
         // Missing exponent digits
         require_throws([&]{ auto ob = json::parse(R"({"invalid": 1e})"); });
@@ -224,7 +224,7 @@ auto register_tests()
         require_throws([&]{ auto ob = json::parse(R"({"invalid": 1ex})"); });
     };
 
-    test_case("UnicodeAndSpecialChars") = [] {
+    test_case("UnicodeAndSpecialChars, [xson]") = [] {
         // Test handling of Unicode and special characters
         auto json_str = R"({
             "unicode": "Hello 世界 🌍",
@@ -247,7 +247,7 @@ auto register_tests()
         require_eq("!@#$%^&*()[]{}|;:,.<>?/~`", special);
     };
 
-    test_case("EmptyStructures") = [] {
+    test_case("EmptyStructures, [xson]") = [] {
         // Test empty objects and arrays
         auto json_str = R"({"empty_obj": {}, "empty_arr": []})";
         auto ob = json::parse(json_str);
@@ -262,7 +262,7 @@ auto register_tests()
         require_true(ob["empty_arr"s].empty());
     };
 
-    test_case("MixedTypeArrays") = [] {
+    test_case("MixedTypeArrays, [xson]") = [] {
         // Test arrays containing different types
         auto json_str = R"({
             "mixed": [1, "string", true, false, null, {}, [], 3.14, -42]
@@ -308,7 +308,7 @@ auto register_tests()
         require_eq(-42, static_cast<xson::integer_type>(ob["mixed"s][8]));
     };
 
-    test_case("AllEscapeSequences") = [] {
+    test_case("AllEscapeSequences, [xson]") = [] {
         // Test all JSON escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
         auto json_str = R"({
             "quote": "\"",
@@ -340,7 +340,7 @@ auto register_tests()
         require_eq("😀", static_cast<xson::string_type>(ob["unicode4"s]));  // U+1F600 = grinning face (surrogate pair)
     };
 
-    test_case("DeepNesting") = [] {
+    test_case("DeepNesting, [xson]") = [] {
         // Test nesting up to a reasonable depth (10 levels to avoid test slowness)
         // Build a deeply nested structure manually for reliability
         // Note: braces must balance (this is a valid JSON document)
@@ -351,7 +351,7 @@ auto register_tests()
         require_eq(42, static_cast<xson::integer_type>(ob["a"s]["b"s]["c"s]["d"s]["e"s]["f"s]["g"s]["h"s]["i"s]["j"s]["value"s]));
     };
 
-    test_case("DeepNestingArrays") = [] {
+    test_case("DeepNestingArrays, [xson]") = [] {
         // Test deeply nested arrays (10 levels to avoid test slowness)
         auto json_str = R"({"arr":[[[[[[[[[[42]]]]]]]]]]})";
         auto ob = json::parse(json_str);
@@ -367,7 +367,7 @@ auto register_tests()
         require_eq(42, static_cast<xson::integer_type>(current));
     };
 
-    test_case("SizeLimitEdgeCases") = [] {
+    test_case("SizeLimitEdgeCases, [xson]") = [] {
         // Test near the size limits (but not at max to avoid test slowness)
         // Test large string (but not max_string_length which is 100MB)
         std::string large_string(10000, 'a');  // 10KB string
@@ -390,7 +390,7 @@ auto register_tests()
         require_eq(999, static_cast<xson::integer_type>(ob2["large_array"s][999]));
     };
 
-    test_case("NumberEdgeCases") = [] {
+    test_case("NumberEdgeCases, [xson]") = [] {
         // Test number edge cases (using valid JSON)
         auto json_str = R"({
             "negative_zero": -0,
@@ -436,7 +436,7 @@ auto register_tests()
         require_eq(123456.789, static_cast<xson::number_type>(ob["large_float"s]));
     };
 
-    test_case("WhitespaceVariations") = [] {
+    test_case("WhitespaceVariations, [xson]") = [] {
         // Test various whitespace patterns
         auto json_str = R"({
             "tab":	"value1",
@@ -464,7 +464,7 @@ auto register_tests()
         require_eq(3, static_cast<xson::integer_type>(ob["compact"s]["c"s]));
     };
 
-    test_case("ObjectEdgeCases") = [] {
+    test_case("ObjectEdgeCases, [xson]") = [] {
         // Test object edge cases
         auto json_str = R"({
             "key_with_spaces": "value1",
@@ -487,7 +487,7 @@ auto register_tests()
         require_eq("value"s, static_cast<xson::string_type>(ob["very_long_key_name_that_goes_on_and_on_and_on"s]));
     };
 
-    test_case("ArrayEdgeCases") = [] {
+    test_case("ArrayEdgeCases, [xson]") = [] {
         // Test array edge cases
         auto json_str = R"({
             "only_nulls": [null, null, null],
@@ -523,7 +523,7 @@ auto register_tests()
         require_true(ob["mixed_nulls"s][5].is_null());
     };
 
-    test_case("ComplexNestingPatterns") = [] {
+    test_case("ComplexNestingPatterns, [xson]") = [] {
         // Test complex mixed nesting patterns
         auto json_str = R"({
             "array_of_objects": [

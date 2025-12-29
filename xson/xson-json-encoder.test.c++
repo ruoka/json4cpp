@@ -18,7 +18,7 @@ auto register_tests()
     using namespace tester::assertions;
     using xson::json::operator <<;
 
-    test_case("Ostream") = [] {
+    test_case("Ostream, [xson]") = [] {
         auto mix = xson::object
         {
             { "Ruoka",  true                     },
@@ -45,7 +45,7 @@ auto register_tests()
         }
     };
 
-    test_case("OstreamRootPrimitives") = [] {
+    test_case("OstreamRootPrimitives, [xson]") = [] {
         // Stream encoder should also handle non-container top-level values.
         for (const auto indent : {0, 4}) {
             {

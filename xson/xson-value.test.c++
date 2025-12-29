@@ -17,56 +17,56 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("CompareInt32") = [] {
+    test_case("CompareInt32, [xson]") = [] {
         object::value val1{1};
         object::value val2{1};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
-    test_case("CompareInt64") = [] {
+    test_case("CompareInt64, [xson]") = [] {
         object::value val1{1ll};
         object::value val2{1ll};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
-    test_case("CompareString") = [] {
+    test_case("CompareString, [xson]") = [] {
         object::value val1{"A"s};
         object::value val2{"A"s};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
-    test_case("CompareBoolean") = [] {
+    test_case("CompareBoolean, [xson]") = [] {
         object::value val1{true};
         object::value val2{false};
         require_true(val1 != val2);
         require_false(val1 == val2);
     };
 
-    test_case("ToStringInt32") = [] {
+    test_case("ToStringInt32, [xson]") = [] {
         object::value val1{123};
         object::value val2{456};
         require_eq("123", xson::to_string(val1));
         require_eq("456", xson::to_string(val2));
     };
 
-    test_case("ToStringBoolean") = [] {
+    test_case("ToStringBoolean, [xson]") = [] {
         object::value val1{true};
         object::value val2{false};
         require_eq("true", xson::to_string(val1));
         require_eq("false", xson::to_string(val2));
     };
 
-    test_case("ToStringInt64") = [] {
+    test_case("ToStringInt64, [xson]") = [] {
         object::value val1{1234567890123ll};
         object::value val2{-9876543210987ll};
         require_eq("1234567890123", xson::to_string(val1));
         require_eq("-9876543210987", xson::to_string(val2));
     };
 
-    test_case("ToStringDouble") = [] {
+    test_case("ToStringDouble, [xson]") = [] {
         object::value val1{3.14159};
         object::value val2{-42.5};
         object::value val3{0.0};
@@ -80,7 +80,7 @@ auto register_tests()
         require_eq("0.000000", s3);
     };
 
-    test_case("ToStringString") = [] {
+    test_case("ToStringString, [xson]") = [] {
         object::value val1{"hello"s};
         object::value val2{"world"s};
         object::value val3{""s};
@@ -89,12 +89,12 @@ auto register_tests()
         require_eq("", xson::to_string(val3));
     };
 
-    test_case("ToStringNull") = [] {
+    test_case("ToStringNull, [xson]") = [] {
         object::value val1{std::monostate{}};
         require_eq("null", xson::to_string(val1));
     };
 
-    test_case("ToStringTimestamp") = [] {
+    test_case("ToStringTimestamp, [xson]") = [] {
         // Create a specific timestamp for testing
         auto tp = system_clock::time_point{};
         tp += days{365 * 50};  // 50 years
@@ -113,7 +113,7 @@ auto register_tests()
         require_true(result.find(':') != std::string::npos);
     };
 
-    test_case("ToISO8601") = [] {
+    test_case("ToISO8601, [xson]") = [] {
         // Test with a known timestamp
         auto tp = system_clock::time_point{};
         tp += days{365 * 50 + 10};  // 50 years + 10 days
@@ -139,7 +139,7 @@ auto register_tests()
         require_eq(iso, xson::to_string(val));
     };
 
-    test_case("ToISO8601VariousTimes") = [] {
+    test_case("ToISO8601VariousTimes, [xson]") = [] {
         // Test midnight
         auto tp1 = system_clock::time_point{};
         tp1 += days{365 * 50};
@@ -167,7 +167,7 @@ auto register_tests()
         require_eq("12:00:00.000", iso3.substr(11, 12));
     };
 
-    test_case("ToISO8601RoundTrip") = [] {
+    test_case("ToISO8601RoundTrip, [xson]") = [] {
         // Create a timestamp
         auto original = system_clock::now();
         original = time_point_cast<milliseconds>(original);  // Round to milliseconds
@@ -186,7 +186,7 @@ auto register_tests()
         require_true(iso[0] >= '0' && iso[0] <= '9');  // Year starts with digit
     };
 
-    test_case("ToStringObjectValueAllTypes") = [] {
+    test_case("ToStringObjectValueAllTypes, [xson]") = [] {
         // Test all variant types in object::value
         object::value val_int32{42};
         object::value val_int64{1234567890123ll};
