@@ -24,25 +24,20 @@ using map            = std::flat_map<std::string, object>;
 using array          = std::vector<object>;
 
 template <typename T>
-concept Number = std::same_as<std::remove_cvref_t<T>,number_type>;
+concept Primitive = (
+    std::same_as<std::remove_cvref_t<T>, number_type> or
+    std::same_as<std::remove_cvref_t<T>, string_type> or
+    std::same_as<std::remove_cvref_t<T>, boolean_type> or
+    std::same_as<std::remove_cvref_t<T>, null_type> or
+    requires(T t) { t.time_since_epoch(); } or
+    (std::integral<std::remove_cvref_t<T>> and not std::same_as<std::remove_cvref_t<T>, boolean_type>)
+);
 
 template <typename T>
-concept String = std::same_as<std::remove_cvref_t<T>,string_type>;
+concept Null = std::same_as<std::remove_cvref_t<T>, null_type>;
 
 template <typename T>
-concept Boolean = std::same_as<std::remove_cvref_t<T>,boolean_type>;
-
-template <typename T>
-concept Null = std::same_as<std::remove_cvref_t<T>,null_type>;
-
-template <typename T>
-concept Timestamp = requires(T t) {t.time_since_epoch();};
-
-template <typename T>
-concept Integer = (std::integral<std::remove_cvref_t<T>> and not std::same_as<std::remove_cvref_t<T>,boolean_type>);
-
-template <typename T>
-concept Primitive = (Number<T> or String<T> or Boolean<T> or Null<T> or Timestamp<T> or Integer<T>);
+concept String = std::same_as<std::remove_cvref_t<T>, string_type>;
 
 template <typename T>
 concept Array = std::same_as<std::remove_cvref_t<T>,std::vector<object>>;
@@ -83,24 +78,20 @@ public:
 
     explicit object(const data& d) : m_data{d} {}
 
-    template <typename T> requires (Primitive<T> and not Null<T>)
+    template <Primitive T>
     object(const string_type& name, const T& v) :
     object{}
     {
-        
-        static_assert(Primitive<T>);
-        auto o = object{};
-        o.m_data = primitive{v};
-        m_data = map{{name,o}};
+        m_data = map{{name, object{v}}};
     }
 
     template <Null T>
     object(const string_type& name, [[maybe_unused]] const T& v) :
     object{}
     {
-        auto o = object{};
-        o.m_data = primitive{};
-        m_data = map{{name,o}};
+        object null_obj{};
+        null_obj.m_data = primitive{};  // monostate represents null
+        m_data = map{{name, null_obj}};
     }
 
     template <Primitive T>
@@ -117,9 +108,8 @@ public:
     object(const std::string& name, const object& o) :
     object{}
     {
-        
         m_data = map{};
-        std::get<map>(m_data).emplace(name,o);
+        std::get<map>(m_data)[name] = o;
     }
 
 
@@ -128,8 +118,8 @@ public:
     {
         m_data = map{};
         auto& target = std::get<map>(m_data);
-        for (const auto& pair : m) {
-            target[pair.first] = pair.second;
+        for (auto& pair : m) {
+            target[std::move(pair.first)] = std::move(pair.second);
         }
     }
 
@@ -146,10 +136,7 @@ public:
     object{}
     {
         m_data = map{};
-        auto arr = array{};
-        for(const auto& v : values)
-            arr.emplace_back(v);
-        std::get<map>(m_data).emplace(name, arr);
+        std::get<map>(m_data)[name] = array{values.begin(), values.end()};
     }
 
 
@@ -159,21 +146,17 @@ public:
     object{}
     {
         m_data = map{};
-        auto arr = array{};
-        for(const auto& d : data)
-            arr.emplace_back(d);
-        std::get<map>(m_data).emplace(name,arr);
+        std::get<map>(m_data)[name] = array{data.begin(), data.end()};
     }
 
     // Constructor for README-style object initialization: object{ {"key", value}, {"key2", value2} }
-    template<typename K, typename V>
-    object(std::initializer_list<std::pair<K, V>> pairs) :
-    object{}
+    template<typename V>
+    object(std::initializer_list<std::pair<string_type, V>> pairs) :
+    m_data{map{}}
     {
-        m_data = map{};
         auto& target = std::get<map>(m_data);
         for (const auto& pair : pairs) {
-            target[std::string{pair.first}] = object{pair.second};
+            target[pair.first] = object{pair.second};
         }
     }
 
@@ -584,9 +567,9 @@ public:
 
 private:
 
-    using operator_type = std::function<bool(const object::primitive&,const object::primitive&)>;
+    using operator_type = std::function<bool(const primitive&, const primitive&)>;
 
-    const std::map<string_type,operator_type> operators = std::map<string_type,operator_type>{
+    const std::map<string_type, operator_type> operators = std::map<string_type, operator_type>{
         { "$eq"s,  std::equal_to<object::primitive>{}      },
         { "$ne"s,  std::not_equal_to<object::primitive>{}  },
         { "$lt"s,  std::less<object::primitive>{}          },
