@@ -55,7 +55,7 @@ public:
 
     // Use ordered map to preserve key order for consistent JSON output
     // Consider std::unordered_map for better performance if order doesn't matter
-    using map = std::map<std::string,object>;
+    using map = std::flat_map<std::string,object>;
     using array = std::vector<object>;
     using value = std::variant<monostate,     // \x0A
                               number_type,    // \x01
@@ -388,8 +388,13 @@ public:
         auto result = *this;
         if(holds_alternative<map>(result.m_data))
         {
+            // Avoid merge() - use single-element inserts for std::flat_map
             auto temp = std::get<map>(std::move(obj.m_data));
-            std::get<map>(result.m_data).merge(temp);
+            auto& target = std::get<map>(result.m_data);
+            for(auto it = temp.begin(); it != temp.end(); ++it)
+            {
+                target.insert_or_assign(it->first, std::move(it->second));
+            }
         }
         else if(holds_alternative<array>(result.m_data))
             std::get<array>(result.m_data).push_back(std::move(obj));
@@ -408,7 +413,15 @@ public:
     object& operator += (object&& obj)
     {
         if(holds_alternative<map>(m_data))
-            std::get<map>(m_data).merge(std::get<map>(obj.m_data));
+        {
+            // Avoid merge() - use single-element inserts for std::flat_map
+            auto temp = std::get<map>(std::move(obj.m_data));
+            auto& target = std::get<map>(m_data);
+            for(auto it = temp.begin(); it != temp.end(); ++it)
+            {
+                target.insert_or_assign(it->first, std::move(it->second));
+            }
+        }
         else if(holds_alternative<array>(m_data))
             std::get<array>(m_data).push_back(std::move(obj));
         return *this;
