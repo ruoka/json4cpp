@@ -23,6 +23,13 @@ using int32_type     = std::int32_t;
 
 using map            = std::flat_map<std::string, object>;
 using array          = std::vector<object>;
+using primitive      = std::variant<std::monostate,     // \x0A
+                                   number_type,    // \x01
+                                   string_type,    // \x02
+                                   timestamp_type, // \x09
+                                   integer_type,   // \x12
+                                   boolean_type    // \x08
+                                   >;
 
 template <typename T>
 concept Primitive = (
@@ -66,13 +73,6 @@ public:
     // Consider std::unordered_map for better performance if order doesn't matter
     using map = std::flat_map<std::string,object>;
     using array = std::vector<object>;
-    using primitive = std::variant<monostate,     // \x0A
-                                   number_type,    // \x01
-                                   string_type,    // \x02
-                                   timestamp_type, // \x09
-                                   integer_type,   // \x12
-                                   boolean_type    // \x08
-                                   >;
     using value = std::variant<map,array,primitive>;
 
     object() = default;
@@ -357,7 +357,7 @@ public:
         return std::get<array>(m_value)[idx];
     }
 
-    operator const object::primitive& () const
+    operator const primitive& () const
     {
         return std::get<primitive>(m_value);
     }
@@ -565,18 +565,18 @@ public:
 
 private:
 
-    using operator_type = std::function<bool(const primitive&, const primitive&)>;
-
-    const std::map<string_type, operator_type> operators = std::map<string_type, operator_type>{
-        { "$eq"s,  std::equal_to<object::primitive>{}      },
-        { "$ne"s,  std::not_equal_to<object::primitive>{}  },
-        { "$lt"s,  std::less<object::primitive>{}          },
-        { "$lte"s, std::less_equal<object::primitive>{}    },
-        { "$gt"s,  std::greater<object::primitive>{}       },
-        { "$gte"s, std::greater_equal<object::primitive>{} }
-    };
+    static const std::map<string_type, std::function<bool(const primitive&, const primitive&)>> operators;
 
     value m_value;
+};
+
+const std::map<xson::string_type, std::function<bool(const xson::primitive&, const xson::primitive&)>> object::operators = {
+    { "$eq"s,  std::equal_to<xson::primitive>{}      },
+    { "$ne"s,  std::not_equal_to<xson::primitive>{}  },
+    { "$lt"s,  std::less<xson::primitive>{}          },
+    { "$lte"s, std::less_equal<xson::primitive>{}    },
+    { "$gt"s,  std::greater<xson::primitive>{}       },
+    { "$gte"s, std::greater_equal<xson::primitive>{} }
 };
 
 // Utility functions (from object.hpp)
@@ -643,13 +643,13 @@ constexpr const std::string& to_string(const std::string& str) noexcept
     return str;
 }
 
-inline std::string to_string(const object::primitive& val) noexcept
+inline std::string to_string(const primitive& val) noexcept
 {
     return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
 }
 
 // Encoder implementation
-inline std::ostream& operator << (std::ostream& os, const object::primitive& v)
+inline std::ostream& operator << (std::ostream& os, const primitive& v)
 {
     if(holds_alternative<number_type>(v))
         os << std::get<number_type>(v);
@@ -691,12 +691,12 @@ public:
             // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
             auto& mp = m_stack.top().get().get<object::map>();
             mp[m_current] = object{}; // default object is an empty map (object)
-            m_stack.push(mp.at(m_current));
+            m_stack.push(std::ref(mp.at(m_current)));
         }
         else // type::array
         {
             m_stack.top().get().get<object::array>().emplace_back(object::map{});
-            m_stack.push(m_stack.top().get().get<object::array>().back());
+            m_stack.push(std::ref(m_stack.top().get().get<object::array>().back()));
         }
         m_type = type::object;
     }
@@ -733,12 +733,12 @@ public:
             // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
             auto& mp = m_stack.top().get().get<object::map>();
             mp[m_current] = object::array{};
-            m_stack.push(mp.at(m_current));
+            m_stack.push(std::ref(mp.at(m_current)));
         }
         else // type::array
         {
             m_stack.top().get().get<object::array>().emplace_back(object::array{});
-            m_stack.push(m_stack.top().get().get<object::array>().back());
+            m_stack.push(std::ref(m_stack.top().get().get<object::array>().back()));
         }
         m_type = type::array;
     }

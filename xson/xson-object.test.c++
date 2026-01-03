@@ -263,7 +263,7 @@ auto register_tests()
         require_eq(static_cast<int>(ob4["B"s]), 2);
         require_eq(static_cast<int>(ob4["C"s]), 3);
         require_eq(static_cast<int>(ob4["D"s]), 4);
-        const auto& arr = ob4["array"s].get<object::array>();
+        const auto& arr = ob4["array"s].get<array>();
         std::vector<int> arr_values;
         arr_values.reserve(arr.size());
         for (const auto& val : arr) {
@@ -411,7 +411,7 @@ auto register_tests()
 
     test_case("AssignmentFromArray, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
-        auto arr = object::array{object{1}, object{2}, object{3}};
+        auto arr = array{object{1}, object{2}, object{3}};
         ob = arr;
         require_true(ob.is_array());
         require_eq(3u, ob.size());
@@ -450,7 +450,7 @@ auto register_tests()
     };
 
     test_case("EmptyObject, [xson]") = [] {
-        auto ob = object{object::map{}};
+        auto ob = object{map{}};
         require_true(ob.is_object());
         require_true(ob.empty());
         require_eq(0u, ob.size());
@@ -477,7 +477,7 @@ auto register_tests()
         require_false(ob2.has_value());
         require_true(ob2.has_objects());
         
-        auto ob3 = object{object::array{object{1}, object{2}, object{3}}};
+        auto ob3 = object{array{object{1}, object{2}, object{3}}};
         require_false(ob3.has_value());
         require_false(ob3.has_objects());
     };
@@ -489,25 +489,25 @@ auto register_tests()
         auto ob2 = object{42};
         require_false(ob2.has_objects());
         
-        auto ob3 = object{object::array{object{1}, object{2}}};
+        auto ob3 = object{array{object{1}, object{2}}};
         require_false(ob3.has_objects());
     };
 
     test_case("GetMethods, [xson]") = [] {
         // Test get<primitive>()
         auto ob1 = object{42};
-        require_eq(42, std::get<std::int64_t>(ob1.get<object::primitive>()));
+        require_eq(42, std::get<std::int64_t>(ob1.get<primitive>()));
         
         // Test get<map>()
         auto ob2 = object{{"A"s, 1}, {"B"s, 2}};
-        const auto& m = ob2.get<object::map>();
+        const auto& m = ob2.get<map>();
         require_eq(2u, m.size());
         require_true(m.contains("A"s));
         require_true(m.contains("B"s));
         
         // Test get<array>()
-        auto ob3 = object{object::array{object{1}, object{2}, object{3}}};
-        const auto& arr = ob3.get<object::array>();
+        auto ob3 = object{array{object{1}, object{2}, object{3}}};
+        const auto& arr = ob3.get<array>();
         require_eq(3u, arr.size());
         
         // Test get<string_type>()
@@ -523,9 +523,9 @@ auto register_tests()
         require_true(o1 == o2);
         require_false(o1 == o3);
         
-        auto a1 = object{object::array{object{1}, object{2}, object{3}}};
-        auto a2 = object{object::array{object{1}, object{2}, object{3}}};
-        auto a3 = object{object::array{object{1}, object{2}, object{4}}};
+        auto a1 = object{array{object{1}, object{2}, object{3}}};
+        auto a2 = object{array{object{1}, object{2}, object{3}}};
+        auto a3 = object{array{object{1}, object{2}, object{4}}};
         
         require_true(a1 == a2);
         require_false(a1 == a3);
@@ -539,8 +539,8 @@ auto register_tests()
     };
 
     test_case("OperatorPlusWithArrays, [xson]") = [] {
-        auto a1 = object{object::array{object{1}, object{2}}};
-        auto a2 = object{object::array{object{3}, object{4}}};
+        auto a1 = object{array{object{1}, object{2}}};
+        auto a2 = object{array{object{3}, object{4}}};
         auto a3 = a1 + a2;
         
         require_true(a3.is_array());
@@ -548,7 +548,7 @@ auto register_tests()
     };
 
     test_case("ArrayIndexOutOfBounds, [xson]") = [] {
-        auto ob = object{object::array{object{1}, object{2}, object{3}}};
+        auto ob = object{array{object{1}, object{2}, object{3}}};
         
         // Const version
         require_nothrow([&]{ auto val = ob[2]; });
@@ -567,7 +567,7 @@ auto register_tests()
     };
 
     test_case("ObjectAccessOnNonObject, [xson]") = [] {
-        auto ob = object{object::array{object{1}, object{2}, object{3}}};
+        auto ob = object{array{object{1}, object{2}, object{3}}};
         
         require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
         require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
@@ -609,18 +609,18 @@ auto register_tests()
         
         // Value reference
         auto ob6 = object{42};
-        const auto& val = static_cast<const object::primitive&>(ob6);
+        const auto& val = static_cast<const primitive&>(ob6);
         require_true(std::holds_alternative<std::int64_t>(val));
     };
 
     test_case("MatchArray, [xson]") = [] {
-        auto a1 = object{object::array{object{1}, object{2}, object{3}}};
-        auto a2 = object{object::array{object{1}, object{2}, object{3}}};
-        auto a3 = object{object::array{object{1}, object{2}, object{4}}};
+        auto a1 = object{array{object{1}, object{2}, object{3}}};
+        auto a2 = object{array{object{1}, object{2}, object{3}}};
+        auto a3 = object{array{object{1}, object{2}, object{4}}};
         
         require_true(a1.match(a2));
         require_false(a1.match(a3));
-        require_true(a1.match(object{object::array{}}));  // Empty subset matches
+        require_true(a1.match(object{array{}}));  // Empty subset matches
     };
 
     test_case("MatchWithOperators, [xson]") = [] {

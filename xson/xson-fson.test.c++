@@ -60,9 +60,9 @@ auto register_tests()
         check_eq(o1["Test"s]["A"s], o2["Test"s]["A"s]);
         check_eq(o1["Test"s]["B"s], o2["Test"s]["B"s]);
         check_eq(o1["Test"s]["C"s], o2["Test"s]["C"s]);
-        check_eq(o1["Test"s]["A"s].get<object::primitive>(), o2["Test"s]["A"s].get<object::primitive>());
-        check_eq(o1["Test"s]["B"s].get<object::primitive>(), o2["Test"s]["B"s].get<object::primitive>());
-        check_eq(o1["Test"s]["C"s].get<object::primitive>(), o2["Test"s]["C"s].get<object::primitive>());
+        check_eq(o1["Test"s]["A"s].get<primitive>(), o2["Test"s]["A"s].get<primitive>());
+        check_eq(o1["Test"s]["B"s].get<primitive>(), o2["Test"s]["B"s].get<primitive>());
+        check_eq(o1["Test"s]["C"s].get<primitive>(), o2["Test"s]["C"s].get<primitive>());
     };
 
     test_case("Int32, [xson]") = [] {
@@ -80,7 +80,7 @@ auto register_tests()
         succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("Int64, [xson]") = [] {
@@ -94,7 +94,7 @@ auto register_tests()
         o2 = xson::fson::parse(ss);
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("Double, [xson]") = [] {
@@ -108,7 +108,7 @@ auto register_tests()
         o2 = xson::fson::parse(ss);
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("String, [xson]") = [] {
@@ -126,7 +126,7 @@ auto register_tests()
         succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("Boolean, [xson]") = [] {
@@ -144,7 +144,7 @@ auto register_tests()
         succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("Date, [xson]") = [] {
@@ -187,7 +187,7 @@ auto register_tests()
         o2 = xson::fson::parse(ss);
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<object::primitive>(), o2["Test"s].get<object::primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("Int32MinMax, [xson]") = [] {
