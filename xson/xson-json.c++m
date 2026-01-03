@@ -47,7 +47,7 @@ public:
             os << m_pretty(']', container.empty());
         }
         else
-            os << o.get<object::value>();
+            os << o.get<object::primitive>();
     }
 
 private:

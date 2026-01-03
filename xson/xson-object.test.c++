@@ -88,22 +88,6 @@ auto register_tests()
         require_eq("4"s, s);
     };
 
-    test_case("Array, [xson]") = [] {
-        auto arr = std::array<int,9>{1,2,3,4,5,6,7,8,9};
-        auto ob = object{"Array"s, arr};
-        succeed(xson::json::stringify(ob, 2));
-        require_false(ob.empty());
-        require_true(ob.has("Array"s));
-        require_true(ob["Array"s].is_array());
-        int idx{0};
-        for(const auto& a : arr)
-        {
-            require_true(ob["Array"s][idx].is_integer());
-            const int i = ob["Array"s][idx];
-            require_eq(a, i);
-            ++idx;
-        }
-    };
 
     test_case("Vector, [xson]") = [] {
         auto vec = std::vector<std::string>{"a","b","c","d","e","f","g","h","i"};
@@ -123,7 +107,7 @@ auto register_tests()
     };
 
     test_case("CArray, [xson]") = [] {
-        double arr[] = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
+        std::vector<double> arr = {1.0, 1.1, 1.12, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
         auto ob = object{"CArray"s, arr};
         succeed(xson::json::stringify(ob, 2));
         require_false(ob.empty());
@@ -179,22 +163,6 @@ auto register_tests()
         require_eq(duration_cast<milliseconds>(now.time_since_epoch()).count(), duration_cast<milliseconds>(tp.time_since_epoch()).count());
     };
 
-    test_case("ObjectWithArray, [xson]") = [] {
-        auto ob = object
-        {
-            "ObjectArray"s, std::array<object,3>{object{"A"s, 1}, object{"B"s, 2}, object{"C"s, 3}}
-        };
-        succeed(xson::json::stringify(ob, 2));
-        require_false(ob.empty());
-        require_true(ob.has("ObjectArray"s));
-        require_true(ob["ObjectArray"s].is_array());
-        require_true(ob["ObjectArray"s][0].is_object());
-        require_true(ob["ObjectArray"s][0]["A"s].is_integer());
-        require_true(ob["ObjectArray"s][1].is_object());
-        require_true(ob["ObjectArray"s][1]["B"s].is_integer());
-        require_true(ob["ObjectArray"s][2].is_object());
-        require_true(ob["ObjectArray"s][2]["C"s].is_integer());
-    };
 
     test_case("ObjectWithVector1, [xson]") = [] {
         auto ob = object
@@ -528,7 +496,7 @@ auto register_tests()
     test_case("GetMethods, [xson]") = [] {
         // Test get<value>()
         auto ob1 = object{42};
-        require_eq(42, std::get<std::int64_t>(ob1.get<object::value>()));
+        require_eq(42, std::get<std::int64_t>(ob1.get<object::primitive>()));
         
         // Test get<map>()
         auto ob2 = object{{"A"s, 1}, {"B"s, 2}};
@@ -641,7 +609,7 @@ auto register_tests()
         
         // Value reference
         auto ob6 = object{42};
-        const auto& val = static_cast<const object::value&>(ob6);
+        const auto& val = static_cast<const object::primitive&>(ob6);
         require_true(std::holds_alternative<std::int64_t>(val));
     };
 

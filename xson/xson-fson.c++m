@@ -76,23 +76,23 @@ public:
             break;
 
             case type::integer:
-            fast::encode(os,std::get<xson::integer_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::integer_type>(o.get<object::primitive>()));
             break;
 
             case type::number:
-            fast::encode(os,std::get<xson::number_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::number_type>(o.get<object::primitive>()));
             break;
 
             case type::string:
-            fast::encode(os,std::get<xson::string_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::string_type>(o.get<object::primitive>()));
             break;
 
             case type::boolean:
-            fast::encode(os,std::get<xson::boolean_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::boolean_type>(o.get<object::primitive>()));
             break;
 
             case type::timestamp:
-            fast::encode(os,std::get<xson::timestamp_type>(o.get<object::value>()));
+            fast::encode(os,std::get<xson::timestamp_type>(o.get<object::primitive>()));
             break;
 
             case type::null:

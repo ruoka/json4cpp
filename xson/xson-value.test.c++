@@ -18,58 +18,58 @@ auto register_tests()
     using namespace tester::assertions;
 
     test_case("CompareInt32, [xson]") = [] {
-        object::value val1{1};
-        object::value val2{1};
+        object::primitive val1{1};
+        object::primitive val2{1};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
     test_case("CompareInt64, [xson]") = [] {
-        object::value val1{1ll};
-        object::value val2{1ll};
+        object::primitive val1{1ll};
+        object::primitive val2{1ll};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
     test_case("CompareString, [xson]") = [] {
-        object::value val1{"A"s};
-        object::value val2{"A"s};
+        object::primitive val1{"A"s};
+        object::primitive val2{"A"s};
         require_true(val1 == val2);
         require_false(val1 != val2);
     };
 
     test_case("CompareBoolean, [xson]") = [] {
-        object::value val1{true};
-        object::value val2{false};
+        object::primitive val1{true};
+        object::primitive val2{false};
         require_true(val1 != val2);
         require_false(val1 == val2);
     };
 
     test_case("ToStringInt32, [xson]") = [] {
-        object::value val1{123};
-        object::value val2{456};
+        object::primitive val1{123};
+        object::primitive val2{456};
         require_eq("123", xson::to_string(val1));
         require_eq("456", xson::to_string(val2));
     };
 
     test_case("ToStringBoolean, [xson]") = [] {
-        object::value val1{true};
-        object::value val2{false};
+        object::primitive val1{true};
+        object::primitive val2{false};
         require_eq("true", xson::to_string(val1));
         require_eq("false", xson::to_string(val2));
     };
 
     test_case("ToStringInt64, [xson]") = [] {
-        object::value val1{1234567890123ll};
-        object::value val2{-9876543210987ll};
+        object::primitive val1{1234567890123ll};
+        object::primitive val2{-9876543210987ll};
         require_eq("1234567890123", xson::to_string(val1));
         require_eq("-9876543210987", xson::to_string(val2));
     };
 
     test_case("ToStringDouble, [xson]") = [] {
-        object::value val1{3.14159};
-        object::value val2{-42.5};
-        object::value val3{0.0};
+        object::primitive val1{3.14159};
+        object::primitive val2{-42.5};
+        object::primitive val3{0.0};
         // Note: std::to_string for doubles may have precision differences
         // So we check that it contains the expected values
         auto s1 = xson::to_string(val1);
@@ -81,16 +81,16 @@ auto register_tests()
     };
 
     test_case("ToStringString, [xson]") = [] {
-        object::value val1{"hello"s};
-        object::value val2{"world"s};
-        object::value val3{""s};
+        object::primitive val1{"hello"s};
+        object::primitive val2{"world"s};
+        object::primitive val3{""s};
         require_eq("hello", xson::to_string(val1));
         require_eq("world", xson::to_string(val2));
         require_eq("", xson::to_string(val3));
     };
 
     test_case("ToStringNull, [xson]") = [] {
-        object::value val1{std::monostate{}};
+        object::primitive val1{std::monostate{}};
         require_eq("null", xson::to_string(val1));
     };
 
@@ -103,7 +103,7 @@ auto register_tests()
         tp += seconds{45};
         tp += milliseconds{123};
         
-        object::value val1{tp};
+        object::primitive val1{tp};
         auto result = xson::to_string(val1);
         // Should be ISO8601 format: YYYY-MM-DDThh:mm:ss.fffZ
         require_true(result.size() >= 20);
@@ -135,7 +135,7 @@ auto register_tests()
         require_eq('.', iso[19]);
         
         // Verify it matches to_string for timestamp
-        object::value val{tp};
+        object::primitive val{tp};
         require_eq(iso, xson::to_string(val));
     };
 
@@ -187,15 +187,15 @@ auto register_tests()
     };
 
     test_case("ToStringObjectValueAllTypes, [xson]") = [] {
-        // Test all variant types in object::value
-        object::value val_int32{42};
-        object::value val_int64{1234567890123ll};
-        object::value val_double{3.14};
-        object::value val_string{"test"s};
-        object::value val_bool{true};
-        object::value val_null{std::monostate{}};
+        // Test all variant types in object::primitive
+        object::primitive val_int32{42};
+        object::primitive val_int64{1234567890123ll};
+        object::primitive val_double{3.14};
+        object::primitive val_string{"test"s};
+        object::primitive val_bool{true};
+        object::primitive val_null{std::monostate{}};
         auto tp = system_clock::now();
-        object::value val_timestamp{tp};
+        object::primitive val_timestamp{tp};
         
         require_eq("42", xson::to_string(val_int32));
         require_eq("1234567890123", xson::to_string(val_int64));
