@@ -42,6 +42,15 @@ template <typename T>
 concept Value = (Number<T> or String<T> or Boolean<T> or Null<T> or Timestamp<T> or Integer<T>);
 
 template <typename T>
+concept Scalar = Value<T>;
+
+template <typename T>
+concept Array = std::same_as<std::remove_cvref_t<T>,std::vector<object>>;
+
+template <typename T>
+concept Map = std::same_as<std::remove_cvref_t<T>,std::flat_map<std::string,object>>;
+
+template <typename T>
 concept Object = std::same_as<std::remove_cvref_t<T>,object>;
 
 using namespace std::string_literals;
@@ -118,11 +127,24 @@ public:
             std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
     }
 
-    template <typename T> requires (not Value<T> and not Object<T> and std::ranges::forward_range<T>)
+    // Constructor for vectors of scalars
+    template <Scalar T>
+    object(const string_type& name, const std::vector<T>& values) :
+    object{}
+    {
+        m_data = map{};
+        auto arr = array{};
+        for(const auto& v : values)
+            arr.emplace_back(v);
+        std::get<map>(m_data).emplace(name, arr);
+    }
+
+    // Generic constructor for forward ranges
+    template <typename T> requires (not Value<T> and not Object<T> and std::ranges::forward_range<T> and not std::same_as<std::remove_cvref_t<T>, std::vector<typename T::value_type>>)
     object(const string_type& name, T&& data) :
     object{}
     {
-        
+
         m_data = map{};
         auto arr = array{};
         for(const auto& d : data)
