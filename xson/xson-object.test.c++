@@ -494,7 +494,7 @@ auto register_tests()
     };
 
     test_case("GetMethods, [xson]") = [] {
-        // Test get<value>()
+        // Test get<primitive>()
         auto ob1 = object{42};
         require_eq(42, std::get<std::int64_t>(ob1.get<object::primitive>()));
         
