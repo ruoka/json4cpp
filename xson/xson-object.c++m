@@ -18,6 +18,7 @@ using boolean_type   = bool;
 using null_type      = std::nullptr_t;
 using timestamp_type = std::chrono::system_clock::time_point;
 using integer_type   = std::int64_t;
+using int64_type     = std::int64_t;
 using int32_type     = std::int32_t;
 
 using map            = std::flat_map<std::string, object>;
@@ -72,17 +73,17 @@ public:
                                    integer_type,   // \x12
                                    boolean_type    // \x08
                                    >;
-    using data = std::variant<map,array,primitive>;
+    using value = std::variant<map,array,primitive>;
 
     object() = default;
 
-    explicit object(const data& d) : m_data{d} {}
+    explicit object(const value& v) : m_value{v} {}
 
     template <Primitive T>
     object(const string_type& name, const T& v) :
     object{}
     {
-        m_data = map{{name, object{v}}};
+        m_value = map{{name, object{v}}};
     }
 
     template <Null T>
@@ -90,34 +91,32 @@ public:
     object{}
     {
         object null_obj{};
-        null_obj.m_data = primitive{};  // monostate represents null
-        m_data = map{{name, null_obj}};
+        null_obj.m_value = primitive{std::monostate{}};  // monostate represents null
+        m_value = map{{name, null_obj}};
     }
 
     template <Primitive T>
-    object(const string_type& name, std::initializer_list<T> values)
+    object(const string_type& name, std::initializer_list<T> primitives)
     {
-        
-        m_data = map{};
+        m_value = map{};
         auto arr = array{};
-        for(auto& v : values)
-            arr.emplace_back(v);
-        std::get<map>(m_data).emplace(name,arr);
+        for(auto& p : primitives)
+            arr.emplace_back(p);
+        std::get<map>(m_value).emplace(name,arr);
     }
 
     object(const std::string& name, const object& o) :
     object{}
     {
-        m_data = map{};
-        std::get<map>(m_data)[name] = o;
+        m_value = map{};
+        std::get<map>(m_value)[name] = o;
     }
-
 
     object(std::map<std::string, object>&& m) :
     object{}
     {
-        m_data = map{};
-        auto& target = std::get<map>(m_data);
+        m_value = map{};
+        auto& target = std::get<map>(m_value);
         for (auto& pair : m) {
             target[std::move(pair.first)] = std::move(pair.second);
         }
@@ -125,67 +124,66 @@ public:
 
     object(std::initializer_list<object> objects)
     {
-        m_data = map{};
+        m_value = map{};
         for(auto& o : objects)
-            std::get<map>(m_data).insert(std::get<map>(o.m_data).cbegin(),std::get<map>(o.m_data).end());
+            std::get<map>(m_value).insert(std::get<map>(o.m_value).cbegin(),std::get<map>(o.m_value).end());
     }
 
     // Constructor for vectors of scalars
     template <Primitive T>
-    object(const string_type& name, const std::vector<T>& values) :
+    object(const string_type& name, const std::vector<T>& primitives) :
     object{}
     {
-        m_data = map{};
-        std::get<map>(m_data)[name] = array{values.begin(), values.end()};
+        m_value = map{};
+        std::get<map>(m_value)[name] = array{primitives.begin(), primitives.end()};
     }
-
 
     // Generic constructor for forward ranges
     template <typename T> requires (not std::same_as<std::remove_cvref_t<T>, primitive> and not Object<T> and not String<T> and std::ranges::forward_range<T>)
     object(const string_type& name, T&& data) :
     object{}
     {
-        m_data = map{};
-        std::get<map>(m_data)[name] = array{data.begin(), data.end()};
+        m_value = map{};
+        std::get<map>(m_value)[name] = array{data.begin(), data.end()};
     }
 
     // Constructor for README-style object initialization: object{ {"key", value}, {"key2", value2} }
     template<typename V>
     object(std::initializer_list<std::pair<string_type, V>> pairs) :
-    m_data{map{}}
+    m_value{map{}}
     {
-        auto& target = std::get<map>(m_data);
+        auto& target = std::get<map>(m_value);
         for (const auto& pair : pairs) {
             target[pair.first] = object{pair.second};
         }
     }
 
     object(const object& obj) :
-    m_data{obj.m_data}
+    m_value{obj.m_value}
     {
     }
 
     object(object&& obj) :
-    m_data{std::move(obj.m_data)}
+    m_value{std::move(obj.m_value)}
     {
     }
 
     object& operator = (const object& o)
     {
-        m_data = o.m_data;
+        m_value = o.m_value;
         return *this;
     }
 
     object& operator = (object&& obj)
     {
-        m_data = std::move(obj.m_data);
+        m_value = std::move(obj.m_value);
         return *this;
     }
 
     object& operator = (const array& arr)
     {
         
-        m_data = arr;
+        m_value = arr;
         return *this;
     }
 
@@ -193,7 +191,7 @@ public:
     object& operator = (const T& val)
     {
         
-        m_data = primitive{val};
+        m_value = primitive{val};
         return *this;
     }
 
@@ -201,30 +199,30 @@ public:
     object& operator = (const T&)
     {
         
-        m_data = primitive{monostate{}};
+        m_value = primitive{monostate{}};
         return *this;
     }
 
     friend bool operator == (const object& lhs, const object& rhs) noexcept
     {
-        return lhs.m_data == rhs.m_data;
+        return lhs.m_value == rhs.m_value;
     }
 
     constexpr auto is_object() const noexcept
     {
-        return holds_alternative<map>(m_data);
+        return holds_alternative<map>(m_value);
     }
 
     constexpr auto is_array() const noexcept
     {
-        return holds_alternative<array>(m_data);
+        return holds_alternative<array>(m_value);
     }
 
     constexpr auto is_number() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
+        if(holds_alternative<primitive>(m_value))
         {
-            const auto& v = std::get<primitive>(m_data);
+            const auto& v = std::get<primitive>(m_value);
             // JSON numbers can be either integer_type or number_type
             return holds_alternative<number_type>(v) || holds_alternative<integer_type>(v);
         }
@@ -233,101 +231,101 @@ public:
 
     constexpr auto is_string() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
-            return holds_alternative<string_type>(std::get<primitive>(m_data));
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<string_type>(std::get<primitive>(m_value));
         return false;
     }
 
     constexpr auto is_boolean() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
-            return holds_alternative<boolean_type>(std::get<primitive>(m_data));
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<boolean_type>(std::get<primitive>(m_value));
         return false;
     }
 
     constexpr auto is_timestamp() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
-            return holds_alternative<timestamp_type>(std::get<primitive>(m_data));
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<timestamp_type>(std::get<primitive>(m_value));
         return false;
     }
 
     constexpr auto is_integer() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
-            return holds_alternative<integer_type>(std::get<primitive>(m_data));
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<integer_type>(std::get<primitive>(m_value));
         return false;
     }
 
     constexpr auto is_null() const noexcept
     {
-        if(holds_alternative<primitive>(m_data))
-            return holds_alternative<std::monostate>(std::get<primitive>(m_data));
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<std::monostate>(std::get<primitive>(m_value));
         return false;
     }
 
     template<typename T> requires std::same_as<T,primitive>
     const auto& get() const
     {
-        return std::get<primitive>(m_data);
+        return std::get<primitive>(m_value);
     }
 
     template<typename T> requires std::same_as<T,primitive>
     auto& get()
     {
-        return std::get<primitive>(m_data);
+        return std::get<primitive>(m_value);
     }
 
     template<typename T> requires std::same_as<T,map>
     const auto& get() const
     {
-        return std::get<map>(m_data);
+        return std::get<map>(m_value);
     }
 
     template<typename T> requires std::same_as<T,map>
     auto& get()
     {
-        return std::get<map>(m_data);
+        return std::get<map>(m_value);
     }
 
     template<typename T> requires std::same_as<T,array>
     const auto& get() const
     {
-        return std::get<array>(m_data);
+        return std::get<array>(m_value);
     }
 
     template<typename T> requires std::same_as<T,array>
     auto& get()
     {
-        return std::get<array>(m_data);
+        return std::get<array>(m_value);
     }
 
     template<typename T> requires std::same_as<T,string_type>
     const auto& get() const
     {
-        return std::get<string_type>(std::get<primitive>(m_data));
+        return std::get<string_type>(std::get<primitive>(m_value));
     }
 
     object& operator [] (const string_type& name)
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        return std::get<map>(m_data)[name];
+        return std::get<map>(m_value)[name];
     }
 
     object& operator [] (std::string_view name)
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        return std::get<map>(m_data)[std::string{name}];
+        return std::get<map>(m_value)[std::string{name}];
     }
 
     const object& operator [] (const string_type& name) const
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        if(std::get<map>(m_data).contains(name))
-            return std::get<map>(m_data).find(name)->second;
+        if(std::get<map>(m_value).contains(name))
+            return std::get<map>(m_value).find(name)->second;
         throw std::runtime_error{"object has no field with name "s + name};
     }
 
@@ -336,8 +334,8 @@ public:
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
         auto key = std::string{name};
-        if(std::get<map>(m_data).contains(key))
-            return std::get<map>(m_data).find(key)->second;
+        if(std::get<map>(m_value).contains(key))
+            return std::get<map>(m_value).find(key)->second;
         throw std::runtime_error{"object has no field with name "s + key};
     }
 
@@ -345,28 +343,28 @@ public:
     {
         if(!is_array())
             throw std::runtime_error{"Cannot access array index: object is not an array type"s};
-        if(idx >= std::get<array>(m_data).size())
+        if(idx >= std::get<array>(m_value).size())
             throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
-        return std::get<array>(m_data)[idx];
+        return std::get<array>(m_value)[idx];
     }
 
     const object& operator [] (std::size_t idx) const
     {
         if(!is_array())
             throw std::runtime_error{"Cannot access array index: object is not an array type"s};
-        if(idx >= std::get<array>(m_data).size())
+        if(idx >= std::get<array>(m_value).size())
             throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
-        return std::get<array>(m_data)[idx];
+        return std::get<array>(m_value)[idx];
     }
 
     operator const object::primitive& () const
     {
-        return std::get<primitive>(m_data);
+        return std::get<primitive>(m_value);
     }
 
     operator number_type () const
     {
-        const auto& v = std::get<primitive>(m_data);
+        const auto& v = std::get<primitive>(m_value);
         if(std::holds_alternative<number_type>(v))
             return std::get<number_type>(v);
         if(std::holds_alternative<integer_type>(v))
@@ -376,115 +374,115 @@ public:
 
     operator const string_type& () const
     {
-        return std::get<string_type>(std::get<primitive>(m_data));
+        return std::get<string_type>(std::get<primitive>(m_value));
     }
 
     operator boolean_type () const
     {
-        return std::get<boolean_type>(std::get<primitive>(m_data));
+        return std::get<boolean_type>(std::get<primitive>(m_value));
     }
 
     operator timestamp_type () const
     {
-        return std::get<timestamp_type>(std::get<primitive>(m_data));
+        return std::get<timestamp_type>(std::get<primitive>(m_value));
     }
 
     operator integer_type () const
     {
-        return std::get<integer_type >(std::get<primitive>(m_data));
+        return std::get<integer_type >(std::get<primitive>(m_value));
     }
 
     operator int32_type () const
     {
-        return std::get<integer_type>(std::get<primitive>(m_data));
+        return std::get<integer_type>(std::get<primitive>(m_value));
     }
 
     object operator + (const object& obj) const
     {
         auto result = *this;
-        if(holds_alternative<map>(result.m_data))
-            std::get<map>(result.m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
-        else if(holds_alternative<array>(result.m_data))
-            std::get<array>(result.m_data).push_back(obj);
+        if(holds_alternative<map>(result.m_value))
+            std::get<map>(result.m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+        else if(holds_alternative<array>(result.m_value))
+            std::get<array>(result.m_value).push_back(obj);
         return result;
     }
 
     object operator + (object&& obj) const
     {
         auto result = *this;
-        if(holds_alternative<map>(result.m_data))
+        if(holds_alternative<map>(result.m_value))
         {
             // Avoid merge() - use single-element inserts for std::flat_map
-            auto temp = std::get<map>(std::move(obj.m_data));
-            auto& target = std::get<map>(result.m_data);
+            auto temp = std::get<map>(std::move(obj.m_value));
+            auto& target = std::get<map>(result.m_value);
             for(auto it = temp.begin(); it != temp.end(); ++it)
             {
                 target.insert_or_assign(it->first, std::move(it->second));
             }
         }
-        else if(holds_alternative<array>(result.m_data))
-            std::get<array>(result.m_data).push_back(std::move(obj));
+        else if(holds_alternative<array>(result.m_value))
+            std::get<array>(result.m_value).push_back(std::move(obj));
         return result;
     }
 
     object& operator += (const object& obj)
     {
-        if(holds_alternative<map>(m_data))
-            std::get<map>(m_data).insert(std::get<map>(obj.m_data).cbegin(), std::get<map>(obj.m_data).cend());
-        else if(holds_alternative<array>(m_data))
-            std::get<array>(m_data).push_back(obj);
+        if(holds_alternative<map>(m_value))
+            std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+        else if(holds_alternative<array>(m_value))
+            std::get<array>(m_value).push_back(obj);
         return *this;
     }
 
     object& operator += (object&& obj)
     {
-        if(holds_alternative<map>(m_data))
+        if(holds_alternative<map>(m_value))
         {
             // Avoid merge() - use single-element inserts for std::flat_map
-            auto temp = std::get<map>(std::move(obj.m_data));
-            auto& target = std::get<map>(m_data);
+            auto temp = std::get<map>(std::move(obj.m_value));
+            auto& target = std::get<map>(m_value);
             for(auto it = temp.begin(); it != temp.end(); ++it)
             {
                 target.insert_or_assign(it->first, std::move(it->second));
             }
         }
-        else if(holds_alternative<array>(m_data))
-            std::get<array>(m_data).push_back(std::move(obj));
+        else if(holds_alternative<array>(m_value))
+            std::get<array>(m_value).push_back(std::move(obj));
         return *this;
     }
 
     bool has_value() const noexcept
     {
-        return holds_alternative<primitive>(m_data);
+        return holds_alternative<primitive>(m_value);
     }
 
     bool has_objects() const noexcept
     {
-        return holds_alternative<map>(m_data);
+        return holds_alternative<map>(m_value);
     }
 
     bool empty() const noexcept
     {
-        if(holds_alternative<map>(m_data))
-            return std::get<map>(m_data).empty();
-        if(holds_alternative<array>(m_data))
-            return std::get<array>(m_data).empty();
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).empty();
+        if(holds_alternative<array>(m_value))
+            return std::get<array>(m_value).empty();
         else
             return false;
     }
 
     bool has(const std::string& name) const noexcept
     {
-        if(holds_alternative<map>(m_data))
-            return std::get<map>(m_data).contains(name);
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).contains(name);
         else
             return false;
     }
 
     bool has(std::string_view name) const noexcept
     {
-        if(holds_alternative<map>(m_data))
-            return std::get<map>(m_data).contains(std::string{name});
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).contains(std::string{name});
         else
             return false;
     }
@@ -492,10 +490,10 @@ public:
 
     std::size_t size() const noexcept
     {
-        if(holds_alternative<map>(m_data))
-            return std::get<map>(m_data).size();
-        else if(holds_alternative<array>(m_data))
-            return std::get<array>(m_data).size();
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).size();
+        else if(holds_alternative<array>(m_value))
+            return std::get<array>(m_value).size();
         else
             return 0u;
     }
@@ -578,7 +576,7 @@ private:
         { "$gte"s, std::greater_equal<object::primitive>{} }
     };
 
-    data m_data;
+    value m_value;
 };
 
 // Utility functions (from object.hpp)
@@ -796,7 +794,7 @@ public:
         if(m_stack.empty())
         {
             // Standalone null primitive (not inside object/array) - set root directly
-            // Use assignment operator which sets m_data to monostate
+            // Use assignment operator which sets m_value to monostate
             m_root = nullptr;
         }
         else if(m_type == type::object)
