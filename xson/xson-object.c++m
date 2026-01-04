@@ -425,27 +425,19 @@ public:
         return result;
     }
 
-    object& operator += (const object& obj)
+    object& operator+=(const object& obj)
     {
         if(holds_alternative<map>(m_value))
-            std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+           std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
         else if(holds_alternative<array>(m_value))
-            std::get<array>(m_value).push_back(obj);
+            std::get<array>(m_value).push_back(std::move(obj));
         return *this;
     }
 
     object& operator += (object&& obj)
     {
         if(holds_alternative<map>(m_value))
-        {
-            // Avoid merge() - use single-element inserts for std::flat_map
-            auto temp = std::get<map>(std::move(obj.m_value));
-            auto& target = std::get<map>(m_value);
-            for(auto it = temp.begin(); it != temp.end(); ++it)
-            {
-                target.insert_or_assign(it->first, std::move(it->second));
-            }
-        }
+            std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
         else if(holds_alternative<array>(m_value))
             std::get<array>(m_value).push_back(std::move(obj));
         return *this;

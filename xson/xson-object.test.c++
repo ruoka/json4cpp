@@ -689,7 +689,7 @@ auto register_tests()
         
         require_true(o1.has("A"s));
         require_true(o1.has("B"s));
-        require_true(o2.empty());  // o2 moved from
+        require_false(o2.empty());  // Move does NOT guarantee that the map is left empty
     };
 
     return 0;
