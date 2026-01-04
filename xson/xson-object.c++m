@@ -100,7 +100,8 @@ public:
     {
         m_value = map{};
         auto arr = array{};
-        for(auto& p : primitives)
+        arr.reserve(primitives.size());
+        for(const auto& p : primitives)
             arr.emplace_back(p);
         std::get<map>(m_value).emplace(name,arr);
     }
@@ -154,7 +155,7 @@ public:
     {
         auto& target = std::get<map>(m_value);
         for (const auto& pair : pairs) {
-            target[pair.first] = object{pair.second};
+            target.emplace(pair.first, object{pair.second});
         }
     }
 
@@ -401,7 +402,12 @@ public:
     {
         auto result = *this;
         if(holds_alternative<map>(result.m_value))
-            std::get<map>(result.m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+        {
+            for(const auto& pair : std::get<map>(obj.m_value))
+            {
+                std::get<map>(result.m_value).insert_or_assign(pair.first, pair.second);
+            }
+        }
         else if(holds_alternative<array>(result.m_value))
             std::get<array>(result.m_value).push_back(obj);
         return result;
@@ -412,12 +418,11 @@ public:
         auto result = *this;
         if(holds_alternative<map>(result.m_value))
         {
-            // Avoid merge() - use single-element inserts for std::flat_map
             auto temp = std::get<map>(std::move(obj.m_value));
             auto& target = std::get<map>(result.m_value);
-            for(auto it = temp.begin(); it != temp.end(); ++it)
+            for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
             {
-                target.insert_or_assign(it->first, std::move(it->second));
+                target.insert_or_assign(std::move(it->first), std::move(it->second));
             }
         }
         else if(holds_alternative<array>(result.m_value))
@@ -428,7 +433,12 @@ public:
     object& operator+=(const object& obj)
     {
         if(holds_alternative<map>(m_value))
-           std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+        {
+            for(const auto& pair : std::get<map>(obj.m_value))
+            {
+                std::get<map>(m_value).insert_or_assign(pair.first, pair.second);
+            }
+        }
         else if(holds_alternative<array>(m_value))
             std::get<array>(m_value).push_back(obj);
         return *this;
@@ -437,7 +447,14 @@ public:
     object& operator += (object&& obj)
     {
         if(holds_alternative<map>(m_value))
-            std::get<map>(m_value).insert(std::make_move_iterator(std::get<map>(obj.m_value).begin()),std::make_move_iterator(std::get<map>(obj.m_value).end()));
+        {
+            auto temp = std::get<map>(std::move(obj.m_value));
+            auto& target = std::get<map>(m_value);
+            for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
+            {
+                target.insert_or_assign(std::move(it->first), std::move(it->second));
+            }
+        }
         else if(holds_alternative<array>(m_value))
             std::get<array>(m_value).push_back(std::move(obj));
         return *this;

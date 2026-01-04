@@ -789,7 +789,7 @@ auto register_tests()
         
         require_true(o1.has("A"s));
         require_true(o1.has("B"s));
-        require_false(o2.empty());  // Move does NOT guarantee that the map is left empty
+        require_true(o2.empty());  // Map is moved and left empty
     };
 
     test_case("OperatorPlusEqualsCopy_BasicMerge, [xson]") = [] {
@@ -813,14 +813,14 @@ auto register_tests()
     };
 
     test_case("OperatorPlusEqualsCopy_NonDestructiveMerge, [xson]") = [] {
-        // Test that existing keys are preserved (non-destructive merge)
+        // Test that existing keys are overwritten (destructive merge)
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
         
         o1 += o2;
         
-        // Original value of B should be preserved (insert doesn't overwrite)
-        require_eq(2, static_cast<int>(o1["B"s]));
+        // New value of B should overwrite original (insert_or_assign overwrites)
+        require_eq(99, static_cast<int>(o1["B"s]));
         require_eq(1, static_cast<int>(o1["A"s]));
         require_eq(3, static_cast<int>(o1["C"s]));
         require_eq(3u, o1.size());
@@ -890,14 +890,14 @@ auto register_tests()
     };
 
     test_case("OperatorPlusEqualsMove_NonDestructiveMerge, [xson]") = [] {
-        // Test that existing keys are preserved (non-destructive merge)
+        // Test that existing keys are overwritten (destructive merge)
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
         
         o1 += std::move(o2);
         
-        // Original value of B should be preserved (insert doesn't overwrite)
-        require_eq(2, static_cast<int>(o1["B"s]));
+        // New value of B should overwrite original (insert_or_assign overwrites)
+        require_eq(99, static_cast<int>(o1["B"s]));
         require_eq(1, static_cast<int>(o1["A"s]));
         require_eq(3, static_cast<int>(o1["C"s]));
         require_eq(3u, o1.size());
