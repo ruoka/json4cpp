@@ -779,7 +779,7 @@ auto register_tests()
         
         require_true(o3.has("A"s));
         require_true(o3.has("B"s));
-        require_true(o2.empty());  // o2 moved from
+        require_true(o2.empty());  // Map is moved and left empty
     };
 
     test_case("OperatorPlusEqualsMove, [xson]") = [] {
@@ -813,7 +813,7 @@ auto register_tests()
     };
 
     test_case("OperatorPlusEqualsCopy_NonDestructiveMerge, [xson]") = [] {
-        // Test that existing keys are overwritten (destructive merge)
+        // Test that existing keys are overwritten (destructive merge like std::map)
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
         
@@ -890,7 +890,7 @@ auto register_tests()
     };
 
     test_case("OperatorPlusEqualsMove_NonDestructiveMerge, [xson]") = [] {
-        // Test that existing keys are overwritten (destructive merge)
+        // Test that existing keys are overwritten (destructive merge like std::map)
         auto o1 = object{{"A"s, 1}, {"B"s, 2}};
         auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
         
