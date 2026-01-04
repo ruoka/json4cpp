@@ -567,7 +567,7 @@ auto register_tests()
     };
 
     test_case("ObjectAccessOnNonObject, [xson]") = [] {
-        auto ob = object{object::array{object{1}, object{2}, object{3}}};
+        auto ob = object{array{object{1}, object{2}, object{3}}};
         
         require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
         require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});

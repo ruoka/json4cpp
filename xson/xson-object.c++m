@@ -437,7 +437,7 @@ public:
     object& operator += (object&& obj)
     {
         if(holds_alternative<map>(m_value))
-            std::get<map>(m_value).insert(std::get<map>(obj.m_value).cbegin(), std::get<map>(obj.m_value).cend());
+            std::get<map>(m_value).insert(std::make_move_iterator(std::get<map>(obj.m_value).begin()),std::make_move_iterator(std::get<map>(obj.m_value).end()));
         else if(holds_alternative<array>(m_value))
             std::get<array>(m_value).push_back(std::move(obj));
         return *this;
