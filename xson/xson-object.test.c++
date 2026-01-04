@@ -573,6 +573,106 @@ auto register_tests()
         require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
     };
 
+    test_case("MapWithPrimitiveValues, [xson]") = [] {
+        // Test map construction with primitives as values
+        // The constructor object(std::initializer_list<std::pair<string_type, V>>) requires all values
+        // to have the same type V, so mixed types like {{"a",2},{"b",2.5},{"c",true}} won't work directly.
+        // However, we can use the two-parameter constructor object(name, value) for each pair and merge them.
+        
+        // Test integer value using two-parameter constructor
+        auto ob1 = object{"a"s, 2};
+        require_true(ob1.is_object());
+        require_eq(1u, ob1.size());
+        require_true(ob1["a"s].is_integer());
+        require_eq(2, static_cast<int>(ob1["a"s]));
+        
+        // Test number value
+        auto ob2 = object{"b"s, 2.5};
+        require_true(ob2.is_object());
+        require_eq(1u, ob2.size());
+        require_true(ob2["b"s].is_number());
+        require_eq(2.5, static_cast<double>(ob2["b"s]));
+        
+        // Test boolean value
+        auto ob3 = object{"c"s, true};
+        require_true(ob3.is_object());
+        require_eq(1u, ob3.size());
+        require_true(ob3["c"s].is_boolean());
+        require_eq(true, static_cast<bool>(ob3["c"s]));
+        
+        // Test with all types together - manually merge using += operator
+        ob1 += ob2;
+        ob1 += ob3;
+        require_true(ob1.is_object());
+        require_eq(3u, ob1.size());
+        require_true(ob1["a"s].is_integer());
+        require_true(ob1["b"s].is_number());
+        require_true(ob1["c"s].is_boolean());
+        
+        // Test with null value
+        auto ob4 = object{"null_key"s, nullptr};
+        auto ob5 = object{"int_key"s, 42};
+        auto ob6 = object{"str_key"s, "test"s};
+        ob4 += ob5;
+        ob4 += ob6;
+        require_eq(3u, ob4.size());
+        require_true(ob4["null_key"s].is_null());
+        require_true(ob4["int_key"s].is_integer());
+        require_true(ob4["str_key"s].is_string());
+        require_eq(42, static_cast<int>(ob4["int_key"s]));
+        require_eq("test"s, static_cast<std::string>(ob4["str_key"s]));
+    };
+
+    test_case("ArrayWithPrimitiveValues, [xson]") = [] {
+        // Test array construction with primitives as values
+        // Note: Without the primitive constructor, we need to use the value constructor
+        // or assignment operator to create primitive objects
+        
+        // Test array with integers using value constructor
+        auto arr = array{object{primitive{1}}, object{primitive{2}}, object{primitive{3}}};
+        auto ob = object{arr};
+        
+        require_true(ob.is_array());
+        require_eq(3u, ob.size());
+        require_eq(1, static_cast<int>(ob[0]));
+        require_eq(2, static_cast<int>(ob[1]));
+        require_eq(3, static_cast<int>(ob[2]));
+        require_true(ob[0].is_integer());
+        require_true(ob[1].is_integer());
+        require_true(ob[2].is_integer());
+        
+        // Test with different primitive types
+        auto arr2 = array{object{primitive{1}}, object{primitive{2.5}}};
+        auto ob2 = object{arr2};
+        require_eq(2u, ob2.size());
+        require_true(ob2[0].is_integer());
+        require_true(ob2[1].is_number());
+        
+        // Test with boolean using assignment operator
+        auto obj_true = object{};
+        obj_true = true;
+        auto obj_false = object{};
+        obj_false = false;
+        auto arr3 = array{obj_true, obj_false};
+        auto ob3 = object{arr3};
+        require_eq(2u, ob3.size());
+        require_true(ob3[0].is_boolean());
+        require_true(ob3[1].is_boolean());
+        require_eq(true, static_cast<bool>(ob3[0]));
+        require_eq(false, static_cast<bool>(ob3[1]));
+        
+        // Test with null value
+        auto obj_null = object{};
+        obj_null = nullptr;
+        auto obj_int = object{};
+        obj_int = 42;
+        auto arr4 = array{obj_null, obj_int};
+        auto ob4 = object{arr4};
+        require_eq(2u, ob4.size());
+        require_true(ob4[0].is_null());
+        require_true(ob4[1].is_integer());
+    };
+
     test_case("NonExistentKey, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         const auto& c_ob = ob;
