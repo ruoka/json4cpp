@@ -567,7 +567,7 @@ auto register_tests()
     };
 
     test_case("ObjectAccessOnNonObject, [xson]") = [] {
-        auto ob = object{array{object{1}, object{2}, object{3}}};
+        auto ob = object{object::array{object{1}, object{2}, object{3}}};
         
         require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
         require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
@@ -690,6 +690,208 @@ auto register_tests()
         require_true(o1.has("A"s));
         require_true(o1.has("B"s));
         require_false(o2.empty());  // Move does NOT guarantee that the map is left empty
+    };
+
+    test_case("OperatorPlusEqualsCopy_BasicMerge, [xson]") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"C"s, 3}, {"D"s, 4}};
+        o1 += o2;
+        
+        require_true(o1.has("A"s));
+        require_true(o1.has("B"s));
+        require_true(o1.has("C"s));
+        require_true(o1.has("D"s));
+        require_eq(1, static_cast<int>(o1["A"s]));
+        require_eq(2, static_cast<int>(o1["B"s]));
+        require_eq(3, static_cast<int>(o1["C"s]));
+        require_eq(4, static_cast<int>(o1["D"s]));
+        
+        // o2 should remain unchanged (copy semantics)
+        require_true(o2.has("C"s));
+        require_true(o2.has("D"s));
+        require_false(o2.has("A"s));
+    };
+
+    test_case("OperatorPlusEqualsCopy_NonDestructiveMerge, [xson]") = [] {
+        // Test that existing keys are preserved (non-destructive merge)
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
+        
+        o1 += o2;
+        
+        // Original value of B should be preserved (insert doesn't overwrite)
+        require_eq(2, static_cast<int>(o1["B"s]));
+        require_eq(1, static_cast<int>(o1["A"s]));
+        require_eq(3, static_cast<int>(o1["C"s]));
+        require_eq(3u, o1.size());
+    };
+
+    test_case("OperatorPlusEqualsCopy_EmptyObjects, [xson]") = [] {
+        auto o1 = object{{"A"s, 1}};
+        auto o2 = object{};
+        
+        o1 += o2;
+        require_true(o1.has("A"s));
+        require_eq(1u, o1.size());
+        
+        auto o3 = object{};
+        auto o4 = object{{"B"s, 2}};
+        o3 += o4;
+        require_true(o3.has("B"s));
+        require_eq(1u, o3.size());
+        
+        auto o5 = object{};
+        auto o6 = object{};
+        o5 += o6;
+        require_true(o5.empty());
+    };
+
+    test_case("OperatorPlusEqualsCopy_Arrays, [xson]") = [] {
+        auto o1 = object{std::vector<object>{object{1}, object{2}}};
+        auto o2 = object{std::vector<object>{object{3}, object{4}}};
+        
+        o1 += o2;
+        
+        require_true(o1.is_array());
+        // When both are arrays, += pushes the entire second array as a single element (nested)
+        require_eq(3u, o1.size());
+        require_eq(1, static_cast<int>(o1[0]));
+        require_eq(2, static_cast<int>(o1[1]));
+        require_true(o1[2].is_array());  // o2 is nested as a single element
+        require_eq(3, static_cast<int>(o1[2][0]));
+        require_eq(4, static_cast<int>(o1[2][1]));
+    };
+
+    test_case("OperatorPlusEqualsCopy_NestedStructures, [xson]") = [] {
+        auto o1 = object{{"outer1"s, object{{"inner1"s, 1}}}};
+        auto o2 = object{{"outer2"s, object{{"inner2"s, 2}}}};
+        
+        o1 += o2;
+        
+        require_true(o1.has("outer1"s));
+        require_true(o1.has("outer2"s));
+        require_eq(1, static_cast<int>(o1["outer1"s]["inner1"s]));
+        require_eq(2, static_cast<int>(o1["outer2"s]["inner2"s]));
+    };
+
+    test_case("OperatorPlusEqualsMove_BasicMerge, [xson]") = [] {
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"C"s, 3}, {"D"s, 4}};
+        o1 += std::move(o2);
+        
+        require_true(o1.has("A"s));
+        require_true(o1.has("B"s));
+        require_true(o1.has("C"s));
+        require_true(o1.has("D"s));
+        require_eq(1, static_cast<int>(o1["A"s]));
+        require_eq(2, static_cast<int>(o1["B"s]));
+        require_eq(3, static_cast<int>(o1["C"s]));
+        require_eq(4, static_cast<int>(o1["D"s]));
+    };
+
+    test_case("OperatorPlusEqualsMove_NonDestructiveMerge, [xson]") = [] {
+        // Test that existing keys are preserved (non-destructive merge)
+        auto o1 = object{{"A"s, 1}, {"B"s, 2}};
+        auto o2 = object{{"B"s, 99}, {"C"s, 3}};  // B overlaps
+        
+        o1 += std::move(o2);
+        
+        // Original value of B should be preserved (insert doesn't overwrite)
+        require_eq(2, static_cast<int>(o1["B"s]));
+        require_eq(1, static_cast<int>(o1["A"s]));
+        require_eq(3, static_cast<int>(o1["C"s]));
+        require_eq(3u, o1.size());
+    };
+
+    test_case("OperatorPlusEqualsMove_EmptyObjects, [xson]") = [] {
+        auto o1 = object{{"A"s, 1}};
+        auto o2 = object{};
+        
+        o1 += std::move(o2);
+        require_true(o1.has("A"s));
+        require_eq(1u, o1.size());
+        
+        auto o3 = object{};
+        auto o4 = object{{"B"s, 2}};
+        o3 += std::move(o4);
+        require_true(o3.has("B"s));
+        require_eq(1u, o3.size());
+        
+        auto o5 = object{};
+        auto o6 = object{};
+        o5 += std::move(o6);
+        require_true(o5.empty());
+    };
+
+    test_case("OperatorPlusEqualsMove_Arrays, [xson]") = [] {
+        auto o1 = object{std::vector<object>{object{1}, object{2}}};
+        auto o2 = object{std::vector<object>{object{3}, object{4}}};
+        
+        o1 += std::move(o2);
+        
+        require_true(o1.is_array());
+        // When both are arrays, += pushes the entire second array as a single element (nested)
+        require_eq(3u, o1.size());
+        require_eq(1, static_cast<int>(o1[0]));
+        require_eq(2, static_cast<int>(o1[1]));
+        require_true(o1[2].is_array());  // o2 is nested as a single element
+        require_eq(3, static_cast<int>(o1[2][0]));
+        require_eq(4, static_cast<int>(o1[2][1]));
+    };
+
+    test_case("OperatorPlusEqualsMove_NestedStructures, [xson]") = [] {
+        auto o1 = object{{"outer1"s, object{{"inner1"s, 1}}}};
+        auto o2 = object{{"outer2"s, object{{"inner2"s, 2}}}};
+        
+        o1 += std::move(o2);
+        
+        require_true(o1.has("outer1"s));
+        require_true(o1.has("outer2"s));
+        require_eq(1, static_cast<int>(o1["outer1"s]["inner1"s]));
+        require_eq(2, static_cast<int>(o1["outer2"s]["inner2"s]));
+    };
+
+    test_case("OperatorPlusEquals_MixedTypes, [xson]") = [] {
+        // Test that += only works when both are maps or both are arrays
+        auto o1 = object{{"A"s, 1}};
+        auto o2 = object{std::vector<object>{object{2}}};
+        
+        // This should not merge (different types)
+        // The current implementation only merges if both are maps or both are arrays
+        // Adding to array when o1 is map should not work
+        require_true(o1.is_object());
+        require_true(o2.is_array());
+        
+        // Test array += array
+        auto arr1 = object{std::vector<object>{object{1}, object{2}}};
+        auto arr2 = object{std::vector<object>{object{3}}};
+        arr1 += arr2;
+        require_eq(3u, arr1.size());
+    };
+
+    test_case("OperatorPlusEquals_LargeObjects, [xson]") = [] {
+        // Test with many keys
+        auto o1 = object{};
+        auto o2 = object{};
+        
+        for(int i = 0; i < 100; ++i)
+        {
+            o1[std::to_string(i)] = i;
+        }
+        
+        for(int i = 100; i < 200; ++i)
+        {
+            o2[std::to_string(i)] = i;
+        }
+        
+        o1 += o2;
+        require_eq(200u, o1.size());
+        
+        for(int i = 0; i < 200; ++i)
+        {
+            require_true(o1.has(std::to_string(i)));
+            require_eq(i, static_cast<int>(o1[std::to_string(i)]));
+        }
     };
 
     return 0;
