@@ -422,7 +422,7 @@ public:
             auto& target = std::get<map>(result.m_value);
             for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
             {
-                target.insert_or_assign(std::move(it->first), std::move(it->second));
+                target.insert_or_assign(std::move((*it).first), std::move((*it).second));
             }
         }
         else if(holds_alternative<array>(result.m_value))
@@ -452,7 +452,7 @@ public:
             auto& target = std::get<map>(m_value);
             for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
             {
-                target.insert_or_assign(std::move(it->first), std::move(it->second));
+                target.insert_or_assign(std::move((*it).first), std::move((*it).second));
             }
         }
         else if(holds_alternative<array>(m_value))
