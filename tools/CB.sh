@@ -110,6 +110,7 @@ if [[ "$NEEDS_REBUILD" == "true" ]]; then
         -I"$LLVM_PREFIX/include/c++/v1" \
         -L"$LLVM_PREFIX/lib" \
         -Wl,-rpath,"$LLVM_PREFIX/lib" \
+        -lc++abi \
         "$SRC" -o "$BIN"
     echo "CB compiled successfully → $BIN"
 fi
