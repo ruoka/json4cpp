@@ -5,7 +5,7 @@ A modern C++23 module-based library for JSON and FSON (Fast JSON) serialization.
 
 ## Requirements
 
-- C++23 compiler with modules support (**Clang 20+ required**; build scripts default to `clang++-20`)
+- C++23 compiler with modules support (**Clang 21+ required**; build scripts default to `clang++-21`)
 - LLVM 20+ with libc++ `std.cppm` module support (for the `std` module)
 
 ## Building
