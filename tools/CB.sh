@@ -51,6 +51,14 @@ SRC="$TESTER_ROOT/tools/cb.c++"
 
 # Detect OS and set compiler/LLVM paths
 UNAME_OUT="$(uname -s)"
+DARWIN_SDKROOT=""
+if [[ "$UNAME_OUT" == "Darwin" ]] && command -v xcrun >/dev/null 2>&1; then
+    DARWIN_SDKROOT="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+    if [[ -n "$DARWIN_SDKROOT" && -d "$DARWIN_SDKROOT" ]]; then
+        export SDKROOT="$DARWIN_SDKROOT"
+    fi
+fi
+
 case "$UNAME_OUT" in
     Linux)
     CXX_COMPILER="clang++-21"
@@ -101,17 +109,22 @@ fi
 # Rebuild if needed
 if [[ "$NEEDS_REBUILD" == "true" ]]; then
     echo "Building CB (C++ Builder) with $CXX_COMPILER..."
-    # Use -B to tell clang++ where to find binaries (like the linker)
-    "$CXX_COMPILER" \
-        -B"$LLVM_PREFIX/bin" \
-        -std=c++23 -O3 -pthread \
-        -fuse-ld=lld \
-        -stdlib=libc++ \
-        -I"$LLVM_PREFIX/include/c++/v1" \
-        -L"$LLVM_PREFIX/lib" \
-        -Wl,-rpath,"$LLVM_PREFIX/lib" \
-        -lc++abi \
-        "$SRC" -o "$BIN"
+    BUILD_CMD=(
+        "$CXX_COMPILER"
+        -B"$LLVM_PREFIX/bin"
+        -std=c++23 -O3 -pthread
+        -fuse-ld=lld
+        -stdlib=libc++
+        -I"$LLVM_PREFIX/include/c++/v1"
+        -L"$LLVM_PREFIX/lib"
+        -Wl,-rpath,"$LLVM_PREFIX/lib"
+        -lc++abi
+    )
+    if [[ "$UNAME_OUT" == "Darwin" && -n "$DARWIN_SDKROOT" && -d "$DARWIN_SDKROOT" ]]; then
+        BUILD_CMD+=(-isysroot "$DARWIN_SDKROOT")
+    fi
+    BUILD_CMD+=("$SRC" -o "$BIN")
+    "${BUILD_CMD[@]}"
     echo "CB compiled successfully → $BIN"
 fi
 
