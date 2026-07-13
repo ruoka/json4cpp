@@ -1,0 +1,1344 @@
+// SPDX-License-Identifier: MIT
+// See the LICENSE file in the project root for full license text.
+module;
+
+export module xson:json;
+
+import std;
+import :object;
+
+export namespace xson::json {
+
+using object = xson::object;
+
+class encoder
+{
+public:
+
+    // Default indentation level for pretty-printed JSON
+    static constexpr std::streamsize default_indent = 2;
+
+    encoder(std::streamsize indent = default_indent) : m_pretty{indent}
+    {}
+
+    void encode(std::ostream& os, const object& o)
+    {
+        if(o.is_object())
+        {
+            const auto& container = o.get<object::map>();
+            os << m_pretty('{');
+            for(auto i = 0; const auto& [name,value] : container)
+            {
+                os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                os << '\"' << name << '\"' << m_pretty(':');
+                encode(os,value);
+            }
+            os << m_pretty('}', container.empty());
+        }
+        else if(o.is_array())
+        {
+            const auto& container = o.get<object::array>();
+            os << m_pretty('[');
+            for(auto i = 0; const auto& value : container)
+            {
+                os << (i++ == 0 ? m_pretty() : m_pretty(','));
+                encode(os,value);
+            }
+            os << m_pretty(']', container.empty());
+        }
+        else
+            os << o.get<primitive>();
+    }
+
+private:
+
+    class prettyprint
+    {
+    public:
+
+        prettyprint(std::streamsize indent) : m_indent{indent}, m_level{0}
+        {}
+
+        std::string operator () ()
+        {
+            if(!m_indent)
+                return ""s;
+            else
+                return "\n"s + m_pretty;
+        }
+
+        std::string operator () (char c, bool empty = false)
+        {
+            if(!m_indent)
+                return std::string{c};
+
+            if(c == ':')
+                return " : "s;
+
+            if(c == ',')
+                return  ",\n"s + m_pretty;
+
+            if(c == '{' || c == '[')
+            {
+                ++m_level;
+                m_pretty = std::string(m_level * m_indent, ' ');
+                return std::string{c};
+            }
+
+            if(c == '}' || c == ']')
+            {
+                --m_level;
+                m_pretty = std::string(m_level * m_indent, ' ');
+                if(!empty)
+                    return  "\n"s + m_pretty + c;
+                else
+                    return std::string{c};
+            }
+
+            return std::string{c};
+        }
+
+        friend std::ostream& operator << (std::ostream& os, const prettyprint& p)
+        {
+            os << p.m_pretty;
+            return os;
+        }
+
+    private:
+
+        std::streamsize m_indent;
+
+        std::streamsize m_level;
+
+        std::string m_pretty;
+    };
+
+    prettyprint m_pretty;
+};
+
+// Decoder implementation
+template<typename Builder>
+class decoder
+{
+public:
+    // Constants for overflow protection
+    static constexpr int max_exponent = 308;  // Maximum safe exponent for double (10^308)
+    static constexpr int min_exponent = -308; // Minimum safe exponent for double (10^-308)
+    static constexpr int max_exponent_digits = 3; // Maximum digits for safe exponent (308 has 3 digits)
+    
+    // Input size limits for DoS protection
+    static constexpr std::size_t max_string_length = 100 * 1024 * 1024; // 100 MB
+    static constexpr std::size_t max_nesting_depth = 1000;
+    static constexpr std::size_t max_array_size = 100 * 1024 * 1024; // 100 million elements
+
+    decoder(Builder& b) : m_builder{b}, m_has_parsed_content{false}, m_nesting_depth{0}
+    {}
+
+    void decode(std::istream& is)
+    {
+        m_state_machine.push(&decoder::document);
+        bool finished = false;
+        while(is.good())
+        {
+            auto c = is.get();
+            if(is.eof())
+                break;
+            if(is.fail())
+                throw std::runtime_error{"Stream error while reading JSON input"};
+            
+            // If we already completed a full JSON text, only whitespace may follow.
+            if(finished)
+            {
+                if(!isws(static_cast<char>(c)))
+                    throw std::runtime_error{"Invalid JSON: trailing character '"s + static_cast<char>(c) + "' at offset "s + std::to_string(m_input_pos + 1) + ""s};
+                continue;
+            }
+
+            // Skip whitespace at the start - ignore it completely
+            // This ensures leading whitespace doesn't interfere with parsing
+            if(m_state_machine.size() == 1 && isws(c))
+            {
+                // We're in document() state and see whitespace - just skip it
+                continue;
+            }
+            
+            if(m_state_machine.empty())
+                throw std::runtime_error{"JSON parse error: unexpected character '"s + static_cast<char>(c) + "' (state machine is empty)"s};
+            ++m_input_pos;
+            m_state_machine.top()(*this, static_cast<char>(c));
+            if(m_state_machine.empty())
+                finished = true;
+        }
+        if(!finished)
+            process_eof();
+        if(!m_has_parsed_content)
+            throw std::runtime_error{"Invalid JSON: empty input or only whitespace"s};
+    }
+
+    void decode(std::string_view sv)
+    {
+        m_state_machine.push(&decoder::document);
+        bool finished = false;
+
+        // Some callers (notably HTTP stacks) may append a trailing NUL. Accept and ignore
+        // trailing NUL bytes, but reject embedded NUL bytes as invalid JSON input.
+        auto trimmed = sv;
+        while(!trimmed.empty() && trimmed.back() == '\0')
+            trimmed.remove_suffix(1);
+        if(trimmed.find('\0') != std::string_view::npos)
+            throw std::runtime_error{"Invalid JSON: NUL byte in input"s};
+
+        for(auto c : trimmed)
+        {
+            if(finished)
+            {
+                if(!isws(c))
+                    throw std::runtime_error{"Invalid JSON: trailing character '"s + c + "' at offset "s + std::to_string(m_input_pos + 1) + ""s};
+                continue;
+            }
+            if(m_state_machine.empty())
+                throw std::runtime_error{"JSON parse error: unexpected character '"s + c + "' (state machine is empty)"s};
+            ++m_input_pos;
+            m_state_machine.top()(*this,c);
+            if(m_state_machine.empty())
+                finished = true;
+        }
+        if(!finished)
+            process_eof();
+        if(!m_has_parsed_content)
+            throw std::runtime_error{"Invalid JSON: empty input or only whitespace"s};
+    }
+
+private:
+
+    void process_eof()
+    {
+        // Feed explicit EOF ('\\0') through the state machine until it completes or throws.
+        while(!m_state_machine.empty())
+        {
+            const auto before = m_state_machine.size();
+            m_state_machine.top()(*this, '\0');
+            if(m_state_machine.size() == before)
+            {
+                throw std::runtime_error{"Invalid JSON: incomplete document (unexpected end of input)"s};
+            }
+        }
+    }
+
+    template <bool Boolean>
+    void constant(char c)
+    {
+        if(c == '\0')
+        {
+            m_builder.value(Boolean);
+            m_state_machine.pop();
+            return;
+        }
+        m_builder.value(Boolean);
+        m_state_machine.pop();
+        if(!m_state_machine.empty())
+            m_state_machine.top()(*this,c);
+    }
+
+    void null(char c)
+    {
+        if(c == '\0')
+        {
+            m_builder.value(nullptr);
+            m_state_machine.pop();
+            return;
+        }
+        m_builder.value(nullptr);
+        m_state_machine.pop();
+        if(!m_state_machine.empty())
+            m_state_machine.top()(*this,c);
+    }
+
+    template <char Character>
+    void is(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"JSON parse error: unexpected end of input while parsing literal"s};
+
+        if(c == Character)
+            m_state_machine.pop();
+        else
+        {
+            // Optimize error message construction
+            auto msg = "JSON parse error: expected '"s;
+            msg += Character;
+            msg += "', got '"s;
+            msg += c;
+            msg += "'"s;
+            throw std::runtime_error{msg};
+        }
+    }
+
+    void string(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: unterminated string (unexpected end of input)"s};
+        if(c == '\\')
+        {
+            m_state_machine.push(&decoder::escape);
+        }
+        else if(c != '\"')
+        {
+            // RFC 8259: unescaped control characters (U+0000 through U+001F) are not allowed in strings.
+            if(static_cast<unsigned char>(c) < 0x20)
+                throw std::runtime_error{"JSON parse error: unescaped control character in string"s};
+            // Check string length limit
+            if(m_string.length() >= max_string_length)
+            {
+                throw std::runtime_error{"JSON parse error: string length exceeds maximum allowed size"s};
+            }
+            m_string += c;
+        }
+        else
+        {
+            if(m_high_surrogate != 0)
+                throw std::runtime_error{"JSON parse error: incomplete Unicode surrogate pair"s};
+            m_builder.value(std::move(m_string));
+            m_state_machine.pop();
+            m_string = ""s;
+            // String completed - parent (value()) will handle next character
+        }
+    }
+
+    void escape(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: unterminated escape sequence (unexpected end of input)"s};
+        m_state_machine.pop();
+        switch(c)
+        {
+            case '\"': m_string += '\"'; break;
+            case '\\': m_string += '\\'; break;
+            case '/':  m_string += '/'; break;
+            case 'b':  m_string += '\b'; break;
+            case 'f':  m_string += '\f'; break;
+            case 'n':  m_string += '\n'; break;
+            case 'r':  m_string += '\r'; break;
+            case 't':  m_string += '\t'; break;
+            case 'u':
+                m_state_machine.push(&decoder::unicode_escape);
+                // Always reset for a new unicode escape sequence
+                // If we have a high surrogate waiting, it will be used when we parse the low surrogate
+                m_unicode_value = 0;
+                m_unicode_digits = 0;
+                break;
+            default:
+                throw std::runtime_error{"Invalid escape sequence: \\"s + c};
+        }
+    }
+
+    void unicode_escape(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: unterminated unicode escape (unexpected end of input)"s};
+        if(std::isxdigit(c))
+        {
+            m_unicode_value *= 16;
+            if(std::isdigit(c))
+                m_unicode_value += (c - '0');
+            else if(c >= 'a' && c <= 'f')
+                m_unicode_value += (c - 'a' + 10);
+            else if(c >= 'A' && c <= 'F')
+                m_unicode_value += (c - 'A' + 10);
+            
+            ++m_unicode_digits;
+            if(m_unicode_digits == 4)
+            {
+                // Check if this is a high surrogate (0xD800-0xDBFF)
+                // If so, we need to wait for a low surrogate (0xDC00-0xDFFF) in the next \u sequence
+                if(m_unicode_value >= 0xD800 && m_unicode_value <= 0xDBFF)
+                {
+                        // Two high surrogates in a row is invalid (must be high then low).
+                        if(m_high_surrogate != 0)
+                        {
+                            throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (expected low surrogate after high surrogate)"s};
+                        }
+                    // High surrogate detected - store it and pop back to string state
+                    // The next \u sequence will be handled as the low surrogate
+                    m_high_surrogate = m_unicode_value;
+                    m_unicode_value = 0;
+                    m_unicode_digits = 0;
+                    m_state_machine.pop(); // Return to string state
+                    // Don't process current character - it was the last hex digit
+                    // Next character will be processed by string state
+                    return;
+                }
+                
+                // Check if this is a low surrogate (0xDC00-0xDFFF)
+                if(m_unicode_value >= 0xDC00 && m_unicode_value <= 0xDFFF)
+                {
+                    // Low surrogate without preceding high surrogate is invalid
+                    if(m_high_surrogate == 0)
+                    {
+                        throw std::runtime_error{"JSON parse error: invalid Unicode low surrogate without high surrogate"s};
+                    }
+                    
+                    // Combine high and low surrogates into actual code point
+                    // code_point = 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00)
+                    std::uint32_t code_point = 0x10000 + ((m_high_surrogate - 0xD800) << 10) + (m_unicode_value - 0xDC00);
+                    m_unicode_value = code_point;
+                    m_high_surrogate = 0; // Reset for next potential surrogate pair
+                }
+                
+                // Validate value doesn't exceed maximum Unicode code point
+                if(m_unicode_value > 0x10FFFF)
+                {
+                    throw std::runtime_error{"JSON parse error: Unicode code point exceeds maximum value (0x10FFFF)"s};
+                }
+                
+                // Encode UTF-8
+                if(m_unicode_value <= 0x7F)
+                {
+                    m_string += static_cast<char>(m_unicode_value);
+                }
+                else if(m_unicode_value <= 0x7FF)
+                {
+                    m_string += static_cast<char>(0xC0 | (m_unicode_value >> 6));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                else if(m_unicode_value <= 0xFFFF)
+                {
+                    m_string += static_cast<char>(0xE0 | (m_unicode_value >> 12));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 6) & 0x3F));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                else
+                {
+                    // 4-byte UTF-8 encoding for code points > 0xFFFF
+                    m_string += static_cast<char>(0xF0 | (m_unicode_value >> 18));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 12) & 0x3F));
+                    m_string += static_cast<char>(0x80 | ((m_unicode_value >> 6) & 0x3F));
+                    m_string += static_cast<char>(0x80 | (m_unicode_value & 0x3F));
+                }
+                m_state_machine.pop();
+                m_unicode_value = 0;
+                m_unicode_digits = 0;
+                m_high_surrogate = 0;
+            }
+        }
+        else if(m_high_surrogate != 0)
+        {
+            // We have a high surrogate but didn't get a valid hex digit for low surrogate
+            throw std::runtime_error{"JSON parse error: expected low surrogate \\u sequence after high surrogate"s};
+        }
+        else
+        {
+            throw std::runtime_error{"Invalid Unicode escape sequence: expected hex digit, got "s + c};
+        }
+    }
+
+    template<int Sign>
+    void number(char c)
+    {
+        // Check if we had INT64_MIN flag set and we see another digit (overflow case)
+        if(m_is_int64_min && std::isdigit(c))
+        {
+            // INT64_MIN with more digits - this is overflow, switch to float mode
+            m_number = static_cast<xson::number_type>(std::numeric_limits<xson::integer_type>::min()) * 10.0 + static_cast<xson::number_type>(c - '0');
+            m_is_int64_min = false;
+            m_integer = 0;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::integer_overflow<Sign>);
+            return;
+        }
+        
+        if(std::isdigit(c))
+        {
+            constexpr auto max_int = std::numeric_limits<xson::integer_type>::max();
+            constexpr auto max_int_div_10 = max_int / 10;
+            constexpr auto max_int_mod_10 = max_int % 10;
+            const auto digit = static_cast<xson::integer_type>(c - '0');
+
+            // JSON number grammar: leading zeros are not allowed (except for the literal "0").
+            // If this is the first digit and it is 0, switch to a state that rejects further digits.
+            if(!m_has_seen_digit && digit == 0)
+            {
+                m_has_seen_digit = true;
+                m_integer = 0;
+                m_state_machine.pop();
+                m_state_machine.push(&decoder::zero<Sign>);
+                return;
+            }
+            m_has_seen_digit = true;
+            
+            // Check for overflow before performing the operation
+            // For positive numbers: overflow if m_integer > max_int/10 or 
+            // (m_integer == max_int/10 && digit > max_int%10)
+            // For negative numbers: we need to allow INT64_MIN = -9223372036854775808
+            // which has absolute value INT64_MAX + 1 = 9223372036854775808
+            // So we allow one more: overflow if m_integer > max_int/10 or
+            // (m_integer == max_int/10 && digit > max_int%10 + 1)
+            // Note: max_int_mod_10 = 7, so max_int_mod_10 + 1 = 8, which is valid for a digit
+            bool would_overflow = false;
+            if(m_integer > max_int_div_10)
+            {
+                would_overflow = true;
+            }
+            else if(m_integer == max_int_div_10)
+            {
+                // When m_integer == max_int_div_10, m_integer * 10 = max_int - max_int_mod_10
+                // So we can add up to max_int_mod_10 for positive, or max_int_mod_10 + 1 for negative
+                constexpr auto max_allowed_digit = max_int_mod_10;
+                constexpr auto max_allowed_digit_negative = max_int_mod_10 + 1;
+                
+                if(Sign < 0)
+                {
+                    // For negative numbers, allow digit 8 (for INT64_MIN)
+                    would_overflow = (digit > max_allowed_digit_negative);
+                }
+                else
+                {
+                    // For positive numbers, standard overflow check
+                    would_overflow = (digit > max_allowed_digit);
+                }
+            }
+            
+            // Special case: INT64_MIN for negative numbers
+            // When Sign < 0, m_integer == max_int_div_10, and digit == 8,
+            // we have INT64_MIN = -9223372036854775808
+            // The absolute value 9223372036854775808 = INT64_MAX + 1 overflows int64_t.
+            // We handle this by setting a flag. The next character will determine:
+            // - If it's a digit: overflow (INT64_MIN + more digits)
+            // - If it's not a digit: INT64_MIN (handled in else branch)
+            if constexpr(Sign < 0)
+            {
+                if(m_integer == max_int_div_10 && digit == max_int_mod_10 + 1)
+                {
+                    // This is exactly INT64_MIN. Set flag and clear m_integer.
+                    // Don't accumulate the digit (it would overflow).
+                    m_is_int64_min = true;
+                    m_integer = 0;
+                    // Continue to process next character (which will be handled in else branch if non-digit,
+                    // or will trigger overflow check if digit)
+                    return;
+                }
+            }
+            
+            if(would_overflow)
+            {
+                // Overflow detected: switch to float mode, continue as integer digits
+                m_number = static_cast<xson::number_type>(m_integer) * 10.0 + static_cast<xson::number_type>(digit);
+                m_integer = 0;
+                m_state_machine.pop();
+                m_state_machine.push(&decoder::integer_overflow<Sign>);
+            }
+            else
+            {
+                // Safe to perform the operation
+                m_integer *= 10;
+                m_integer += digit;
+            }
+        }
+        else if(c == '.')
+        {
+            // Allow '.' only if we've seen at least one digit (e.g., "123." is valid, but "-." is not)
+            if(!m_has_seen_digit)
+            {
+                throw std::runtime_error{"JSON parse error: number must have at least one digit before '.', got '.'"s};
+            }
+            m_number = static_cast<xson::number_type>(m_integer);
+            m_integer = 0;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::fraction_start<Sign>);
+        }
+        else if(c == 'e' || c == 'E')
+        {
+            // Allow 'e'/'E' only if we've seen at least one digit (e.g., "123e2" is valid, but "-e2" is not)
+            if(!m_has_seen_digit)
+            {
+                throw std::runtime_error{"JSON parse error: number must have at least one digit before 'e'/'E', got '"s + c + "'"s};
+            }
+            // Scientific notation: convert integer to float and parse exponent
+            m_number = static_cast<xson::number_type>(m_integer);
+            m_integer = 0;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
+        else
+        {
+            // If we haven't seen any digits, this is an error
+            // (e.g., "-" followed by non-digit like ".", "+", or letter)
+            if(!m_has_seen_digit)
+            {
+                auto msg = "JSON parse error: number must have at least one digit"s;
+                if constexpr(Sign < 0)
+                    msg += " after '-'"s;
+                msg += ", got '"s + c + "'"s;
+                throw std::runtime_error{msg};
+            }
+            
+            // Check if we're handling INT64_MIN (flag was set when we saw the last digit)
+            if(m_is_int64_min)
+            {
+                // This is INT64_MIN - the next character is non-digit, so we're done
+                m_builder.value(std::numeric_limits<xson::integer_type>::min());
+                m_is_int64_min = false;
+                m_integer = 0;
+            }
+            else
+            {
+                m_builder.value(Sign * m_integer);
+                m_integer = 0;
+            }
+            m_has_seen_digit = false;
+            
+            // Valid continuation characters: whitespace, comma, closing braces/brackets
+            // Anything else is an error
+            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            {
+                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
+            }
+            
+            m_state_machine.pop();
+            if(c != '\0' && !m_state_machine.empty())
+                m_state_machine.top()(*this,c);
+            // If state machine is empty, this is a standalone number value - that's valid
+        }
+    }
+
+    template<int Sign>
+    void zero(char c)
+    {
+        // We parsed a leading '0' in the integer part. The next character must not be another digit.
+        if(std::isdigit(c))
+            throw std::runtime_error{"JSON parse error: leading zeros are not allowed in numbers"s};
+        if(c == '.')
+        {
+            m_number = 0;
+            m_integer = 0;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::fraction_start<Sign>);
+            return;
+        }
+        if(c == 'e' || c == 'E')
+        {
+            m_number = 0;
+            m_integer = 0;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+            return;
+        }
+
+        // Terminate the number (0 / -0).
+        if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            throw std::runtime_error{"JSON parse error: unexpected character after '0' in number: '"s + c + "'"s};
+
+        m_builder.value(Sign * static_cast<xson::integer_type>(0));
+        m_has_seen_digit = false;
+        m_integer = 0;
+        m_number = 0;
+        m_place = 1;
+        m_state_machine.pop();
+        if(c != '\0' && !m_state_machine.empty())
+            m_state_machine.top()(*this, c);
+    }
+
+    template<int Sign>
+    void integer_overflow(char c)
+    {
+        // Continue accumulating integer digits in float mode (multiply by 10 for each digit)
+        if(std::isdigit(c))
+        {
+            m_number = m_number * 10.0 + static_cast<xson::number_type>(c - '0');
+        }
+        else if(c == '.')
+        {
+            // Switch to fractional mode
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::fraction_start<Sign>);
+        }
+        else if(c == 'e' || c == 'E')
+        {
+            // Scientific notation: parse exponent
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
+        else
+        {
+            // Valid continuation characters: whitespace, comma, closing braces/brackets
+            // Anything else is an error
+            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            {
+                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
+            }
+            
+            const xson::number_type final_value = Sign * m_number;
+            m_builder.value(final_value);
+            m_number = 0;
+            m_integer = 0;
+            m_state_machine.pop();
+            if(c != '\0' && !m_state_machine.empty())
+                m_state_machine.top()(*this,c);
+            // If state machine is empty, this is a standalone number value - that's valid
+        }
+    }
+
+    template<int Sign>
+    void fraction_start(char c)
+    {
+        // First digit after '.'
+        if(c == '\0')
+        {
+            throw std::runtime_error{"JSON parse error: number must have at least one digit after '.'"s};
+        }
+        if(!std::isdigit(c))
+        {
+            throw std::runtime_error{"JSON parse error: number must have at least one digit after '.'"s};
+        }
+        m_place = 10;
+        m_number += static_cast<xson::number_type>(c - '0') / m_place;
+        m_state_machine.pop();
+        m_state_machine.push(&decoder::fractions<Sign>);
+    }
+
+    template<int Sign>
+    void fractions(char c)
+    {
+        if(c == '\0')
+        {
+            m_builder.value(Sign * m_number);
+            m_number = 0;
+            m_place = 1;
+            m_state_machine.pop();
+            return;
+        }
+        if(std::isdigit(c))
+        {
+            m_place *= 10;
+            m_number += (static_cast<xson::number_type>(c-'0')/m_place);
+        }
+        else if(c == 'e' || c == 'E')
+        {
+            // Scientific notation: parse exponent
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_sign<Sign>);
+        }
+        else
+        {
+            // Valid continuation characters: whitespace, comma, closing braces/brackets
+            // Anything else is an error
+            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            {
+                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
+            }
+            
+            m_builder.value(Sign * m_number);
+            m_number = 0;
+            m_place = 1;
+            m_state_machine.pop();
+            if(c != '\0' && !m_state_machine.empty())
+                m_state_machine.top()(*this,c);
+            // If state machine is empty, this is a standalone number value - that's valid
+        }
+    }
+
+    template<int Sign>
+    void exponent_sign(char c)
+    {
+        if(c == '\0')
+        {
+            throw std::runtime_error{"JSON parse error: unexpected end of input in exponent"s};
+        }
+        if(c == '+')
+        {
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+        }
+        else if(c == '-')
+        {
+            m_exponent_sign = -1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+        }
+        else if(std::isdigit(c))
+        {
+            // No sign, exponent starts with a digit
+            m_exponent_sign = 1;
+            m_has_exponent_digit = true;
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::exponent_digits<Sign>);
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+        }
+        else
+        {
+            throw std::runtime_error{"JSON parse error: expected exponent sign or digit after 'e'/'E', got '"s + c + "'"s};
+        }
+    }
+
+    template<int Sign>
+    void exponent_digits(char c)
+    {
+        if(c == '\0')
+        {
+            // Exponent parsing complete - must have at least one digit
+            if(!m_has_exponent_digit)
+            {
+                throw std::runtime_error{"JSON parse error: exponent must have at least one digit"s};
+            }
+
+            const xson::number_type base = Sign * m_number;
+            const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
+            const xson::number_type final_value = base * std::pow(10.0, exponent_value);
+
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: scientific notation result is not finite (infinity or NaN)"s};
+            }
+
+            m_builder.value(final_value);
+            m_number = 0;
+            m_integer = 0;
+            m_place = 1;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            return;
+        }
+        if(std::isdigit(c))
+        {
+            const int digit = static_cast<int>(c - '0');
+            // Check for exponent overflow before multiplication
+            // Prevent integer overflow in m_exponent calculation
+            if(m_exponent > (std::numeric_limits<int>::max() - digit) / 10)
+            {
+                throw std::runtime_error{"JSON parse error: exponent value too large"s};
+            }
+            m_exponent = m_exponent * 10 + digit;
+            m_has_exponent_digit = true;
+            
+            // Check if exponent exceeds safe range for double precision
+            const int abs_exponent = m_exponent_sign > 0 ? m_exponent : -m_exponent;
+            if(abs_exponent > max_exponent)
+            {
+                throw std::runtime_error{"JSON parse error: exponent exceeds maximum safe value (308)"s};
+            }
+        }
+        else
+        {
+            // Exponent parsing complete - must have at least one digit
+            if(!m_has_exponent_digit)
+            {
+                throw std::runtime_error{"JSON parse error: exponent must have at least one digit"s};
+            }
+            
+            // Valid continuation characters: whitespace, comma, closing braces/brackets
+            // Anything else is an error
+            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            {
+                throw std::runtime_error{"JSON parse error: unexpected character in number exponent: '"s + c + "'"s};
+            }
+            
+            // Calculate final value
+            const xson::number_type base = Sign * m_number;
+            const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
+            const xson::number_type final_value = base * std::pow(10.0, exponent_value);
+            
+            // Validate pow result - check for infinity and NaN
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: scientific notation result is not finite (infinity or NaN)"s};
+            }
+            
+            m_builder.value(final_value);
+            m_number = 0;
+            m_integer = 0;
+            m_place = 1;
+            m_exponent = 0;
+            m_exponent_sign = 1;
+            m_has_exponent_digit = false;
+            m_state_machine.pop();
+            if(c != '\0' && !m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            // If state machine is empty, this is a standalone number value - that's valid
+        }
+    }
+
+    void positive(char c) {return number<1>(c);}
+
+    void negative(char c) {return number<-1>(c);}
+
+    void value(char c)
+    {
+        if(isws(c))
+            return;
+        m_has_parsed_content = true;
+
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: expected value but reached end of input"s};
+
+        // Value() is a *start-value* state. Once a value begins, pop this state so the surrounding
+        // object/array/document state can enforce delimiters and trailing rules.
+        if(c == '\"')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::string);
+            return;
+        }
+        if(std::isdigit(c))
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::positive);
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+        if(c == '-')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::negative);
+            return;
+        }
+        if(c == 't')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::constant<true>);
+            m_state_machine.push(&decoder::is<'e'>);
+            m_state_machine.push(&decoder::is<'u'>);
+            m_state_machine.push(&decoder::is<'r'>);
+            return;
+        }
+        if(c == 'f')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::constant<false>);
+            m_state_machine.push(&decoder::is<'e'>);
+            m_state_machine.push(&decoder::is<'s'>);
+            m_state_machine.push(&decoder::is<'l'>);
+            m_state_machine.push(&decoder::is<'a'>);
+            return;
+        }
+        if(c == 'n')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::null);
+            m_state_machine.push(&decoder::is<'l'>);
+            m_state_machine.push(&decoder::is<'l'>);
+            m_state_machine.push(&decoder::is<'u'>);
+            return;
+        }
+        if(c == '{' || c == '[')
+        {
+            if(++m_nesting_depth > max_nesting_depth)
+                throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::document);
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+
+        // If we see delimiters here, we were expecting a value but got end-of-container.
+        if(c == ',' || c == '}' || c == ']')
+            throw std::runtime_error{"JSON parse error: expected value, got '"s + c + "'"s};
+
+        throw std::runtime_error{"JSON parse error: unexpected character at value start: '"s + c + "'"s};
+    }
+
+    void comma(char c)
+    {
+        if(c == ',')
+        {
+            m_state_machine.pop();
+        }
+        else if(c == '}' || c == ']')
+        {
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this,c);
+            else
+                throw std::runtime_error{"JSON parse error: unexpected character '"s + c + "' at document level"s};
+        }
+        else if(!isws(c))
+            throw std::runtime_error{"JSON parse error: expected comma, '}' or ']', got '"s + c + "' at offset "s + std::to_string(m_input_pos) + "'"s};
+    }
+
+    void colon(char c)
+    {
+        if(c == ':')
+            m_state_machine.pop();
+        else if(!isws(c))
+            throw std::runtime_error{"JSON parse error: expected colon ':', got '"s + c + "'"s};
+    }
+
+    void name(char c)
+    {
+        if(c != '\"')
+            m_string += c;
+        else
+        {
+            m_builder.name(m_string);
+            m_string = ""s;
+            m_state_machine.pop();
+        }
+    }
+
+    // After a top-level standalone value, RFC 8259 only allows optional trailing whitespace and then EOF.
+    void document_end(char c)
+    {
+        if(isws(c))
+            return;
+        if(c == '\0')
+        {
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+        throw std::runtime_error{"Invalid JSON: trailing non-whitespace after complete document"s};
+    }
+
+    // Object parsing states (disallow trailing commas, require commas between members).
+    void object_first(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete object (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c == '}')
+        {
+            --m_nesting_depth;
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+        if(c != '\"')
+            throw std::runtime_error{"JSON parse error: expected object member name or '}', got '"s + c + "'"s};
+
+        m_state_machine.pop();
+        m_state_machine.push(&decoder::object_after_value);
+        m_state_machine.push(&decoder::value);
+        m_state_machine.push(&decoder::colon);
+        m_state_machine.push(&decoder::name);
+    }
+
+    void object_next(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete object (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c != '\"')
+            throw std::runtime_error{"JSON parse error: expected object member name after ',', got '"s + c + "'"s};
+
+        m_state_machine.pop();
+        m_state_machine.push(&decoder::object_after_value);
+        m_state_machine.push(&decoder::value);
+        m_state_machine.push(&decoder::colon);
+        m_state_machine.push(&decoder::name);
+    }
+
+    void object_after_value(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete object (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c == ',')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::object_next);
+            return;
+        }
+        if(c == '}')
+        {
+            --m_nesting_depth;
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+        throw std::runtime_error{"JSON parse error: expected ',' or '}' after object member, got '"s + c + "'"s};
+    }
+
+    // Array parsing states (disallow trailing commas, require commas between elements).
+    void array_first(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete array (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c == ']')
+        {
+            --m_nesting_depth;
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+
+        m_state_machine.pop();
+        m_state_machine.push(&decoder::array_after_value);
+        m_state_machine.push(&decoder::value);
+        if(!m_state_machine.empty())
+            m_state_machine.top()(*this, c);
+    }
+
+    void array_next(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete array (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c == ']')
+            throw std::runtime_error{"JSON parse error: trailing comma in array is not allowed"s};
+
+        m_state_machine.pop();
+        m_state_machine.push(&decoder::array_after_value);
+        m_state_machine.push(&decoder::value);
+        if(!m_state_machine.empty())
+            m_state_machine.top()(*this, c);
+    }
+
+    void array_after_value(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete array (unexpected end of input)"s};
+        if(isws(c))
+            return;
+        if(c == ',')
+        {
+            m_state_machine.pop();
+            m_state_machine.push(&decoder::array_next);
+            return;
+        }
+        if(c == ']')
+        {
+            --m_nesting_depth;
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+            return;
+        }
+        throw std::runtime_error{"JSON parse error: expected ',' or ']' after array element, got '"s + c + "'"s};
+    }
+
+    void object(char c)
+    {
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: incomplete object (unexpected end of input)"s};
+        if(c == '}')
+        {
+            --m_nesting_depth;
+            m_state_machine.pop();
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this,c);
+            else
+                throw std::runtime_error{"JSON parse error: unexpected character '"s + c + "' at document level"s};
+        }
+        else if(c == '\"')
+        {
+            m_state_machine.push(&decoder::comma);
+            m_state_machine.push(&decoder::value);
+            m_state_machine.push(&decoder::colon);
+            m_state_machine.push(&decoder::name);
+        }
+        else if(!isws(c))
+            throw std::runtime_error{"JSON parse error: unexpected character in object context: '"s + c + "'"s};
+    }
+
+    struct array
+    {
+        void operator()(decoder& p, char c)
+        {
+            if(c == '\0')
+                throw std::runtime_error{"Invalid JSON: incomplete array (unexpected end of input)"s};
+            if(isws(c))
+                return;
+            if(c == ']')
+            {
+                --p.m_nesting_depth;
+                p.m_state_machine.pop();
+                if(!p.m_state_machine.empty())
+                    p.m_state_machine.top()(p,c);
+                else
+                    throw std::runtime_error{"JSON parse error: unexpected character '"s + c + "' at document level"s};
+            }
+            else if (c == ',' || c == '}')
+            {
+                throw std::runtime_error{"JSON parse error: unexpected character in array context: '"s + c + "'"s};
+            }
+            else
+            {
+                p.m_state_machine.push(&decoder::comma);
+                p.m_state_machine.push(&decoder::value);
+                if(!p.m_state_machine.empty())
+                    p.m_state_machine.top()(p,c);
+            }
+
+        }
+    };
+
+    void document(char c)
+    {
+        if(c == '\0')
+        {
+            if(!m_has_parsed_content)
+                throw std::runtime_error{"Invalid JSON: empty input or only whitespace"s};
+            if(m_nesting_depth != 0)
+                throw std::runtime_error{"Invalid JSON: incomplete document (unexpected end of input)"s};
+            m_state_machine.pop();
+            return;
+        }
+        if(c == '{')
+        {
+            m_has_parsed_content = true;
+            // For top-level document, increment nesting depth (nested structures already incremented in value())
+            // Check if we're at the top level by seeing if nesting depth is 0
+            if(m_nesting_depth == 0)
+            {
+                if(++m_nesting_depth > max_nesting_depth)
+                {
+                    throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+                }
+            }
+            m_builder.start_object();
+            m_state_machine.push(&decoder::object_first);
+        }
+        else if(c == '}')
+        {
+            // Don't decrement here - object() already decremented
+            m_builder.end_object();
+            m_state_machine.pop();
+        }
+        else if(c == '[')
+        {
+            m_has_parsed_content = true;
+            // For top-level document, increment nesting depth (nested structures already incremented in value())
+            if(m_nesting_depth == 0)
+            {
+                if(++m_nesting_depth > max_nesting_depth)
+                {
+                    throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
+                }
+            }
+            m_builder.start_array();
+            m_state_machine.push(&decoder::array_first);
+        }
+        else if(c == ']')
+        {
+            // Don't decrement here - array already decremented
+            m_builder.end_array();
+            m_state_machine.pop();
+        }
+        else if(isws(c))
+        {
+            // Leading whitespace - ignore it, don't pop document()
+            // Only pop if we've already completed a value (nesting_depth == 0 and state machine has more than just document)
+            // For leading whitespace, we should stay in document() state
+        }
+        else
+        {
+            // RFC 8259 allows a JSON text to be a value (not just object/array)
+            // Delegate to value() to handle strings, numbers, booleans, and null
+            m_state_machine.push(&decoder::document_end);
+            m_state_machine.push(&decoder::value);
+            if(!m_state_machine.empty())
+                m_state_machine.top()(*this, c);
+        }
+    }
+
+    static bool isws(char c)
+    {
+        // RFC 8259 whitespace: space, tab, CR, LF
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    }
+
+    using state = std::function<void(decoder&,char)>;
+
+    std::stack<state> m_state_machine = std::stack<state>{};
+
+    Builder& m_builder;
+
+    xson::string_type m_string = ""s;
+
+    xson::integer_type m_integer = 0;
+
+    xson::number_type m_number = 0;
+
+    xson::integer_type m_place = 1;
+
+    std::uint32_t m_unicode_value = 0;
+    int m_unicode_digits = 0;
+    std::uint32_t m_high_surrogate = 0; // Track high surrogate when waiting for low surrogate
+    
+    bool m_is_int64_min = false; // Flag to track if we're parsing INT64_MIN
+    bool m_has_seen_digit = false; // Flag to track if we've seen at least one digit in the current number
+    bool m_has_parsed_content = false; // Flag to track if we've parsed any JSON content
+    
+    int m_exponent = 0; // Exponent value for scientific notation
+    int m_exponent_sign = 1; // Sign of the exponent (+1 or -1)
+    bool m_has_exponent_digit = false; // Flag to track if at least one exponent digit was parsed
+    std::size_t m_nesting_depth = 0; // Track nesting depth for DoS protection
+    std::size_t m_input_pos = 0; // Current 1-based input character offset (for diagnostics)
+
+}; // class decoder
+
+// Public API functions
+inline object parse(std::istream& is)
+{
+    auto b = xson::builder{};
+    auto d = decoder<xson::builder>{b};
+    d.decode(is);
+    return b.get();
+}
+
+inline object parse(std::string_view sv)
+{
+    auto b = xson::builder{};
+    auto d = decoder<xson::builder>{b};
+    d.decode(sv);
+    return b.get();
+}
+
+// Convert object to JSON string with optional pretty-printing
+// @param ob Object to stringify
+// @param indent Indentation level (0 = compact, >0 = pretty-printed)
+// @return JSON string representation
+inline std::string stringify(const object& ob, unsigned indent = encoder::default_indent)
+{
+    auto ss = std::stringstream{};
+    encoder{indent}.encode(ss,ob);
+    return ss.str();
+}
+
+inline auto& operator >> (std::istream& is, object& ob)
+{
+    ob = xson::json::parse(is);
+    return is;
+}
+
+inline auto& operator << (std::ostream& os, const object& obj)
+{
+    const auto indent = os.width();
+    auto e = xson::json::encoder{indent};
+    os.width(0);
+    e.encode(os,obj);
+    os.width(indent);
+    return os;
+}
+
+} // namespace xson::json
+

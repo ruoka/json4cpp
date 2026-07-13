@@ -1,0 +1,266 @@
+// SPDX-License-Identifier: MIT
+// See the LICENSE file in the project root for full license text.
+module;
+
+export module xson:fson;
+
+import std;
+import :object;
+import :fast;
+
+export namespace xson::fson {
+
+using object = xson::object;
+
+// Types
+enum class type : char8_t 
+{
+// json types
+
+    object    = '\x01',
+    array     = '\x02',
+    string    = '\x03',
+    number    = '\x04',
+    boolean   = '\x05',
+    null      = '\x06',
+
+// additional types
+
+    integer   = '\x11',
+    timestamp = '\x12',
+
+// control types
+
+    name      = '\x1A',
+    end       = '\x1B'
+};
+
+inline auto& operator << (std::ostream& os, type t)
+{
+    os << static_cast<int>(t);
+    return os;
+}
+
+// Encoder
+class encoder
+{
+public:
+
+    encoder()
+    {}
+
+    void encode(std::ostream& os, const xson::object& o)
+    {
+        auto type = make_type(o);
+
+        fast::encode(os,type);
+
+        switch(type)
+        {
+            case type::object:
+            for(const auto& [name,value] : o.get<object::map>())
+            {
+                fast::encode(os,type::name); // type
+                fast::encode(os,name);       // name
+                encode(os,value);            // object
+            }
+            fast::encode(os,type::end);
+            break;
+
+            case type::array:
+            for(const auto& value : o.get<object::array>())
+            {
+                encode(os,value);            // object
+            }
+            fast::encode(os,type::end);
+            break;
+
+            case type::integer:
+            fast::encode(os,std::get<xson::integer_type>(o.get<primitive>()));
+            break;
+
+            case type::number:
+            fast::encode(os,std::get<xson::number_type>(o.get<primitive>()));
+            break;
+
+            case type::string:
+            fast::encode(os,std::get<xson::string_type>(o.get<primitive>()));
+            break;
+
+            case type::boolean:
+            fast::encode(os,std::get<xson::boolean_type>(o.get<primitive>()));
+            break;
+
+            case type::timestamp:
+            fast::encode(os,std::get<xson::timestamp_type>(o.get<primitive>()));
+            break;
+
+            case type::null:
+            break;
+
+            default:
+            throw std::runtime_error{"Invalid FSON type encountered during encoding: "s + std::to_string(static_cast<int>(type))};
+            break;
+        }
+    }
+
+private:
+
+    constexpr fson::type make_type(const object& o) const
+    {
+        if(o.is_object()) return fson::type::object;
+
+        if(o.is_array()) return fson::type::array;
+
+        if(o.is_integer()) return fson::type::integer;
+
+        // Note: JSON "numbers" include integers, but FSON has a dedicated integer type.
+        // So we must check is_integer() before is_number().
+        if(o.is_number()) return fson::type::number;
+
+        if(o.is_string()) return fson::type::string;
+
+        if(o.is_boolean()) return fson::type::boolean;
+
+        if(o.is_timestamp()) return fson::type::timestamp;
+
+        return fson::type::null;
+    }
+};
+
+// Decoder
+template<typename Builder>
+class decoder
+{
+public:
+
+    decoder(Builder& b) : m_builder{b}
+    {}
+
+    void decode(std::istream& is)
+    {
+        auto parent = std::stack<fson::type>{};
+
+        while(is)
+        {
+            auto tag = xson::fson::type{};
+            fast::decode(is, tag);
+
+            // If we failed to read a tag, treat it as EOF for a complete document,
+            // otherwise report truncated/corrupt input below.
+            if(!is)
+                break;
+
+            xson::string_type name;
+            xson::number_type d;
+            xson::string_type str;
+            xson::timestamp_type dt;
+            xson::boolean_type b;
+            xson::integer_type i;
+
+            switch(tag)
+            {
+                case type::object:
+                    parent.push(type::object);
+                    m_builder.start_object();
+                    break;
+
+                case type::name:
+                    // Names are only valid when the current container is an object.
+                    if(parent.empty() || parent.top() != type::object)
+                        throw std::runtime_error{"Invalid FSON: name outside object"s};
+                    fast::decode(is,name);
+                    m_builder.name(name);
+                    break;
+
+                case type::array:
+                    parent.push(type::array);
+                    m_builder.start_array();
+                    break;
+
+                case type::number:
+                    fast::decode(is,d);
+                    m_builder.value(d);
+                    break;
+
+                case type::string:
+                    fast::decode(is,str);
+                    m_builder.value(str);
+                    break;
+
+                case type::boolean:
+                    fast::decode(is,b);
+                    m_builder.value(b);
+                    break;
+
+                case type::null:
+                    m_builder.value(nullptr);
+                    break;
+
+                case type::timestamp:
+                    fast::decode(is,dt);
+                    m_builder.value(dt);
+                    break;
+
+                case type::integer:
+                    fast::decode(is,i);
+                    m_builder.value(i);
+                    break;
+
+                case type::end:
+                    if(parent.empty())
+                        return;  // End of document
+                    if(parent.top() == type::object)
+                        m_builder.end_object();
+                    else if(parent.top() == type::array)
+                        m_builder.end_array();
+                    parent.pop();
+                    break;
+
+                default:
+                    throw std::runtime_error{"Invalid FSON type encountered during decoding: "s + std::to_string(static_cast<int>(tag))};
+                    break;
+            }
+
+            if(parent.empty())
+                return;
+        }
+
+        // Stream ended before closing all open containers.
+        if(!parent.empty())
+            throw std::runtime_error{"Invalid FSON: truncated input (unexpected end of stream)"s};
+    }
+
+private:
+
+    Builder& m_builder;
+
+};
+
+// Public API functions
+inline object parse(std::istream& is)
+{
+    auto b = xson::builder{};
+    auto d = decoder<xson::builder>{b};
+    d.decode(is);
+    return b.get();
+}
+
+#ifndef XSON_FSON_HIDE_IOSTREAM
+
+inline std::istream& operator >> (std::istream& is, object& ob)
+{
+    ob = xson::fson::parse(is);
+    return is;
+}
+
+inline std::ostream& operator << (std::ostream& os, const object& ob)
+{
+    xson::fson::encoder{}.encode(os,ob);
+    return os;
+}
+
+#endif
+
+} // namespace xson::fson
+

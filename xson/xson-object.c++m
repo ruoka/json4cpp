@@ -1,0 +1,838 @@
+// SPDX-License-Identifier: MIT
+// See the LICENSE file in the project root for full license text.
+
+export module xson:object;
+
+import std;
+
+export namespace xson {
+
+// Type aliases and concepts (from concepts.hpp)
+class object;  // Forward declaration
+
+using number_type    = std::double_t;
+using string_type    = std::string;
+using object_type    = object;
+using array_type     = object;
+using boolean_type   = bool;
+using null_type      = std::nullptr_t;
+using timestamp_type = std::chrono::system_clock::time_point;
+using integer_type   = std::int64_t;
+using int64_type     = std::int64_t;
+using int32_type     = std::int32_t;
+
+using map            = std::flat_map<std::string, object>;
+using array          = std::vector<object>;
+using primitive      = std::variant<std::monostate,     // \x0A
+                                   number_type,    // \x01
+                                   string_type,    // \x02
+                                   timestamp_type, // \x09
+                                   integer_type,   // \x12
+                                   boolean_type    // \x08
+                                   >;
+
+template <typename T>
+concept Primitive = (
+    std::same_as<std::remove_cvref_t<T>, number_type> or
+    std::same_as<std::remove_cvref_t<T>, string_type> or
+    std::same_as<std::remove_cvref_t<T>, boolean_type> or
+    std::same_as<std::remove_cvref_t<T>, null_type> or
+    requires(T t) { t.time_since_epoch(); } or
+    (std::integral<std::remove_cvref_t<T>> and not std::same_as<std::remove_cvref_t<T>, boolean_type>)
+);
+
+template <typename T>
+concept Null = std::same_as<std::remove_cvref_t<T>, null_type>;
+
+template <typename T>
+concept String = std::same_as<std::remove_cvref_t<T>, string_type>;
+
+template <typename T>
+concept Array = std::same_as<std::remove_cvref_t<T>,std::vector<object>>;
+
+template <typename T>
+concept Map = std::same_as<std::remove_cvref_t<T>,std::flat_map<std::string,object>>;
+
+template <typename T>
+concept Object = std::same_as<std::remove_cvref_t<T>,object>;
+
+using namespace std::string_literals;
+using namespace std::chrono_literals;
+using monostate = std::monostate;
+
+// Forward declaration for readme_pair
+class object;
+
+
+// Represents JSON-like objects with ordered key-value pairs for predictable serialization
+class object
+{
+public:
+
+    // Use ordered map to preserve key order for consistent JSON output
+    // Consider std::unordered_map for better performance if order doesn't matter
+    using map = std::flat_map<std::string,object>;
+    using array = std::vector<object>;
+    using value = std::variant<map,array,primitive>;
+
+    object() = default;
+
+    explicit object(const value& v) : m_value{v} {}
+
+    template <Primitive T>
+    object(const string_type& name, const T& v) :
+    object{}
+    {
+        m_value = map{{name, object{v}}};
+    }
+
+    template <Null T>
+    object(const string_type& name, [[maybe_unused]] const T& v) :
+    object{}
+    {
+        object null_obj{};
+        null_obj.m_value = primitive{std::monostate{}};  // monostate represents null
+        m_value = map{{name, null_obj}};
+    }
+
+    template <Primitive T>
+    object(const string_type& name, std::initializer_list<T> primitives)
+    {
+        m_value = map{};
+        auto arr = array{};
+        arr.reserve(primitives.size());
+        for(const auto& p : primitives)
+            arr.emplace_back(p);
+        std::get<map>(m_value).emplace(name,arr);
+    }
+
+    object(const std::string& name, const object& o) :
+    object{}
+    {
+        m_value = map{};
+        std::get<map>(m_value)[name] = o;
+    }
+
+    object(std::map<std::string, object>&& m) :
+    object{}
+    {
+        m_value = map{};
+        auto& target = std::get<map>(m_value);
+        for (auto& pair : m) {
+            target[std::move(pair.first)] = std::move(pair.second);
+        }
+    }
+
+    object(std::initializer_list<object> objects)
+    {
+        m_value = map{};
+        for(auto& o : objects)
+            std::get<map>(m_value).insert(std::get<map>(o.m_value).cbegin(),std::get<map>(o.m_value).end());
+    }
+
+    // Constructor for vectors of scalars
+    template <Primitive T>
+    object(const string_type& name, const std::vector<T>& primitives) :
+    object{}
+    {
+        m_value = map{};
+        std::get<map>(m_value)[name] = array{primitives.begin(), primitives.end()};
+    }
+
+    // Generic constructor for forward ranges
+    template <typename T> requires (not std::same_as<std::remove_cvref_t<T>, primitive> and not Object<T> and not String<T> and std::ranges::forward_range<T>)
+    object(const string_type& name, T&& data) :
+    object{}
+    {
+        m_value = map{};
+        std::get<map>(m_value)[name] = array{data.begin(), data.end()};
+    }
+
+    // Constructor for README-style object initialization: object{ {"key", value}, {"key2", value2} }
+    template<typename V>
+    object(std::initializer_list<std::pair<string_type, V>> pairs) :
+    m_value{map{}}
+    {
+        auto& target = std::get<map>(m_value);
+        for (const auto& pair : pairs) {
+            target.emplace(pair.first, object{pair.second});
+        }
+    }
+
+    object(const object& obj) :
+    m_value{obj.m_value}
+    {
+    }
+
+    object(object&& obj) :
+    m_value{std::move(obj.m_value)}
+    {
+    }
+
+    object& operator = (const object& o)
+    {
+        m_value = o.m_value;
+        return *this;
+    }
+
+    object& operator = (object&& obj)
+    {
+        m_value = std::move(obj.m_value);
+        return *this;
+    }
+
+    object& operator = (const array& arr)
+    {
+        
+        m_value = arr;
+        return *this;
+    }
+
+    template <Primitive T> requires (not Null<T>)
+    object& operator = (const T& val)
+    {
+        
+        m_value = primitive{val};
+        return *this;
+    }
+
+    template <Null T>
+    object& operator = (const T&)
+    {
+        
+        m_value = primitive{monostate{}};
+        return *this;
+    }
+
+    friend bool operator == (const object& lhs, const object& rhs) noexcept
+    {
+        return lhs.m_value == rhs.m_value;
+    }
+
+    constexpr auto is_object() const noexcept
+    {
+        return holds_alternative<map>(m_value);
+    }
+
+    constexpr auto is_array() const noexcept
+    {
+        return holds_alternative<array>(m_value);
+    }
+
+    constexpr auto is_number() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+        {
+            const auto& v = std::get<primitive>(m_value);
+            // JSON numbers can be either integer_type or number_type
+            return holds_alternative<number_type>(v) || holds_alternative<integer_type>(v);
+        }
+        return false;
+    }
+
+    constexpr auto is_string() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<string_type>(std::get<primitive>(m_value));
+        return false;
+    }
+
+    constexpr auto is_boolean() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<boolean_type>(std::get<primitive>(m_value));
+        return false;
+    }
+
+    constexpr auto is_timestamp() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<timestamp_type>(std::get<primitive>(m_value));
+        return false;
+    }
+
+    constexpr auto is_integer() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<integer_type>(std::get<primitive>(m_value));
+        return false;
+    }
+
+    constexpr auto is_null() const noexcept
+    {
+        if(holds_alternative<primitive>(m_value))
+            return holds_alternative<std::monostate>(std::get<primitive>(m_value));
+        return false;
+    }
+
+    template<typename T> requires std::same_as<T,primitive>
+    const auto& get() const
+    {
+        return std::get<primitive>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,primitive>
+    auto& get()
+    {
+        return std::get<primitive>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,map>
+    const auto& get() const
+    {
+        return std::get<map>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,map>
+    auto& get()
+    {
+        return std::get<map>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,array>
+    const auto& get() const
+    {
+        return std::get<array>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,array>
+    auto& get()
+    {
+        return std::get<array>(m_value);
+    }
+
+    template<typename T> requires std::same_as<T,string_type>
+    const auto& get() const
+    {
+        return std::get<string_type>(std::get<primitive>(m_value));
+    }
+
+    object& operator [] (const string_type& name)
+    {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
+        return std::get<map>(m_value)[name];
+    }
+
+    object& operator [] (std::string_view name)
+    {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
+        return std::get<map>(m_value)[std::string{name}];
+    }
+
+    const object& operator [] (const string_type& name) const
+    {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
+        if(std::get<map>(m_value).contains(name))
+            return std::get<map>(m_value).find(name)->second;
+        throw std::runtime_error{"object has no field with name "s + name};
+    }
+
+    const object& operator [] (std::string_view name) const
+    {
+        if(!is_object())
+            throw std::runtime_error{"Cannot access object field: object is not an object type"s};
+        auto key = std::string{name};
+        if(std::get<map>(m_value).contains(key))
+            return std::get<map>(m_value).find(key)->second;
+        throw std::runtime_error{"object has no field with name "s + key};
+    }
+
+    object& operator [] (std::size_t idx)
+    {
+        if(!is_array())
+            throw std::runtime_error{"Cannot access array index: object is not an array type"s};
+        if(idx >= std::get<array>(m_value).size())
+            throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
+        return std::get<array>(m_value)[idx];
+    }
+
+    const object& operator [] (std::size_t idx) const
+    {
+        if(!is_array())
+            throw std::runtime_error{"Cannot access array index: object is not an array type"s};
+        if(idx >= std::get<array>(m_value).size())
+            throw std::runtime_error{"array has no index with value "s + std::to_string(idx)};
+        return std::get<array>(m_value)[idx];
+    }
+
+    operator const primitive& () const
+    {
+        return std::get<primitive>(m_value);
+    }
+
+    operator number_type () const
+    {
+        const auto& v = std::get<primitive>(m_value);
+        if(std::holds_alternative<number_type>(v))
+            return std::get<number_type>(v);
+        if(std::holds_alternative<integer_type>(v))
+            return static_cast<number_type>(std::get<integer_type>(v));
+        throw std::runtime_error{"Cannot convert to number_type: value is not a number"s};
+    }
+
+    operator const string_type& () const
+    {
+        return std::get<string_type>(std::get<primitive>(m_value));
+    }
+
+    operator boolean_type () const
+    {
+        return std::get<boolean_type>(std::get<primitive>(m_value));
+    }
+
+    operator timestamp_type () const
+    {
+        return std::get<timestamp_type>(std::get<primitive>(m_value));
+    }
+
+    operator integer_type () const
+    {
+        return std::get<integer_type >(std::get<primitive>(m_value));
+    }
+
+    operator int32_type () const
+    {
+        return std::get<integer_type>(std::get<primitive>(m_value));
+    }
+
+    object operator + (const object& obj) const
+    {
+        auto result = *this;
+        if(holds_alternative<map>(result.m_value))
+        {
+            for(const auto& pair : std::get<map>(obj.m_value))
+            {
+                std::get<map>(result.m_value).insert_or_assign(pair.first, pair.second);
+            }
+        }
+        else if(holds_alternative<array>(result.m_value))
+            std::get<array>(result.m_value).push_back(obj);
+        return result;
+    }
+
+    object operator + (object&& obj) const
+    {
+        auto result = *this;
+        if(holds_alternative<map>(result.m_value))
+        {
+            auto temp = std::get<map>(std::move(obj.m_value));
+            auto& target = std::get<map>(result.m_value);
+            for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
+            {
+                target.insert_or_assign(std::move((*it).first), std::move((*it).second));
+            }
+        }
+        else if(holds_alternative<array>(result.m_value))
+            std::get<array>(result.m_value).push_back(std::move(obj));
+        return result;
+    }
+
+    object& operator+=(const object& obj)
+    {
+        if(holds_alternative<map>(m_value))
+        {
+            for(const auto& pair : std::get<map>(obj.m_value))
+            {
+                std::get<map>(m_value).insert_or_assign(pair.first, pair.second);
+            }
+        }
+        else if(holds_alternative<array>(m_value))
+            std::get<array>(m_value).push_back(obj);
+        return *this;
+    }
+
+    object& operator += (object&& obj)
+    {
+        if(holds_alternative<map>(m_value))
+        {
+            auto temp = std::get<map>(std::move(obj.m_value));
+            auto& target = std::get<map>(m_value);
+            for(auto it = std::make_move_iterator(temp.begin()); it != std::make_move_iterator(temp.end()); ++it)
+            {
+                target.insert_or_assign(std::move((*it).first), std::move((*it).second));
+            }
+        }
+        else if(holds_alternative<array>(m_value))
+            std::get<array>(m_value).push_back(std::move(obj));
+        return *this;
+    }
+
+    bool has_value() const noexcept
+    {
+        return holds_alternative<primitive>(m_value);
+    }
+
+    bool has_objects() const noexcept
+    {
+        return holds_alternative<map>(m_value);
+    }
+
+    bool empty() const noexcept
+    {
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).empty();
+        if(holds_alternative<array>(m_value))
+            return std::get<array>(m_value).empty();
+        else
+            return false;
+    }
+
+    bool has(const std::string& name) const noexcept
+    {
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).contains(name);
+        else
+            return false;
+    }
+
+    bool has(std::string_view name) const noexcept
+    {
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).contains(std::string{name});
+        else
+            return false;
+    }
+
+
+    std::size_t size() const noexcept
+    {
+        if(holds_alternative<map>(m_value))
+            return std::get<map>(m_value).size();
+        else if(holds_alternative<array>(m_value))
+            return std::get<array>(m_value).size();
+        else
+            return 0u;
+    }
+
+    bool match(const object& subset) const
+    {
+        if(subset.empty())
+            return true;
+
+        if(is_array() and subset.is_array())
+        {
+            if(get<array>().size() != subset.get<array>().size())
+                return false;
+
+            for(auto i = 0ll; const auto &o : subset.get<array>())
+                if(get<array>()[i++].get<primitive>() != o.get<primitive>()) return false;
+
+            return true;
+        }
+
+        if(has_value() and subset.has_objects())
+        {
+            auto test = std::ranges::all_of(subset.get<map>(),
+                [&](const auto& node)
+                {
+                    if(operators.count(node.first))
+                        return operators.at(node.first)(get<primitive>(), node.second.template get<primitive>());
+                    else
+                        return node.first[0] == '$';
+                });
+
+            if(subset.has("$in"s))
+                test = test && std::any_of(subset["$in"s].get<map>().cbegin(), subset["$in"s].get<map>().cend(),
+                    [&](const auto& node)
+                    {
+                        return get<primitive>() == node.second.template get<primitive>();
+                    });
+
+            return test;
+        }
+
+        if(has_objects() and subset.has_objects())
+        {
+            auto lf = get<map>().cbegin(), rf = subset.get<map>().cbegin();
+            const auto ll = get<map>().cend(), rl = subset.get<map>().cend();
+
+            while(rf != rl && rf->first[0] == '$')
+                ++rf;
+
+            while(lf != ll && rf != rl)
+            {
+                if(lf->first < rf->first)
+                    ++lf;
+                else if(lf->first > rf->first)
+                    return false;
+                else if(lf->second.match(rf->second))
+                {
+                    ++lf;
+                    ++rf;
+                }
+                else
+                    return false;
+            }
+            return rf == rl;
+        }
+
+        return get<primitive>() == subset.get<primitive>();
+    }
+
+private:
+
+    static const std::map<string_type, std::function<bool(const primitive&, const primitive&)>> operators;
+
+    value m_value;
+};
+
+const std::map<xson::string_type, std::function<bool(const xson::primitive&, const xson::primitive&)>> object::operators = {
+    { "$eq"s,  std::equal_to<xson::primitive>{}      },
+    { "$ne"s,  std::not_equal_to<xson::primitive>{}  },
+    { "$lt"s,  std::less<xson::primitive>{}          },
+    { "$lte"s, std::less_equal<xson::primitive>{}    },
+    { "$gt"s,  std::greater<xson::primitive>{}       },
+    { "$gte"s, std::greater_equal<xson::primitive>{} }
+};
+
+// Utility functions (from object.hpp)
+template<typename T>
+auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
+{
+    const auto midnight = std::chrono::floor<std::chrono::days>(current_time);
+    const auto date = std::chrono::year_month_day{midnight};
+    const auto time = std::chrono::hh_mm_ss{current_time - midnight};
+    const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(time.subseconds());
+    // YYYY-MM-DDThh:mm:ss.fffZ
+    auto os = std::ostringstream{};
+    os << std::setw(4) << std::setfill('0') << (int)date.year()        << '-'
+       << std::setw(2) << std::setfill('0') << (unsigned)date.month()  << '-'
+       << std::setw(2) << std::setfill('0') << (unsigned)date.day()    << 'T'
+       << std::setw(2) << std::setfill('0') << time.hours().count()    << ':'
+       << std::setw(2) << std::setfill('0') << time.minutes().count()  << ':'
+       << std::setw(2) << std::setfill('0') << time.seconds().count()  << '.'
+       << std::setw(3) << std::setfill('0') << milliseconds.count()    << 'Z';
+    return os.str();
+}
+
+inline auto to_time_point(const std::string_view sv)
+{
+    // YYYY-MM-DDTHH:MM:SS.sssZ
+    if(sv.size() <= 9)
+        throw std::logic_error("Invalid time point string: size must be greater than 9");
+    auto YYYY = 0; auto MM = 0u, DD = 0u, hh = 0u, mm = 0u, ss = 0u, fff = 0u;
+    auto res = std::from_chars_result{sv.data(),std::errc()};
+    res = std::from_chars(res.ptr,res.ptr+4,YYYY);
+    res = std::from_chars(++res.ptr,res.ptr+2,MM);
+    res = std::from_chars(++res.ptr,res.ptr+2,DD);
+    if(sv.length() == 24)
+    {
+        res = std::from_chars(++res.ptr,res.ptr+2,hh);
+        res = std::from_chars(++res.ptr,res.ptr+2,mm);
+        res = std::from_chars(++res.ptr,res.ptr+2,ss);
+        res = std::from_chars(++res.ptr,res.ptr+3,fff);
+    }
+    using namespace std::chrono;
+    return sys_days{year{YYYY}/month{MM}/day{DD}} + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+}
+
+using std::to_string;
+
+inline const std::string to_string(std::monostate) noexcept
+{
+    return "null";
+}
+
+template<typename T>
+std::string to_string(const std::chrono::time_point<T>& point) noexcept
+{
+    return to_iso8601(point);
+}
+
+inline const std::string to_string(bool b) noexcept
+{
+    return b ? "true" : "false";
+}
+
+constexpr const std::string& to_string(const std::string& str) noexcept
+{
+    return str;
+}
+
+inline std::string to_string(const primitive& val) noexcept
+{
+    return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
+}
+
+// Encoder implementation
+inline std::ostream& operator << (std::ostream& os, const primitive& v)
+{
+    if(holds_alternative<number_type>(v))
+        os << std::get<number_type>(v);
+    else if(holds_alternative<string_type>(v))
+        os << '"' << std::get<string_type>(v) << '"';
+    else if(holds_alternative<boolean_type>(v))
+        os << std::boolalpha << std::get<boolean_type>(v);
+    else if(holds_alternative<timestamp_type>(v))
+        os << '"' << to_string(std::get<timestamp_type>(v)) << '"';
+    else if(holds_alternative<monostate>(v))
+        os << "null";
+    else if(holds_alternative<integer_type>(v))
+        os << std::get<integer_type>(v);
+    return os;
+}
+
+using array = xson::object::array;
+
+// Builder class (from builder.hpp)
+class builder
+{
+public:
+
+    xson::object get()
+    {
+        return std::move(m_root);
+    }
+
+    void start_object()
+    {
+        
+        if(m_stack.empty())
+        {
+            m_root = object{object::map{}};
+            m_stack.push(m_root);
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
+            auto& mp = m_stack.top().get().get<object::map>();
+            mp[m_current] = object{}; // default object is an empty map (object)
+            m_stack.push(std::ref(mp.at(m_current)));
+        }
+        else // type::array
+        {
+            m_stack.top().get().get<object::array>().emplace_back(object::map{});
+            m_stack.push(std::ref(m_stack.top().get().get<object::array>().back()));
+        }
+        m_type = type::object;
+    }
+
+    void end_object()
+    {
+        if(m_stack.empty())
+            throw std::runtime_error{"Invalid builder state: end_object() with empty stack"s};
+        if(!m_stack.top().get().is_object())
+            throw std::runtime_error{"Invalid builder state: end_object() when current value is not an object"s};
+
+        m_stack.pop();
+        if(not m_stack.empty())
+        {
+            if(m_stack.top().get().is_object())
+                m_type = type::object;
+            else if(m_stack.top().get().is_array())
+                m_type = type::array;
+            else
+                throw std::runtime_error{"Invalid builder state: expected object or array after end_object()"s};
+        }
+    }
+
+    void start_array()
+    {
+        
+        if(m_stack.empty())
+        {
+            m_root = object{object::array{}};
+            m_stack.push(m_root);
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
+            auto& mp = m_stack.top().get().get<object::map>();
+            mp[m_current] = object::array{};
+            m_stack.push(std::ref(mp.at(m_current)));
+        }
+        else // type::array
+        {
+            m_stack.top().get().get<object::array>().emplace_back(object::array{});
+            m_stack.push(std::ref(m_stack.top().get().get<object::array>().back()));
+        }
+        m_type = type::array;
+    }
+
+    void end_array()
+    {
+        if(m_stack.empty())
+            throw std::runtime_error{"Invalid builder state: end_array() with empty stack"s};
+        if(!m_stack.top().get().is_array())
+            throw std::runtime_error{"Invalid builder state: end_array() when current value is not an array"s};
+
+        m_stack.pop();
+        if(not m_stack.empty())
+        {
+            if(m_stack.top().get().is_object())
+                m_type = type::object;
+            else if(m_stack.top().get().is_array())
+                m_type = type::array;
+            else
+                throw std::runtime_error{"Invalid builder state: expected object or array after end_array()"s};
+        }
+    }
+
+    void name(xson::string_type str)
+    {
+        
+        m_current = std::move(str);
+    }
+
+    template<Primitive T> requires (not Null<T>)
+    void value(const T& val)
+    {
+        if(m_stack.empty())
+        {
+            // Standalone primitive (not inside object/array) - set root directly
+            // Use assignment operator which wraps val in primitive variant
+            m_root = val;
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
+            m_stack.top().get().get<object::map>()[m_current] = val;
+        }
+        else // type::array
+        {
+            m_stack.top().get().get<object::array>().emplace_back(val);
+        }
+    }
+
+    template<Null T>
+    void value(T)
+    {
+        if(m_stack.empty())
+        {
+            // Standalone null primitive (not inside object/array) - set root directly
+            // Use assignment operator which sets m_value to monostate
+            m_root = nullptr;
+        }
+        else if(m_type == type::object)
+        {
+            // Overwrite any existing key (JSON allows duplicate keys; we keep the last primitive).
+            m_stack.top().get().get<object::map>()[m_current] = nullptr;
+        }
+        else // type::array
+        {
+            m_stack.top().get().get<object::array>().emplace_back(object{});
+            m_stack.top().get().get<object::array>().back() = nullptr;
+        }
+    }
+
+private:
+
+    using stack_type = std::stack<std::reference_wrapper<xson::object>>;
+
+    enum class type {object,array};
+
+    type m_type = type{};
+
+    stack_type m_stack = stack_type{};
+
+    xson::string_type m_current = ""s;
+
+    xson::object m_root;
+
+}; // class builder
+
+} // namespace xson
+

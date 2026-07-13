@@ -1,0 +1,7 @@
+module;
+export module xson;
+
+export import :object;
+export import :fast;
+export import :json;
+export import :fson;
