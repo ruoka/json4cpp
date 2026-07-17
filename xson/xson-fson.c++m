@@ -263,4 +263,3 @@ inline std::ostream& operator << (std::ostream& os, const object& ob)
 #endif
 
 } // namespace xson::fson
-
