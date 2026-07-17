@@ -28,14 +28,15 @@ enum class type : char8_t
 
     integer   = '\x11',
     timestamp = '\x12',
-    // Length-prefixed UTF-8 string value (legacy `string` is 7-bit terminator).
+    // Legacy length-prefixed UTF-8 (superseded by Escape/unEscape on string/name).
+    // Still accepted on decode for documents written by the intermediate codec.
     utf8      = '\x13',
 
 // control types
 
     name      = '\x1A',
     end       = '\x1B',
-    // Length-prefixed UTF-8 object key (legacy `name` payload is 7-bit).
+    // Legacy length-prefixed UTF-8 object key (see utf8).
     name_utf8 = '\x1C'
 };
 
@@ -43,6 +44,76 @@ inline auto& operator << (std::ostream& os, type t)
 {
     os << static_cast<int>(t);
     return os;
+}
+
+// Escape marker for the 7-bit FAST string terminator codec. Chosen as a
+// control byte so ordinary document text (ASCII letters, punctuation, etc.)
+// keeps a bit-identical wire form; only U+0001 or high-bit UTF-8 is rewritten.
+inline constexpr char escape_marker = '\x01';
+
+inline constexpr int hex_value(char c) noexcept
+{
+    if(c >= '0' && c <= '9') return c - '0';
+    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+
+// Rewrite bytes that the FAST stop-bit string codec cannot store (bit 7 set)
+// and the escape marker itself into a 7-bit-safe form: ESC + two hex digits.
+// Pure ASCII without U+0001 is unchanged, so existing databases keep working.
+inline std::string Escape(std::string_view in)
+{
+    static constexpr char hex[] = "0123456789ABCDEF";
+
+    std::string out;
+    out.reserve(in.size());
+
+    for(const unsigned char byte : in)
+    {
+        if(byte == static_cast<unsigned char>(escape_marker) || (byte & 0x80u))
+        {
+            out.push_back(escape_marker);
+            out.push_back(hex[(byte >> 4) & 0x0Fu]);
+            out.push_back(hex[byte & 0x0Fu]);
+        }
+        else
+        {
+            out.push_back(static_cast<char>(byte));
+        }
+    }
+
+    return out;
+}
+
+// Inverse of Escape. Identity for strings that contain no escape marker.
+inline std::string unEscape(std::string_view in)
+{
+    std::string out;
+    out.reserve(in.size());
+
+    for(std::size_t i = 0; i < in.size(); ++i)
+    {
+        const char c = in[i];
+        if(c != escape_marker)
+        {
+            out.push_back(c);
+            continue;
+        }
+
+        if(i + 2 >= in.size())
+            throw std::runtime_error{"Invalid FSON: truncated escape sequence"s};
+
+        const int hi = hex_value(in[i + 1]);
+        const int lo = hex_value(in[i + 2]);
+        if(hi < 0 || lo < 0)
+            throw std::runtime_error{"Invalid FSON: malformed escape sequence"s};
+
+        out.push_back(static_cast<char>((hi << 4) | lo));
+        i += 2;
+    }
+
+    return out;
 }
 
 // Encoder
@@ -55,25 +126,6 @@ public:
 
     void encode(std::ostream& os, const xson::object& o)
     {
-        // String payloads need a tag chosen from content: legacy `string` is a
-        // 7-bit terminator codec and cannot store UTF-8. Non-ASCII values use
-        // length-prefixed `utf8` so existing ASCII databases keep reading.
-        if(o.is_string())
-        {
-            const auto& str = std::get<xson::string_type>(o.get<primitive>());
-            if(fast::is_ascii7(str))
-            {
-                fast::encode(os, type::string);
-                fast::encode(os, str);
-            }
-            else
-            {
-                fast::encode(os, type::utf8);
-                fast::encode_bytes(os, str);
-            }
-            return;
-        }
-
         auto type = make_type(o);
 
         fast::encode(os,type);
@@ -83,17 +135,9 @@ public:
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
             {
-                if(fast::is_ascii7(name))
-                {
-                    fast::encode(os,type::name);
-                    fast::encode(os,name);
-                }
-                else
-                {
-                    fast::encode(os,type::name_utf8);
-                    fast::encode_bytes(os,name);
-                }
-                encode(os,value);
+                fast::encode(os,type::name);       // type
+                fast::encode(os,Escape(name));     // name (7-bit-safe)
+                encode(os,value);                  // object
             }
             fast::encode(os,type::end);
             break;
@@ -112,6 +156,10 @@ public:
 
             case type::number:
             fast::encode(os,std::get<xson::number_type>(o.get<primitive>()));
+            break;
+
+            case type::string:
+            fast::encode(os,Escape(std::get<xson::string_type>(o.get<primitive>())));
             break;
 
             case type::boolean:
@@ -197,10 +245,11 @@ public:
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name outside object"s};
                     fast::decode(is,name);
-                    m_builder.name(name);
+                    m_builder.name(unEscape(name));
                     break;
 
                 case type::name_utf8:
+                    // Intermediate codec: length-prefixed raw UTF-8 key.
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name_utf8 outside object"s};
                     fast::decode_bytes(is,name);
@@ -219,10 +268,11 @@ public:
 
                 case type::string:
                     fast::decode(is,str);
-                    m_builder.value(str);
+                    m_builder.value(unEscape(str));
                     break;
 
                 case type::utf8:
+                    // Intermediate codec: length-prefixed raw UTF-8 value.
                     fast::decode_bytes(is,str);
                     m_builder.value(str);
                     break;
@@ -302,4 +352,3 @@ inline std::ostream& operator << (std::ostream& os, const object& ob)
 #endif
 
 } // namespace xson::fson
-

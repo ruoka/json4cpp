@@ -88,7 +88,7 @@ auto register_tests()
 
     test_case("Legacy string encode rejects UTF-8, [xson]") = [] {
         // High-bit bytes terminate the legacy codec early and clear bit 7 —
-        // refusing them here forces callers onto encode_bytes / FSON utf8.
+        // refusing them here forces callers onto Escape / encode_bytes.
         require_throws([] {
             auto ss = std::stringstream{};
             xson::fast::encode(ss, "café"s);

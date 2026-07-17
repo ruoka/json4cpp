@@ -129,9 +129,26 @@ auto register_tests()
         check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
+    test_case("Escape unEscape round-trip, [xson]") = [] {
+        // Escape must be identity for ordinary ASCII (existing DB wire form),
+        // and reversible for UTF-8 / the escape marker itself.
+        require_eq(Escape("plain"s), "plain"s);
+        require_eq(unEscape(Escape("plain"s)), "plain"s);
+
+        const auto utf8 = "café 世界 🌍"s;
+        require_true(fast::is_ascii7(Escape(utf8)));
+        require_eq(unEscape(Escape(utf8)), utf8);
+
+        const auto with_marker = "a\x01b"s;
+        require_eq(unEscape(Escape(with_marker)), with_marker);
+
+        require_throws([] { (void)unEscape("\x01"s); });
+        require_throws([] { (void)unEscape("\x01G0"s); });
+    };
+
     test_case("UTF-8 string value round-trip, [xson]") = [] {
         // Legacy terminator string codec corrupted high bytes and desynced the
-        // stream; utf8 tag + length prefix must preserve document text.
+        // stream; Escape/unEscape keep payloads on type::string while preserving text.
         auto o1 = object{
             {"name"s, "café"s},
             {"note"s, "Hello 世界 🌍"s},
@@ -159,6 +176,21 @@ auto register_tests()
         require_true(o2.has("名"s));
         require_eq(static_cast<std::string>(o2["名"s]), "value"s);
         require_eq(static_cast<xson::integer_type>(o2["plain"s]), 1ll);
+    };
+
+    test_case("Legacy utf8 tag still decodes, [xson]") = [] {
+        // Documents written with the intermediate length-prefixed utf8 tag
+        // must remain readable after switching encode to Escape/unEscape.
+        auto ss = std::stringstream{};
+        xson::fast::encode(ss, xson::fson::type::object);
+        xson::fast::encode(ss, xson::fson::type::name);
+        xson::fast::encode(ss, Escape("name"s));
+        xson::fast::encode(ss, xson::fson::type::utf8);
+        xson::fast::encode_bytes(ss, "café"s);
+        xson::fast::encode(ss, xson::fson::type::end);
+
+        const auto o = xson::fson::parse(ss);
+        require_eq(static_cast<std::string>(o["name"s]), "café"s);
     };
 
     test_case("Boolean, [xson]") = [] {

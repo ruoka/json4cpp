@@ -127,12 +127,12 @@ inline bool is_ascii7(std::string_view str) noexcept
 }
 
 // Legacy 7-bit string codec (high bit marks the final byte). Only safe for
-// ASCII content — callers must use encode_bytes/decode_bytes for UTF-8.
+// ASCII content — FSON callers must Escape first; raw UTF-8 uses encode_bytes.
 inline void encode(std::ostream& os, const std::string& str)
 {
     if(not is_ascii7(str))
         throw std::runtime_error{
-            "xson::fast legacy string encoding requires 7-bit content; use encode_bytes for UTF-8"};
+            "xson::fast legacy string encoding requires 7-bit content; use Escape or encode_bytes"};
 
     if(str.empty())
     {
