@@ -87,13 +87,8 @@ auto register_tests()
     };
 
     test_case("String UTF-8 round-trip, [xson]") = [] {
-        // ASCII fast path allocates nothing extra; UTF-8 is streamed/escaped
-        // inside encode/decode without a temporary escaped string.
-        require_false(needs_escape("plain"s));
-        require_true(needs_escape("café"s));
-        // Split the literal so \x01 is not greedily parsed as \x01b.
-        require_true(needs_escape("a\x01" "b"s));
-
+        // Single-pass encode: ASCII bypasses the escape branch; high bytes are
+        // streamed as ESC+hex with no temporary and no pre-scan.
         auto round_trip = [](const std::string& in) {
             auto ss = std::stringstream{};
             xson::fast::encode(ss, in);
@@ -104,6 +99,7 @@ auto register_tests()
 
         require_eq(round_trip("plain"s), "plain"s);
         require_eq(round_trip("café 世界 🌍"s), "café 世界 🌍"s);
+        // Split the literal so \x01 is not greedily parsed as \x01b.
         require_eq(round_trip("a\x01" "b"s), "a\x01" "b"s);
     };
 

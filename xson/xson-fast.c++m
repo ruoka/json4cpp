@@ -125,16 +125,6 @@ inline constexpr int hex_value(char c) noexcept
     return -1;
 }
 
-inline bool needs_escape(std::string_view str) noexcept
-{
-    for(const unsigned char byte : str)
-    {
-        if(byte == static_cast<unsigned char>(escape_marker) || (byte & 0x80u))
-            return true;
-    }
-    return false;
-}
-
 // Shrink escaped payload in place. Escaped form is always longer, so no extra
 // allocation is required when an escape marker was observed on read.
 inline void unescape_inplace(std::string& str)
@@ -163,9 +153,9 @@ inline void unescape_inplace(std::string& str)
     str.resize(out);
 }
 
-// String codec: high bit marks the final byte. ASCII with no escape marker
-// uses the original path (no temporary). High-bit content is streamed out as
-// ESC + two hex digits — still no temporary string.
+// String codec: high bit marks the final byte. One pass over the input —
+// ASCII bytes are emitted as-is; only high-bit / escape-marker bytes take
+// the ESC + two hex digits branch. No temporary string, no pre-scan.
 inline void encode(std::ostream& os, const std::string& str)
 {
     if(str.empty())
@@ -174,37 +164,27 @@ inline void encode(std::ostream& os, const std::string& str)
         return;
     }
 
-    if(not needs_escape(str))
-    {
-        auto head = str.cbegin();
-        auto tail = head + (str.size() - 1);
-        std::copy(head, tail, std::ostream_iterator<char>(os));
-        os.put(static_cast<char>(static_cast<unsigned char>(*tail) | 0x80u));
-        return;
-    }
-
     static constexpr char hex[] = "0123456789ABCDEF";
     bool has_pending = false;
     unsigned char pending = 0;
-    auto emit = [&](unsigned char byte)
-    {
-        if(has_pending)
-            os.put(static_cast<char>(pending));
-        pending = byte;
-        has_pending = true;
-    };
 
     for(const unsigned char byte : str)
     {
         if(byte == static_cast<unsigned char>(escape_marker) || (byte & 0x80u))
         {
-            emit(static_cast<unsigned char>(escape_marker));
-            emit(static_cast<unsigned char>(hex[(byte >> 4) & 0x0Fu]));
-            emit(static_cast<unsigned char>(hex[byte & 0x0Fu]));
+            if(has_pending)
+                os.put(static_cast<char>(pending));
+            os.put(escape_marker);
+            os.put(hex[(byte >> 4) & 0x0Fu]);
+            pending = static_cast<unsigned char>(hex[byte & 0x0Fu]);
+            has_pending = true;
         }
         else
         {
-            emit(byte);
+            if(has_pending)
+                os.put(static_cast<char>(pending));
+            pending = byte;
+            has_pending = true;
         }
     }
 
