@@ -126,7 +126,39 @@ auto register_tests()
         succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s"].get<primitive>());
+    };
+
+    test_case("UTF-8 string value round-trip, [xson]") = [] {
+        // Legacy terminator string codec corrupted high bytes and desynced the
+        // stream; utf8 tag + length prefix must preserve document text.
+        auto o1 = object{
+            {"name"s, "café"s},
+            {"note"s, "Hello 世界 🌍"s},
+            {"ascii"s, "plain"s}
+        };
+
+        auto ss = std::stringstream{};
+        xson::fson::encoder{}.encode(ss, o1);
+        const auto o2 = xson::fson::parse(ss);
+
+        require_eq(static_cast<std::string>(o2["name"s]), "café"s);
+        require_eq(static_cast<std::string>(o2["note"s]), "Hello 世界 🌍"s);
+        require_eq(static_cast<std::string>(o2["ascii"s]), "plain"s);
+    };
+
+    test_case("UTF-8 object key round-trip, [xson]") = [] {
+        auto o1 = object{};
+        o1["名"s] = "value"s;
+        o1["plain"s] = 1ll;
+
+        auto ss = std::stringstream{};
+        xson::fson::encoder{}.encode(ss, o1);
+        const auto o2 = xson::fson::parse(ss);
+
+        require_true(o2.has("名"s));
+        require_eq(static_cast<std::string>(o2["名"s]), "value"s);
+        require_eq(static_cast<xson::integer_type>(o2["plain"s]), 1ll);
     };
 
     test_case("Boolean, [xson]") = [] {

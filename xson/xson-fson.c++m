@@ -28,11 +28,15 @@ enum class type : char8_t
 
     integer   = '\x11',
     timestamp = '\x12',
+    // Length-prefixed UTF-8 string value (legacy `string` is 7-bit terminator).
+    utf8      = '\x13',
 
 // control types
 
     name      = '\x1A',
-    end       = '\x1B'
+    end       = '\x1B',
+    // Length-prefixed UTF-8 object key (legacy `name` payload is 7-bit).
+    name_utf8 = '\x1C'
 };
 
 inline auto& operator << (std::ostream& os, type t)
@@ -51,6 +55,25 @@ public:
 
     void encode(std::ostream& os, const xson::object& o)
     {
+        // String payloads need a tag chosen from content: legacy `string` is a
+        // 7-bit terminator codec and cannot store UTF-8. Non-ASCII values use
+        // length-prefixed `utf8` so existing ASCII databases keep reading.
+        if(o.is_string())
+        {
+            const auto& str = std::get<xson::string_type>(o.get<primitive>());
+            if(fast::is_ascii7(str))
+            {
+                fast::encode(os, type::string);
+                fast::encode(os, str);
+            }
+            else
+            {
+                fast::encode(os, type::utf8);
+                fast::encode_bytes(os, str);
+            }
+            return;
+        }
+
         auto type = make_type(o);
 
         fast::encode(os,type);
@@ -60,9 +83,17 @@ public:
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
             {
-                fast::encode(os,type::name); // type
-                fast::encode(os,name);       // name
-                encode(os,value);            // object
+                if(fast::is_ascii7(name))
+                {
+                    fast::encode(os,type::name);
+                    fast::encode(os,name);
+                }
+                else
+                {
+                    fast::encode(os,type::name_utf8);
+                    fast::encode_bytes(os,name);
+                }
+                encode(os,value);
             }
             fast::encode(os,type::end);
             break;
@@ -81,10 +112,6 @@ public:
 
             case type::number:
             fast::encode(os,std::get<xson::number_type>(o.get<primitive>()));
-            break;
-
-            case type::string:
-            fast::encode(os,std::get<xson::string_type>(o.get<primitive>()));
             break;
 
             case type::boolean:
@@ -173,6 +200,13 @@ public:
                     m_builder.name(name);
                     break;
 
+                case type::name_utf8:
+                    if(parent.empty() || parent.top() != type::object)
+                        throw std::runtime_error{"Invalid FSON: name_utf8 outside object"s};
+                    fast::decode_bytes(is,name);
+                    m_builder.name(name);
+                    break;
+
                 case type::array:
                     parent.push(type::array);
                     m_builder.start_array();
@@ -185,6 +219,11 @@ public:
 
                 case type::string:
                     fast::decode(is,str);
+                    m_builder.value(str);
+                    break;
+
+                case type::utf8:
+                    fast::decode_bytes(is,str);
                     m_builder.value(str);
                     break;
 

@@ -86,6 +86,25 @@ auto register_tests()
         require_eq(s1, s2);
     };
 
+    test_case("Legacy string encode rejects UTF-8, [xson]") = [] {
+        // High-bit bytes terminate the legacy codec early and clear bit 7 —
+        // refusing them here forces callers onto encode_bytes / FSON utf8.
+        require_throws([] {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, "café"s);
+        });
+    };
+
+    test_case("Length-prefixed bytes round-trip UTF-8, [xson]") = [] {
+        auto ss = std::stringstream{};
+        const auto s1 = "café 世界 🌍"s;
+        xson::fast::encode_bytes(ss, s1);
+
+        auto s2 = ""s;
+        xson::fast::decode_bytes(ss, s2);
+        require_eq(s1, s2);
+    };
+
     return 0;
 }
 
