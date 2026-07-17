@@ -91,7 +91,8 @@ auto register_tests()
         // inside encode/decode without a temporary escaped string.
         require_false(needs_escape("plain"s));
         require_true(needs_escape("café"s));
-        require_true(needs_escape("a\x01b"s));
+        // Split the literal so \x01 is not greedily parsed as \x01b.
+        require_true(needs_escape("a\x01" "b"s));
 
         auto round_trip = [](const std::string& in) {
             auto ss = std::stringstream{};
@@ -103,7 +104,7 @@ auto register_tests()
 
         require_eq(round_trip("plain"s), "plain"s);
         require_eq(round_trip("café 世界 🌍"s), "café 世界 🌍"s);
-        require_eq(round_trip("a\x01b"s), "a\x01b"s);
+        require_eq(round_trip("a\x01" "b"s), "a\x01" "b"s);
         require_eq(round_trip(""s), ""s);
     };
 
