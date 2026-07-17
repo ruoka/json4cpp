@@ -126,7 +126,7 @@ auto register_tests()
         succeed(xson::json::stringify(o2, 2));
 
         check_eq(o1["Test"s], o2["Test"s]);
-        check_eq(o1["Test"s].get<primitive>(), o2["Test"s"].get<primitive>());
+        check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
     test_case("UTF-8 string value round-trip, [xson]") = [] {
