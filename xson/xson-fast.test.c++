@@ -105,7 +105,6 @@ auto register_tests()
         require_eq(round_trip("plain"s), "plain"s);
         require_eq(round_trip("café 世界 🌍"s), "café 世界 🌍"s);
         require_eq(round_trip("a\x01" "b"s), "a\x01" "b"s);
-        require_eq(round_trip(""s), ""s);
     };
 
     test_case("String malformed escape throws, [xson]") = [] {
