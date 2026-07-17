@@ -113,11 +113,36 @@ inline void encode(std::ostream& os, std::int32_t i)
     encode(os,static_cast<std::int64_t>(i));
 }
 
-// Escape marker for high-bit / control bytes that the terminator codec cannot
-// store. Ordinary ASCII without U+0001 keeps a bit-identical wire form.
-inline constexpr char escape_marker = '\x01';
+// Wire bytes for the string terminator codec. std::uint8_t keeps high-bit
+// math well-defined; ostream/string still speak char, so put_byte / to_char
+// are the only conversions at that boundary.
+using byte = std::uint8_t;
 
-inline constexpr int hex_value(char c) noexcept
+inline constexpr byte escape_marker = 0x01;
+inline constexpr byte stop_bit = 0x80;
+inline constexpr byte data_mask = 0x7f;
+inline constexpr byte nibble_mask = 0x0f;
+
+inline constexpr byte hex_digits[] = {
+    '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+};
+
+inline void put_byte(std::ostream& os, byte value)
+{
+    os.put(static_cast<char>(value));
+}
+
+inline constexpr char to_char(byte value) noexcept
+{
+    return static_cast<char>(value);
+}
+
+inline constexpr byte to_byte(char value) noexcept
+{
+    return static_cast<byte>(value);
+}
+
+inline constexpr int hex_value(byte c) noexcept
 {
     if(c >= '0' && c <= '9') return c - '0';
     if(c >= 'A' && c <= 'F') return c - 'A' + 10;
@@ -132,22 +157,22 @@ inline void unescape_inplace(std::string& str)
     std::size_t out = 0;
     for(std::size_t i = 0; i < str.size(); ++i)
     {
-        const char c = str[i];
+        const byte c = to_byte(str[i]);
         if(c != escape_marker)
         {
-            str[out++] = c;
+            str[out++] = to_char(c);
             continue;
         }
 
         if(i + 2 >= str.size())
             throw std::runtime_error{"xson::fast truncated escape sequence"};
 
-        const int hi = hex_value(str[i + 1]);
-        const int lo = hex_value(str[i + 2]);
+        const int hi = hex_value(to_byte(str[i + 1]));
+        const int lo = hex_value(to_byte(str[i + 2]));
         if(hi < 0 || lo < 0)
             throw std::runtime_error{"xson::fast malformed escape sequence"};
 
-        str[out++] = static_cast<char>((hi << 4) | lo);
+        str[out++] = to_char(byte((hi << 4) | lo));
         i += 2;
     }
     str.resize(out);
@@ -160,35 +185,34 @@ inline void encode(std::ostream& os, const std::string& str)
 {
     if(str.empty())
     {
-        os.put(static_cast<char>(0x80));  // Empty string marker
+        put_byte(os, stop_bit);  // Empty string marker
         return;
     }
 
-    static constexpr char hex[] = "0123456789ABCDEF";
     bool has_pending = false;
-    unsigned char pending = 0;
+    byte pending = 0;
 
-    for(const unsigned char byte : str)
+    for(const byte value : str)
     {
-        if(byte == static_cast<unsigned char>(escape_marker) || (byte & 0x80u))
+        if(value == escape_marker || (value & stop_bit))
         {
             if(has_pending)
-                os.put(static_cast<char>(pending));
-            os.put(escape_marker);
-            os.put(hex[(byte >> 4) & 0x0Fu]);
-            pending = static_cast<unsigned char>(hex[byte & 0x0Fu]);
+                put_byte(os, pending);
+            put_byte(os, escape_marker);
+            put_byte(os, hex_digits[(value >> 4) & nibble_mask]);
+            pending = hex_digits[value & nibble_mask];
             has_pending = true;
         }
         else
         {
             if(has_pending)
-                os.put(static_cast<char>(pending));
-            pending = byte;
+                put_byte(os, pending);
+            pending = value;
             has_pending = true;
         }
     }
 
-    os.put(static_cast<char>(pending | 0x80u));
+    put_byte(os, byte(pending | stop_bit));
 }
 
 inline void encode(std::ostream& os, std::double_t d)
@@ -283,12 +307,12 @@ inline void decode(std::istream& is, std::string& str)
     bool saw_escape = false;
     for(int ch = is.get(); is; ch = is.get())
     {
-        const auto byte = static_cast<unsigned char>(ch);
-        const char data = static_cast<char>(byte & 0x7fu);
+        const byte value = byte(ch);
+        const byte data = byte(value & data_mask);
         if(data == escape_marker)
             saw_escape = true;
-        str.push_back(data);
-        if(byte & 0x80u)
+        str.push_back(to_char(data));
+        if(value & stop_bit)
             break;
     }
 
