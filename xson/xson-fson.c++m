@@ -41,76 +41,6 @@ inline auto& operator << (std::ostream& os, type t)
     return os;
 }
 
-// escape marker for the 7-bit FAST string terminator codec. Chosen as a
-// control byte so ordinary document text (ASCII letters, punctuation, etc.)
-// keeps a bit-identical wire form; only U+0001 or high-bit UTF-8 is rewritten.
-inline constexpr char escape_marker = '\x01';
-
-inline constexpr int hex_value(char c) noexcept
-{
-    if(c >= '0' && c <= '9') return c - '0';
-    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
-    return -1;
-}
-
-// Rewrite bytes that the FAST stop-bit string codec cannot store (bit 7 set)
-// and the escape marker itself into a 7-bit-safe form: ESC + two hex digits.
-// Pure ASCII without U+0001 is unchanged, so existing databases keep working.
-inline std::string escape(std::string_view in)
-{
-    static constexpr char hex[] = "0123456789ABCDEF";
-
-    std::string out;
-    out.reserve(in.size());
-
-    for(const unsigned char byte : in)
-    {
-        if(byte == static_cast<unsigned char>(escape_marker) || (byte & 0x80u))
-        {
-            out.push_back(escape_marker);
-            out.push_back(hex[(byte >> 4) & 0x0Fu]);
-            out.push_back(hex[byte & 0x0Fu]);
-        }
-        else
-        {
-            out.push_back(static_cast<char>(byte));
-        }
-    }
-
-    return out;
-}
-
-// Inverse of escape. Identity for strings that contain no escape marker.
-inline std::string unescape(std::string_view in)
-{
-    std::string out;
-    out.reserve(in.size());
-
-    for(std::size_t i = 0; i < in.size(); ++i)
-    {
-        const char c = in[i];
-        if(c != escape_marker)
-        {
-            out.push_back(c);
-            continue;
-        }
-
-        if(i + 2 >= in.size())
-            throw std::runtime_error{"Invalid FSON: truncated escape sequence"s};
-
-        const int hi = hex_value(in[i + 1]);
-        const int lo = hex_value(in[i + 2]);
-        if(hi < 0 || lo < 0)
-            throw std::runtime_error{"Invalid FSON: malformed escape sequence"s};
-
-        out.push_back(static_cast<char>((hi << 4) | lo));
-        i += 2;
-    }
-
-    return out;
-}
-
 // Encoder
 class encoder
 {
@@ -130,9 +60,9 @@ public:
             case type::object:
             for(const auto& [name,value] : o.get<object::map>())
             {
-                fast::encode(os,type::name);       // type
-                fast::encode(os,escape(name));     // name (7-bit-safe)
-                encode(os,value);                  // object
+                fast::encode(os,type::name); // type
+                fast::encode(os,name);       // name
+                encode(os,value);            // object
             }
             fast::encode(os,type::end);
             break;
@@ -154,7 +84,7 @@ public:
             break;
 
             case type::string:
-            fast::encode(os,escape(std::get<xson::string_type>(o.get<primitive>())));
+            fast::encode(os,std::get<xson::string_type>(o.get<primitive>()));
             break;
 
             case type::boolean:
@@ -240,7 +170,7 @@ public:
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name outside object"s};
                     fast::decode(is,name);
-                    m_builder.name(unescape(name));
+                    m_builder.name(name);
                     break;
 
                 case type::array:
@@ -255,7 +185,7 @@ public:
 
                 case type::string:
                     fast::decode(is,str);
-                    m_builder.value(unescape(str));
+                    m_builder.value(str);
                     break;
 
                 case type::boolean:

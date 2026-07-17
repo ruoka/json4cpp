@@ -86,6 +86,38 @@ auto register_tests()
         require_eq(s1, s2);
     };
 
+    test_case("String UTF-8 round-trip, [xson]") = [] {
+        // ASCII fast path allocates nothing extra; UTF-8 is streamed/escaped
+        // inside encode/decode without a temporary escaped string.
+        require_false(needs_escape("plain"s));
+        require_true(needs_escape("café"s));
+        require_true(needs_escape("a\x01b"s));
+
+        auto round_trip = [](const std::string& in) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, in);
+            auto out = ""s;
+            xson::fast::decode(ss, out);
+            return out;
+        };
+
+        require_eq(round_trip("plain"s), "plain"s);
+        require_eq(round_trip("café 世界 🌍"s), "café 世界 🌍"s);
+        require_eq(round_trip("a\x01b"s), "a\x01b"s);
+        require_eq(round_trip(""s), ""s);
+    };
+
+    test_case("String malformed escape throws, [xson]") = [] {
+        require_throws([] {
+            auto s = "\x01"s;
+            unescape_inplace(s);
+        });
+        require_throws([] {
+            auto s = "\x01G0"s;
+            unescape_inplace(s);
+        });
+    };
+
     return 0;
 }
 
