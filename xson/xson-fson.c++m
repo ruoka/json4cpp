@@ -41,7 +41,7 @@ inline auto& operator << (std::ostream& os, type t)
     return os;
 }
 
-// Escape marker for the 7-bit FAST string terminator codec. Chosen as a
+// escape marker for the 7-bit FAST string terminator codec. Chosen as a
 // control byte so ordinary document text (ASCII letters, punctuation, etc.)
 // keeps a bit-identical wire form; only U+0001 or high-bit UTF-8 is rewritten.
 inline constexpr char escape_marker = '\x01';
@@ -57,7 +57,7 @@ inline constexpr int hex_value(char c) noexcept
 // Rewrite bytes that the FAST stop-bit string codec cannot store (bit 7 set)
 // and the escape marker itself into a 7-bit-safe form: ESC + two hex digits.
 // Pure ASCII without U+0001 is unchanged, so existing databases keep working.
-inline std::string Escape(std::string_view in)
+inline std::string escape(std::string_view in)
 {
     static constexpr char hex[] = "0123456789ABCDEF";
 
@@ -81,8 +81,8 @@ inline std::string Escape(std::string_view in)
     return out;
 }
 
-// Inverse of Escape. Identity for strings that contain no escape marker.
-inline std::string unEscape(std::string_view in)
+// Inverse of escape. Identity for strings that contain no escape marker.
+inline std::string unescape(std::string_view in)
 {
     std::string out;
     out.reserve(in.size());
@@ -131,7 +131,7 @@ public:
             for(const auto& [name,value] : o.get<object::map>())
             {
                 fast::encode(os,type::name);       // type
-                fast::encode(os,Escape(name));     // name (7-bit-safe)
+                fast::encode(os,escape(name));     // name (7-bit-safe)
                 encode(os,value);                  // object
             }
             fast::encode(os,type::end);
@@ -154,7 +154,7 @@ public:
             break;
 
             case type::string:
-            fast::encode(os,Escape(std::get<xson::string_type>(o.get<primitive>())));
+            fast::encode(os,escape(std::get<xson::string_type>(o.get<primitive>())));
             break;
 
             case type::boolean:
@@ -240,7 +240,7 @@ public:
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name outside object"s};
                     fast::decode(is,name);
-                    m_builder.name(unEscape(name));
+                    m_builder.name(unescape(name));
                     break;
 
                 case type::array:
@@ -255,7 +255,7 @@ public:
 
                 case type::string:
                     fast::decode(is,str);
-                    m_builder.value(unEscape(str));
+                    m_builder.value(unescape(str));
                     break;
 
                 case type::boolean:

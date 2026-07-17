@@ -114,7 +114,7 @@ inline void encode(std::ostream& os, std::int32_t i)
 }
 
 // ASCII string codec: high bit marks the final byte. Callers that need to
-// carry UTF-8 (or any high-bit content) must Escape first (see xson:fson).
+// carry UTF-8 (or any high-bit content) must escape first (see xson:fson).
 inline void encode(std::ostream& os, const std::string& str)
 {
     if(str.empty())

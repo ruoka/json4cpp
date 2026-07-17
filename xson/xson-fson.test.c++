@@ -129,29 +129,29 @@ auto register_tests()
         check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
-    test_case("Escape unEscape round-trip, [xson]") = [] {
-        // Escape is identity for ordinary ASCII (existing DB wire form), and
+    test_case("escape unescape round-trip, [xson]") = [] {
+        // escape is identity for ordinary ASCII (existing DB wire form), and
         // reversible for UTF-8 / the escape marker. Escaped output is 7-bit so
         // the old FAST string codec can carry it unchanged.
-        require_eq(Escape("plain"s), "plain"s);
-        require_eq(unEscape(Escape("plain"s)), "plain"s);
+        require_eq(escape("plain"s), "plain"s);
+        require_eq(unescape(escape("plain"s)), "plain"s);
 
         const auto utf8 = "café 世界 🌍"s;
-        const auto escaped = Escape(utf8);
+        const auto escaped = escape(utf8);
         for(const unsigned char byte : escaped)
             require_true((byte & 0x80u) == 0);
-        require_eq(unEscape(escaped), utf8);
+        require_eq(unescape(escaped), utf8);
 
         const auto with_marker = "a\x01b"s;
-        require_eq(unEscape(Escape(with_marker)), with_marker);
+        require_eq(unescape(escape(with_marker)), with_marker);
 
-        require_throws([] { (void)unEscape("\x01"s); });
-        require_throws([] { (void)unEscape("\x01G0"s); });
+        require_throws([] { (void)unescape("\x01"s); });
+        require_throws([] { (void)unescape("\x01G0"s); });
     };
 
     test_case("UTF-8 string value round-trip, [xson]") = [] {
-        // High bytes are Escape'd before the ASCII FAST string write, then
-        // unEscape'd after read — no new FSON tags, same string/name types.
+        // High bytes are escape'd before the ASCII FAST string write, then
+        // unescape'd after read — no new FSON tags, same string/name types.
         auto o1 = object{
             {"name"s, "café"s},
             {"note"s, "Hello 世界 🌍"s},
