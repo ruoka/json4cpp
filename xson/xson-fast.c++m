@@ -113,27 +113,10 @@ inline void encode(std::ostream& os, std::int32_t i)
     encode(os,static_cast<std::int64_t>(i));
 }
 
-// True when every byte is in 0x00–0x7F. The legacy terminator string codec
-// ORs 0x80 onto the final byte and clears bit 7 on decode, so it cannot
-// round-trip UTF-8 (or any high-bit content).
-inline bool is_ascii7(std::string_view str) noexcept
-{
-    for(const unsigned char byte : str)
-    {
-        if(byte & 0x80u)
-            return false;
-    }
-    return true;
-}
-
-// Legacy 7-bit string codec (high bit marks the final byte). Only safe for
-// ASCII content — FSON callers must Escape first; raw UTF-8 uses encode_bytes.
+// ASCII string codec: high bit marks the final byte. Callers that need to
+// carry UTF-8 (or any high-bit content) must Escape first (see xson:fson).
 inline void encode(std::ostream& os, const std::string& str)
 {
-    if(not is_ascii7(str))
-        throw std::runtime_error{
-            "xson::fast legacy string encoding requires 7-bit content; use Escape or encode_bytes"};
-
     if(str.empty())
     {
         os.put(static_cast<char>(0x80));  // Empty string marker
@@ -143,14 +126,6 @@ inline void encode(std::ostream& os, const std::string& str)
     auto tail = head + (str.size() - 1);
     std::copy(head, tail, std::ostream_iterator<char>(os));
     os.put(static_cast<char>(static_cast<unsigned char>(*tail) | 0x80u));
-}
-
-// Length-prefixed raw bytes (UTF-8 safe). Used by FSON utf8 / name_utf8 tags.
-inline void encode_bytes(std::ostream& os, std::string_view bytes)
-{
-    encode(os, static_cast<std::uint64_t>(bytes.size()));
-    if(not bytes.empty())
-        os.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 }
 
 inline void encode(std::ostream& os, std::double_t d)
@@ -251,22 +226,6 @@ inline void decode(std::istream& is, std::string& str)
     }
 }
 
-inline void decode_bytes(std::istream& is, std::string& str)
-{
-    std::uint64_t length = 0;
-    decode(is, length);
-    if(not is)
-        return;
-
-    str.assign(static_cast<std::size_t>(length), '\0');
-    if(length == 0)
-        return;
-
-    is.read(str.data(), static_cast<std::streamsize>(length));
-    if(static_cast<std::uint64_t>(is.gcount()) != length)
-        throw std::runtime_error{"xson::fast truncated length-prefixed string"};
-}
-
 inline void decode(std::istream& is, std::double_t& d)
 {
     std::uint64_t i64;
@@ -293,4 +252,3 @@ inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
 }
 
 } // namespace xson::fast
-

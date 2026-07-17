@@ -28,16 +28,11 @@ enum class type : char8_t
 
     integer   = '\x11',
     timestamp = '\x12',
-    // Legacy length-prefixed UTF-8 (superseded by Escape/unEscape on string/name).
-    // Still accepted on decode for documents written by the intermediate codec.
-    utf8      = '\x13',
 
 // control types
 
     name      = '\x1A',
-    end       = '\x1B',
-    // Legacy length-prefixed UTF-8 object key (see utf8).
-    name_utf8 = '\x1C'
+    end       = '\x1B'
 };
 
 inline auto& operator << (std::ostream& os, type t)
@@ -248,14 +243,6 @@ public:
                     m_builder.name(unEscape(name));
                     break;
 
-                case type::name_utf8:
-                    // Intermediate codec: length-prefixed raw UTF-8 key.
-                    if(parent.empty() || parent.top() != type::object)
-                        throw std::runtime_error{"Invalid FSON: name_utf8 outside object"s};
-                    fast::decode_bytes(is,name);
-                    m_builder.name(name);
-                    break;
-
                 case type::array:
                     parent.push(type::array);
                     m_builder.start_array();
@@ -269,12 +256,6 @@ public:
                 case type::string:
                     fast::decode(is,str);
                     m_builder.value(unEscape(str));
-                    break;
-
-                case type::utf8:
-                    // Intermediate codec: length-prefixed raw UTF-8 value.
-                    fast::decode_bytes(is,str);
-                    m_builder.value(str);
                     break;
 
                 case type::boolean:
