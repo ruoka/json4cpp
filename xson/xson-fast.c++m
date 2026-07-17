@@ -113,18 +113,106 @@ inline void encode(std::ostream& os, std::int32_t i)
     encode(os,static_cast<std::int64_t>(i));
 }
 
+// Wire bytes for the string terminator codec. std::uint8_t keeps high-bit
+// math well-defined; ostream/string still speak char, so put_byte / to_char
+// are the only conversions at that boundary.
+using byte = std::uint8_t;
+
+inline constexpr byte escape_marker = 0x01;
+inline constexpr byte stop_bit = 0x80;
+inline constexpr byte data_mask = 0x7f;
+inline constexpr byte nibble_mask = 0x0f;
+
+inline constexpr byte hex_digits[] = {
+    '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+};
+
+inline void put_byte(std::ostream& os, byte value)
+{
+    os.put(static_cast<char>(value));
+}
+
+inline constexpr char to_char(byte value) noexcept
+{
+    return static_cast<char>(value);
+}
+
+inline constexpr byte to_byte(char value) noexcept
+{
+    return static_cast<byte>(value);
+}
+
+inline constexpr int hex_value(byte c) noexcept
+{
+    if(c >= '0' && c <= '9') return c - '0';
+    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+
+// Shrink escaped payload in place. Escaped form is always longer, so no extra
+// allocation is required when an escape marker was observed on read.
+inline void unescape_inplace(std::string& str)
+{
+    std::size_t out = 0;
+    for(std::size_t i = 0; i < str.size(); ++i)
+    {
+        const byte c = to_byte(str[i]);
+        if(c != escape_marker)
+        {
+            str[out++] = to_char(c);
+            continue;
+        }
+
+        if(i + 2 >= str.size())
+            throw std::runtime_error{"xson::fast truncated escape sequence"};
+
+        const int hi = hex_value(to_byte(str[i + 1]));
+        const int lo = hex_value(to_byte(str[i + 2]));
+        if(hi < 0 || lo < 0)
+            throw std::runtime_error{"xson::fast malformed escape sequence"};
+
+        str[out++] = to_char(byte((hi << 4) | lo));
+        i += 2;
+    }
+    str.resize(out);
+}
+
+// String codec: high bit marks the final byte. One pass over the input —
+// ASCII bytes are emitted as-is; only high-bit / escape-marker bytes take
+// the ESC + two hex digits branch. No temporary string, no pre-scan.
 inline void encode(std::ostream& os, const std::string& str)
 {
-    
     if(str.empty())
     {
-        os.put(0x80);  // Empty string marker
+        put_byte(os, stop_bit);  // Empty string marker
         return;
     }
-    auto head = str.cbegin();
-    auto tail = head + (str.size() - 1);
-    std::copy(head, tail, std::ostream_iterator<char>(os));
-    os.put(*tail | 0x80);
+
+    bool has_pending = false;
+    byte pending = 0;
+
+    for(const byte value : str)
+    {
+        if(value == escape_marker || (value & stop_bit))
+        {
+            if(has_pending)
+                put_byte(os, pending);
+            put_byte(os, escape_marker);
+            put_byte(os, hex_digits[(value >> 4) & nibble_mask]);
+            pending = hex_digits[value & nibble_mask];
+            has_pending = true;
+        }
+        else
+        {
+            if(has_pending)
+                put_byte(os, pending);
+            pending = value;
+            has_pending = true;
+        }
+    }
+
+    put_byte(os, byte(pending | stop_bit));
 }
 
 inline void encode(std::ostream& os, std::double_t d)
@@ -216,13 +304,20 @@ inline void decode(std::istream& is, std::int64_t& i)
 inline void decode(std::istream& is, std::string& str)
 {
     str.clear();
-    for(char byte = is.get(); is; byte = is.get())
+    bool saw_escape = false;
+    for(int ch = is.get(); is; ch = is.get())
     {
-        str.push_back(byte & 0x7f);
-        if(byte & 0x80)
+        const byte value = byte(ch);
+        const byte data = byte(value & data_mask);
+        if(data == escape_marker)
+            saw_escape = true;
+        str.push_back(to_char(data));
+        if(value & stop_bit)
             break;
     }
-    
+
+    if(saw_escape)
+        unescape_inplace(str);
 }
 
 inline void decode(std::istream& is, std::double_t& d)
@@ -251,4 +346,3 @@ inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
 }
 
 } // namespace xson::fast
-
