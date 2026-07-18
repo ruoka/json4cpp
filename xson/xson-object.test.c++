@@ -786,6 +786,10 @@ auto register_tests()
         require_false(doc.match(object{{"Customer"s, "Alice"s}}));
         require_false(doc.match(object{{"Customer"s, object{{"$ne"s, "Alice"s}}}}));
         require_true(doc.match(object{{"Customer"s, object{{"Country"s, "USA"s}}}}));
+
+        // Pagination-only selectors must still match every document.
+        require_true(doc.match(object{{"$orderby"s, "name"s}, {"$desc"s, true}}));
+        require_true(doc.match(object{{"$top"s, 2}, {"$skip"s, 0}}));
     };
 
     test_case("MatchArrayRejectsScalarOperators, [xson]") = [] {

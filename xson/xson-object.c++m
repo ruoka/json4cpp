@@ -557,16 +557,25 @@ public:
             const auto& subset_map = subset.get<map>();
 
             // Scalar operator maps ($eq/$ne/$gt/$in/...) only apply to primitives.
-            // Skipping $-keys below would otherwise treat any object as a match, and
-            // bare equality against a primitive falls through to get<primitive>() and
-            // throws bad_variant_access for object/array document fields.
+            // Skipping $-keys below would otherwise treat any object as a match.
+            // Do not treat query/pagination keys ($top/$skip/$orderby/$desc) as
+            // scalar operators — a selector of only those must still match all docs.
+            const auto is_scalar_operator = [](const string_type& key)
+            {
+                return key == "$eq"s
+                    or key == "$ne"s
+                    or key == "$gt"s
+                    or key == "$gte"s
+                    or key == "$lt"s
+                    or key == "$lte"s
+                    or key == "$in"s
+                    or key == "$nin"s;
+            };
+
             if(not subset_map.empty()
                 and std::ranges::all_of(
                     subset_map,
-                    [](const auto& entry)
-                    {
-                        return not entry.first.empty() and entry.first.front() == '$';
-                    }))
+                    [&](const auto& entry) { return is_scalar_operator(entry.first); }))
                 return false;
 
             auto lf = get<map>().cbegin(), rf = subset_map.cbegin();
@@ -593,6 +602,7 @@ public:
         }
 
         // Object/array versus primitive (or other mismatched shapes) never match.
+        // Bare equality against a map/array used to throw bad_variant_access.
         if(not has_value() or not subset.has_value())
             return false;
 
