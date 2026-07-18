@@ -764,6 +764,36 @@ auto register_tests()
         require_true(ob.match(subset));
     };
 
+    test_case("MatchObjectRejectsScalarOperators, [xson]") = [] {
+        auto nested = object{{"Country"s, "USA"s}};
+
+        // Nested document fields must not satisfy scalar operator predicates.
+        require_false(nested.match(object{{"$ne"s, "foo"s}}));
+        require_false(nested.match(object{{"$eq"s, "USA"s}}));
+        require_false(nested.match(object{{"$gt"s, 0}}));
+        require_false(nested.match(object{{"$in"s, object{{"0"s, "USA"s}}}}));
+        require_false(nested.match(object{{"$nin"s, object{{"0"s, "foo"s}}}}));
+
+        // Bare equality against a primitive must not throw bad_variant_access.
+        require_false(nested.match(object{"foo"s}));
+
+        // Nested field selectors still match.
+        require_true(nested.match(object{{"Country"s, "USA"s}}));
+        require_false(nested.match(object{{"Country"s, "UK"s}}));
+
+        // Top-level: object-valued field vs scalar filter must not match.
+        auto doc = object{{"Customer"s, nested}, {"name"s, "Alice"s}};
+        require_false(doc.match(object{{"Customer"s, "Alice"s}}));
+        require_false(doc.match(object{{"Customer"s, object{{"$ne"s, "Alice"s}}}}));
+        require_true(doc.match(object{{"Customer"s, object{{"Country"s, "USA"s}}}}));
+    };
+
+    test_case("MatchArrayRejectsScalarOperators, [xson]") = [] {
+        auto tags = object{array{object{"a"s}, object{"b"s}}};
+        require_false(tags.match(object{{"$ne"s, "x"s}}));
+        require_false(tags.match(object{"a"s}));
+    };
+
     test_case("StringViewAccess, [xson]") = [] {
         auto ob = object{{"Key"s, 42}};
         std::string_view key{"Key"};
