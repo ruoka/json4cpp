@@ -772,6 +772,32 @@ auto register_tests()
         require_false(ob.match(object{{"$gte"s, 50}}));
     };
 
+    test_case("MatchNumericCrossType, [xson]") = [] {
+        // JSON doubles (number_type) vs integer literals must compare by value.
+        auto as_double = object{};
+        as_double = 100.0;
+        auto as_integer = object{100ll};
+
+        require_true(as_double.match(object{{"$eq"s, 100ll}}));
+        require_true(as_integer.match(object{{"$eq"s, 100.0}}));
+        require_false(as_double.match(object{{"$lt"s, 9ll}}));
+        require_true(as_double.match(object{{"$gt"s, 0ll}}));
+        require_true(as_double.match(object{{"$lte"s, 100ll}}));
+        require_true(as_double.match(object{{"$gte"s, 100ll}}));
+        require_true(as_double.match(object{100ll}));
+        require_true(as_double.match(object{{"$in"s, object{{"0"s, 100ll}}}}));
+        require_false(as_double.match(object{{"$nin"s, object{{"0"s, 100ll}}}}));
+
+        require_true(xson::primitive_equal(primitive{100.0}, primitive{100ll}));
+        require_false(xson::primitive_less(primitive{100.0}, primitive{9ll}));
+        require_true(xson::primitive_less(primitive{9ll}, primitive{100.0}));
+
+        // Transitivity vs non-numeric keys (needed by secondary flat_map).
+        require_true(xson::primitive_less(primitive{1.0}, primitive{"1"s}));
+        require_true(xson::primitive_less(primitive{1ll}, primitive{"1"s}));
+        require_false(xson::primitive_less(primitive{"1"s}, primitive{1ll}));
+    };
+
     test_case("MatchValueWithObject, [xson]") = [] {
         auto ob = object{42};
         auto subset = object{{"$eq"s, 42}};
