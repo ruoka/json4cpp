@@ -31,6 +31,61 @@ using primitive      = std::variant<std::monostate,     // \x0A
                                    boolean_type    // \x08
                                    >;
 
+// JSON numbers may be integer_type or number_type. Default variant ordering
+// compares by alternative index first, so 100.0 < 9ll and 100.0 != 100ll.
+// Use these for match operators, $in/$nin, and ordered indexes.
+inline bool is_numeric_primitive(const primitive& value) noexcept
+{
+    return std::holds_alternative<number_type>(value)
+        or std::holds_alternative<integer_type>(value);
+}
+
+inline number_type numeric_primitive_value(const primitive& value)
+{
+    if(const auto* number = std::get_if<number_type>(&value))
+        return *number;
+    return static_cast<number_type>(std::get<integer_type>(value));
+}
+
+inline bool primitive_equal(const primitive& left, const primitive& right) noexcept
+{
+    if(is_numeric_primitive(left) and is_numeric_primitive(right))
+        return numeric_primitive_value(left) == numeric_primitive_value(right);
+    return left == right;
+}
+
+inline bool primitive_less(const primitive& left, const primitive& right) noexcept
+{
+    if(is_numeric_primitive(left) and is_numeric_primitive(right))
+        return numeric_primitive_value(left) < numeric_primitive_value(right);
+
+    // integer_type and number_type are equivalent when values match, so they
+    // must share one rank against every other alternative. Default variant
+    // ordering puts number_type before string_type and integer_type after it,
+    // which breaks transitivity (1.0 < "1" < 1ll while 1.0 == 1ll).
+    const auto rank = [](const primitive& value) noexcept -> std::size_t
+    {
+        if(is_numeric_primitive(value))
+            return 1uz; // number_type's index
+        return value.index();
+    };
+
+    const auto left_rank = rank(left);
+    const auto right_rank = rank(right);
+    if(left_rank != right_rank)
+        return left_rank < right_rank;
+
+    return left < right;
+}
+
+struct primitive_less_t
+{
+    bool operator()(const primitive& left, const primitive& right) const noexcept
+    {
+        return primitive_less(left, right);
+    }
+};
+
 template <typename T>
 concept Primitive = (
     std::same_as<std::remove_cvref_t<T>, number_type> or
@@ -59,10 +114,6 @@ concept Object = std::same_as<std::remove_cvref_t<T>,object>;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 using monostate = std::monostate;
-
-// Numeric-aware primitive compare (integer_type ↔ number_type). Defined below.
-bool primitive_equal(const primitive& left, const primitive& right);
-bool primitive_less(const primitive& left, const primitive& right);
 
 // Forward declaration for readme_pair
 class object;
@@ -522,7 +573,8 @@ public:
                 return false;
 
             for(auto i = 0ll; const auto &o : subset.get<array>())
-                if(not primitive_equal(get<array>()[i++].get<primitive>(), o.get<primitive>())) return false;
+                if(not primitive_equal(get<array>()[i++].get<primitive>(), o.get<primitive>()))
+                    return false;
 
             return true;
         }
@@ -542,7 +594,9 @@ public:
                 test = test && std::any_of(subset["$in"s].get<map>().cbegin(), subset["$in"s].get<map>().cend(),
                     [&](const auto& node)
                     {
-                        return primitive_equal(get<primitive>(), node.second.template get<primitive>());
+                        return primitive_equal(
+                            get<primitive>(),
+                            node.second.template get<primitive>());
                     });
 
             // $nin is the complement of $in (empty map excludes nothing).
@@ -550,7 +604,9 @@ public:
                 test = test && std::none_of(subset["$nin"s].get<map>().cbegin(), subset["$nin"s].get<map>().cend(),
                     [&](const auto& node)
                     {
-                        return primitive_equal(get<primitive>(), node.second.template get<primitive>());
+                        return primitive_equal(
+                            get<primitive>(),
+                            node.second.template get<primitive>());
                     });
 
             return test;
@@ -620,49 +676,19 @@ private:
     value m_value;
 };
 
-// std::variant compares alternatives by index first, so integer_type and
-// number_type never compare equal and any double sorts before any int64.
-// Coerce the two numeric alternatives so JSON floats match OData integer
-// filters (and mixed-type $orderby / ranges behave numerically).
-inline bool is_numeric_primitive(const primitive& value)
-{
-    return std::holds_alternative<number_type>(value)
-        or std::holds_alternative<integer_type>(value);
-}
-
-inline number_type as_number_primitive(const primitive& value)
-{
-    if(std::holds_alternative<number_type>(value))
-        return std::get<number_type>(value);
-    return static_cast<number_type>(std::get<integer_type>(value));
-}
-
-inline bool primitive_equal(const primitive& left, const primitive& right)
-{
-    if(left == right)
-        return true;
-
-    if(is_numeric_primitive(left) and is_numeric_primitive(right))
-        return as_number_primitive(left) == as_number_primitive(right);
-
-    return false;
-}
-
-inline bool primitive_less(const primitive& left, const primitive& right)
-{
-    if(is_numeric_primitive(left) and is_numeric_primitive(right))
-        return as_number_primitive(left) < as_number_primitive(right);
-
-    return left < right;
-}
-
 const std::map<xson::string_type, std::function<bool(const xson::primitive&, const xson::primitive&)>> object::operators = {
     { "$eq"s,  [](const primitive& left, const primitive& right) { return primitive_equal(left, right); } },
     { "$ne"s,  [](const primitive& left, const primitive& right) { return not primitive_equal(left, right); } },
     { "$lt"s,  [](const primitive& left, const primitive& right) { return primitive_less(left, right); } },
-    { "$lte"s,  [](const primitive& left, const primitive& right) { return not primitive_less(right, left); } },
+    { "$lte"s, [](const primitive& left, const primitive& right)
+        {
+            return primitive_less(left, right) or primitive_equal(left, right);
+        } },
     { "$gt"s,  [](const primitive& left, const primitive& right) { return primitive_less(right, left); } },
-    { "$gte"s, [](const primitive& left, const primitive& right) { return not primitive_less(left, right); } }
+    { "$gte"s, [](const primitive& left, const primitive& right)
+        {
+            return primitive_less(right, left) or primitive_equal(left, right);
+        } }
 };
 
 // Utility functions (from object.hpp)
