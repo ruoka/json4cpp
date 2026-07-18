@@ -541,6 +541,14 @@ public:
                         return get<primitive>() == node.second.template get<primitive>();
                     });
 
+            // $nin is the complement of $in (empty map excludes nothing).
+            if(subset.has("$nin"s))
+                test = test && std::none_of(subset["$nin"s].get<map>().cbegin(), subset["$nin"s].get<map>().cend(),
+                    [&](const auto& node)
+                    {
+                        return get<primitive>() == node.second.template get<primitive>();
+                    });
+
             return test;
         }
 
