@@ -733,6 +733,11 @@ auto register_tests()
         // $ne
         require_true(ob.match(object{{"$ne"s, 43}}));
         require_false(ob.match(object{{"$ne"s, 42}}));
+
+        // $nin
+        require_true(ob.match(object{{"$nin"s, object{{"0"s, 40}, {"1"s, 41}}}}));
+        require_false(ob.match(object{{"$nin"s, object{{"0"s, 40}, {"1"s, 42}}}}));
+        require_true(ob.match(object{{"$nin"s, object{}}})); // empty excludes nothing
         
         // $lt
         require_true(ob.match(object{{"$lt"s, 50}}));
