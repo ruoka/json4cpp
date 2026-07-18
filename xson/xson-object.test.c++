@@ -355,6 +355,20 @@ auto register_tests()
         require_true(o3.match(s));
     };
 
+    test_case("Match int64 against double, [xson]") = [] {
+        // JSON fractions store number_type; OData numeric filters use integer_type.
+        // Variant std::less/equal_to compare by alternative index and mis-match.
+        auto price = object{{"price"s, 19.99}};
+        require_true(price.match(object{{"price"s, object{{"$gt"s, 10ll}}}}));
+        require_true(price.match(object{{"price"s, object{{"$lt"s, 20ll}}}}));
+        require_false(price.match(object{{"price"s, object{{"$lt"s, 10ll}}}}));
+        require_true(object{{"price"s, 10.0}}.match(object{{"price"s, 10ll}}));
+        require_true(object{{"price"s, 10ll}}.match(object{{"price"s, 10.0}}));
+        require_true(primitive_equal(primitive{10.0}, primitive{10ll}));
+        require_true(primitive_less(primitive{9.5}, primitive{10ll}));
+        require_false(primitive_less(primitive{10ll}, primitive{9.5}));
+    };
+
     test_case("DefaultConstructor, [xson]") = [] {
         auto ob = object{};
         // Default constructor creates an empty map (first variant alternative)
