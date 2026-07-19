@@ -74,6 +74,39 @@ auto register_tests()
         require_eq(i1, i2);
     };
 
+    test_case("Integer64 full range round-trip, [xson]") = [] {
+        auto round_trip = [](std::int64_t in) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, in);
+            auto out = std::int64_t{0};
+            xson::fast::decode(ss, out);
+            return out;
+        };
+
+        require_eq(round_trip(std::numeric_limits<std::int64_t>::min()),
+                   std::numeric_limits<std::int64_t>::min());
+        require_eq(round_trip(std::numeric_limits<std::int64_t>::max()),
+                   std::numeric_limits<std::int64_t>::max());
+        require_eq(round_trip(0x4000000000000000ll), 0x4000000000000000ll); // 2^62
+        require_eq(round_trip(-0x4000000000000000ll - 1), -0x4000000000000000ll - 1);
+    };
+
+    test_case("UInteger64 full range round-trip, [xson]") = [] {
+        auto round_trip = [](std::uint64_t in) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, in);
+            auto out = std::uint64_t{0};
+            xson::fast::decode(ss, out);
+            return out;
+        };
+
+        require_eq(round_trip(0ull), 0ull);
+        require_eq(round_trip(0x7fffffffffffffffull), 0x7fffffffffffffffull); // 2^63-1
+        require_eq(round_trip(0x8000000000000000ull), 0x8000000000000000ull); // 2^63
+        require_eq(round_trip(std::numeric_limits<std::uint64_t>::max()),
+                   std::numeric_limits<std::uint64_t>::max());
+    };
+
     test_case("String, [xson]") = [] {
         auto ss = std::stringstream{};
 

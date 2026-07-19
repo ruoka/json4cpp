@@ -21,15 +21,17 @@ void encode(std::ostream& os, T e)
 
 inline unsigned size(std::uint64_t i)
 {
-   if (i < 0x000000000000080ull) return 1; // 128
-   if (i < 0x000000000004000ull) return 2; // 16384
-   if (i < 0x000000000200000ull) return 3; // 2097152
-   if (i < 0x000000010000000ull) return 4; // 268435456
-   if (i < 0x000000800000000ull) return 5; // 34359738368
-   if (i < 0x000040000000000ull) return 6; // 4398046511104
-   if (i < 0x002000000000000ull) return 7; // 562949953421312
-   if (i < 0x100000000000000ull) return 8; // 72057594037927936
-   return 9;
+   if (i < 0x000000000000080ull) return 1; // 2^7
+   if (i < 0x000000000004000ull) return 2; // 2^14
+   if (i < 0x000000000200000ull) return 3; // 2^21
+   if (i < 0x000000010000000ull) return 4; // 2^28
+   if (i < 0x000000800000000ull) return 5; // 2^35
+   if (i < 0x000040000000000ull) return 6; // 2^42
+   if (i < 0x002000000000000ull) return 7; // 2^49
+   if (i < 0x100000000000000ull) return 8; // 2^56
+   // 9×7 = 63 payload bits; values at or above 2^63 need a 10th byte.
+   if (i < 0x8000000000000000ull) return 9; // 2^63
+   return 10;
 }
 
 inline void encode(std::ostream& os, std::uint64_t i)
@@ -38,6 +40,7 @@ inline void encode(std::ostream& os, std::uint64_t i)
     switch(size(i))
     {
     // Shifts are logical (unsigned)
+    case 10: os.put((i >> 63) & 0x7f);
     case 9: os.put((i >> 56) & 0x7f);
     case 8: os.put((i >> 49) & 0x7f);
     case 7: os.put((i >> 42) & 0x7f);
@@ -65,6 +68,9 @@ inline unsigned size(std::int64_t i)
         if (i >= 0xfffffe0000000000ll) return 6; // -2199023255552
         if (i >= 0xffff000000000000ll) return 7; // -281474976710656
         if (i >= 0xff80000000000000ll) return 8; // -36028797018963968
+        // Decode treats bit 6 of the first byte as the sign. With 9 bytes that
+        // bit is value bit 62, so 9 bytes only cover [-2^62, 2^62).
+        if (i >= -0x4000000000000000ll) return 9; // -2^62
     }
     else
     {
@@ -76,8 +82,9 @@ inline unsigned size(std::int64_t i)
         if (i <  0x00020000000000ll) return 6; // 2199023255552
         if (i <  0x01000000000000ll) return 7; // 281474976710656
         if (i <  0x80000000000000ll) return 8; // 36028797018963968
+        if (i <  0x4000000000000000ll) return 9; // 2^62
     }
-    return 9;
+    return 10;
 }
 
 #pragma clang diagnostic pop
@@ -89,6 +96,7 @@ inline void encode(std::ostream& os, std::int64_t i)
     {
     // Shifts are arithmetic (signed)
     // The sign bit of data will be copied on right shifts
+    case 10: os.put((i >> 63) & 0x7f);
     case 9: os.put((i >> 56) & 0x7f);
     case 8: os.put((i >> 49) & 0x7f);
     case 7: os.put((i >> 42) & 0x7f);

@@ -298,6 +298,35 @@ auto register_tests()
         check_eq(36028797018963968ll, max);
     };
 
+    test_case("Int64FullRangeRoundTrip, [xson]") = [] {
+        // 9-byte signed varints only cover [-2^62, 2^62). Values outside that
+        // range previously corrupted on decode (INT64_MAX -> -1, INT64_MIN -> 0).
+        auto o1 = object
+        {
+            { "Min"s, std::numeric_limits<std::int64_t>::min() },
+            { "NegBoundary"s, -0x4000000000000000ll - 1 }, // -2^62 - 1
+            { "PosBoundary"s, 0x4000000000000000ll },      // 2^62
+            { "Max"s, std::numeric_limits<std::int64_t>::max() }
+        };
+
+        auto ss = std::stringstream{};
+        xson::fson::encoder{}.encode(ss, o1);
+        auto o2 = xson::fson::parse(ss);
+
+        require_eq(
+            static_cast<std::int64_t>(o2["Min"s]),
+            std::numeric_limits<std::int64_t>::min());
+        require_eq(
+            static_cast<std::int64_t>(o2["NegBoundary"s]),
+            -0x4000000000000000ll - 1);
+        require_eq(
+            static_cast<std::int64_t>(o2["PosBoundary"s]),
+            0x4000000000000000ll);
+        require_eq(
+            static_cast<std::int64_t>(o2["Max"s]),
+            std::numeric_limits<std::int64_t>::max());
+    };
+
     test_case("RootPrimitiveRoundTrip, [xson]") = [] {
         // FSON supports non-container top-level values as well.
         auto round_trip = [](const xson::object& in) {
