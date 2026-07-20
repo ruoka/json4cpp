@@ -139,3 +139,8 @@ The library is organized as C++23 modules:
 - `xson:fson` - FSON binary serialization
 - `xson:object` - object/array/value + builder
 - `xson:fast` - fast utilities
+
+## Documentation
+
+- **[docs/assessment.md](docs/assessment.md)** — current library assessment (gaps, limits, suggested work)
+- **[docs/archive/peer_review_2024.md](docs/archive/peer_review_2024.md)** — historical 2024 peer review
