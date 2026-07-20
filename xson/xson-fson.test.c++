@@ -147,6 +147,27 @@ auto register_tests()
         require_eq(static_cast<std::string>(o2["ascii"s]), "plain"s);
     };
 
+    test_case("Empty string value and key round-trip, [xson]") = [] {
+        // Regression: FAST used to decode empty as a one-byte NUL string.
+        const auto nul = std::string(1, '\0');
+        auto o1 = object{
+            {"empty"s, ""s},
+            {""s, "value"s},
+            {"nul"s, nul}
+        };
+
+        auto ss = std::stringstream{};
+        xson::fson::encoder{}.encode(ss, o1);
+        const auto o2 = xson::fson::parse(ss);
+
+        require_eq(static_cast<std::string>(o2["empty"s]), ""s);
+        require_true(static_cast<std::string>(o2["empty"s]).empty());
+        require_true(o2.has(""s));
+        require_eq(static_cast<std::string>(o2[""s]), "value"s);
+        require_eq(static_cast<std::string>(o2["nul"s]), nul);
+        require_eq(static_cast<std::string>(o2["nul"s]).size(), 1uz);
+    };
+
     test_case("UTF-8 object key round-trip, [xson]") = [] {
         auto o1 = object{};
         o1["名"s] = "value"s;

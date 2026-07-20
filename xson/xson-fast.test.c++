@@ -136,6 +136,26 @@ auto register_tests()
         require_eq(round_trip("a\x01" "b"s), "a\x01" "b"s);
     };
 
+    test_case("String empty and NUL round-trip, [xson]") = [] {
+        // Lone 0x80 is empty; NUL is escaped so it cannot collide with that marker.
+        auto round_trip = [](const std::string& in) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, in);
+            auto out = "sentinel"s;
+            xson::fast::decode(ss, out);
+            return out;
+        };
+
+        const auto nul = std::string(1, '\0');
+        const auto with_nul = "a"s + nul + "b"s;
+
+        require_eq(round_trip(""s), ""s);
+        require_true(round_trip(""s).empty());
+        require_eq(round_trip(nul), nul);
+        require_eq(round_trip(nul).size(), 1uz);
+        require_eq(round_trip(with_nul), with_nul);
+    };
+
     test_case("String malformed escape throws, [xson]") = [] {
         require_throws([] {
             auto s = "\x01"s;
