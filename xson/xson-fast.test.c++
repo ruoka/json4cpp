@@ -167,6 +167,29 @@ auto register_tests()
         });
     };
 
+    test_case("Timestamp pre-epoch round-trip, [xson]") = [] {
+        // Regression: milliseconds were cast through uint64_t, so negative
+        // (pre-Unix-epoch) counts wrapped and decoded as far-future times.
+        using namespace std::chrono;
+        auto round_trip = [](system_clock::time_point in) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, in);
+            auto out = system_clock::time_point{};
+            xson::fast::decode(ss, out);
+            return out;
+        };
+
+        const auto before_epoch = system_clock::time_point{milliseconds{-1}};
+        const auto apollo = sys_days{year{1969}/month{7}/day{20}};
+        const auto epoch = system_clock::time_point{};
+        const auto after_epoch = system_clock::time_point{milliseconds{1}};
+
+        require_eq(round_trip(before_epoch), before_epoch);
+        require_eq(round_trip(apollo), apollo);
+        require_eq(round_trip(epoch), epoch);
+        require_eq(round_trip(after_epoch), after_epoch);
+    };
+
     return 0;
 }
 
