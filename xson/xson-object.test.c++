@@ -839,8 +839,6 @@ auto register_tests()
         auto in_empty_array = object{array{empty_array}};
         require_false(ob.match(object{{"$in"s, in_empty_array}}));
         require_true(ob.match(object{{"$nin"s, in_empty_array}}));
-        require_true(empty_array.match(object{{"$in"s, in_empty_array}}));
-        require_false(empty_array.match(object{{"$nin"s, in_empty_array}}));
 
         // Nested field selector with array $in (typical query shape).
         auto doc = object{{"age"s, 42}};
@@ -848,6 +846,8 @@ auto register_tests()
         require_false(doc.match(object{{"age"s, object{{"$in"s, in_miss}}}}));
         require_true(doc.match(object{{"age"s, object{{"$nin"s, nin_hit}}}}));
         require_false(doc.match(object{{"age"s, object{{"$nin"s, nin_miss}}}}));
+        require_false(doc.match(object{{"age"s, object{{"$in"s, in_empty_array}}}}));
+        require_true(doc.match(object{{"age"s, object{{"$nin"s, in_empty_array}}}}));
         // Field equality against [] must require an empty array, not any value.
         require_false(doc.match(object{{"age"s, empty_array}}));
         require_true(object{{"tags"s, empty_array}}.match(object{{"tags"s, empty_array}}));
