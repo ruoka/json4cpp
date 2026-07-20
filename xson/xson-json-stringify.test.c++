@@ -211,6 +211,59 @@ auto register_tests()
         require_true(parsed["small_float"s].is_number());
     };
 
+    test_case("StringifyEscapesQuotesAndControls, [xson]") = [] {
+        auto obj = xson::object{};
+        obj = "quote:\" backslash:\\ tab:\t nl:\n cr:\r"s;
+
+        const auto s = json::stringify(obj, 0);
+        require_eq(R"("quote:\" backslash:\\ tab:\t nl:\n cr:\r")"s, s);
+
+        const auto parsed = json::parse(s);
+        require_true(parsed.is_string());
+        require_eq("quote:\" backslash:\\ tab:\t nl:\n cr:\r"s,
+                   static_cast<xson::string_type>(parsed));
+    };
+
+    test_case("StringifyEscapesObjectKeys, [xson]") = [] {
+        auto obj = xson::object{
+            {"a\"b", 1},
+            {"c\\d", 2},
+            {"e\nf", 3}
+        };
+
+        const auto s = json::stringify(obj, 0);
+        require_contains(s, R"("a\"b")");
+        require_contains(s, R"("c\\d")");
+        require_contains(s, R"("e\nf")");
+
+        const auto parsed = json::parse(s);
+        require_eq(1, static_cast<xson::integer_type>(parsed["a\"b"s]));
+        require_eq(2, static_cast<xson::integer_type>(parsed["c\\d"s]));
+        require_eq(3, static_cast<xson::integer_type>(parsed["e\nf"s]));
+    };
+
+    test_case("StringifyEscapesOtherControlsAsUnicode, [xson]") = [] {
+        auto obj = xson::object{};
+        obj = std::string{"\x01\x1f"};
+
+        const auto s = json::stringify(obj, 0);
+        require_eq(R"("\u0001\u001f")"s, s);
+
+        const auto parsed = json::parse(s);
+        require_eq(std::string{"\x01\x1f"}, static_cast<xson::string_type>(parsed));
+    };
+
+    test_case("StringifyPreservesUtf8, [xson]") = [] {
+        auto obj = xson::object{};
+        obj = "café 😀"s;
+
+        const auto s = json::stringify(obj, 0);
+        require_eq("\"café 😀\""s, s);
+
+        const auto parsed = json::parse(s);
+        require_eq("café 😀"s, static_cast<xson::string_type>(parsed));
+    };
+
     return 0;
 }
 

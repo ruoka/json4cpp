@@ -30,7 +30,8 @@ public:
             for(auto i = 0; const auto& [name,value] : container)
             {
                 os << (i++ == 0 ? m_pretty() : m_pretty(','));
-                os << '\"' << name << '\"' << m_pretty(':');
+                write_json_string(os, name);
+                os << m_pretty(':');
                 encode(os,value);
             }
             os << m_pretty('}', container.empty());
@@ -982,16 +983,30 @@ private:
             throw std::runtime_error{"JSON parse error: expected colon ':', got '"s + c + "'"s};
     }
 
+    // Object member names are JSON strings (RFC 8259); share escape handling with string().
     void name(char c)
     {
-        if(c != '\"')
-            m_string += c;
-        else
+        if(c == '\0')
+            throw std::runtime_error{"Invalid JSON: unterminated object member name (unexpected end of input)"s};
+        if(c == '\\')
         {
-            m_builder.name(m_string);
-            m_string = ""s;
-            m_state_machine.pop();
+            m_state_machine.push(&decoder::escape);
+            return;
         }
+        if(c != '\"')
+        {
+            if(static_cast<unsigned char>(c) < 0x20)
+                throw std::runtime_error{"JSON parse error: unescaped control character in string"s};
+            if(m_string.length() >= max_string_length)
+                throw std::runtime_error{"JSON parse error: string length exceeds maximum allowed size"s};
+            m_string += c;
+            return;
+        }
+        if(m_high_surrogate != 0)
+            throw std::runtime_error{"JSON parse error: incomplete Unicode surrogate pair"s};
+        m_builder.name(std::move(m_string));
+        m_string = ""s;
+        m_state_machine.pop();
     }
 
     // After a top-level standalone value, RFC 8259 only allows optional trailing whitespace and then EOF.
