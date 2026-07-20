@@ -442,6 +442,21 @@ auto register_tests()
         require_eq("😀", static_cast<xson::string_type>(ob["unicode4"s]));  // U+1F600 = grinning face (surrogate pair)
     };
 
+    // High surrogate must be followed immediately by a low-surrogate \uXXXX.
+    // A BMP/non-surrogate escape used to clear m_high_surrogate and keep only
+    // the second code unit (e.g. "\uD800\u0041" silently became "A").
+    test_case("HighSurrogateFollowedByNonLowIsRejected, [xson]") = [] {
+        require_throws([&]{ (void)json::parse(R"("\uD800\u0041")"); });
+        require_throws([&]{ (void)json::parse(R"("\uD800\uD7FF")"); });
+        require_throws([&]{ (void)json::parse(R"({"\uD800\u0041":1})"); });
+    };
+
+    test_case("HighSurrogateInterruptedByEscapeIsRejected, [xson]") = [] {
+        // Also reject "\uD800\n\uDC00" — must not combine across an intervening escape.
+        require_throws([&]{ (void)json::parse(R"("\uD800\n\uDC00")"); });
+        require_throws([&]{ (void)json::parse(R"("\uD800A\uDC00")"); });
+    };
+
     test_case("DeepNesting, [xson]") = [] {
         // Test nesting up to a reasonable depth (10 levels to avoid test slowness)
         // Build a deeply nested structure manually for reliability

@@ -287,6 +287,9 @@ private:
         }
         else if(c != '\"')
         {
+            // A high surrogate must be followed immediately by \uDC00–\uDFFF.
+            if(m_high_surrogate != 0)
+                throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (expected low surrogate after high surrogate)"s};
             // RFC 8259: unescaped control characters (U+0000 through U+001F) are not allowed in strings.
             if(static_cast<unsigned char>(c) < 0x20)
                 throw std::runtime_error{"JSON parse error: unescaped control character in string"s};
@@ -313,6 +316,9 @@ private:
         if(c == '\0')
             throw std::runtime_error{"Invalid JSON: unterminated escape sequence (unexpected end of input)"s};
         m_state_machine.pop();
+        // Only \uXXXX may follow a high surrogate; "\uD800\n\uDC00" must not combine.
+        if(m_high_surrogate != 0 && c != 'u')
+            throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (expected low surrogate \\u sequence after high surrogate)"s};
         switch(c)
         {
             case '\"': m_string += '\"'; break;
@@ -386,6 +392,13 @@ private:
                     std::uint32_t code_point = 0x10000 + ((m_high_surrogate - 0xD800) << 10) + (m_unicode_value - 0xDC00);
                     m_unicode_value = code_point;
                     m_high_surrogate = 0; // Reset for next potential surrogate pair
+                }
+                else if(m_high_surrogate != 0)
+                {
+                    // High surrogate must be followed immediately by a low surrogate
+                    // \uXXXX. A BMP/non-surrogate escape used to clear m_high_surrogate
+                    // and keep only the second code unit (e.g. "\uD800\u0041" → "A").
+                    throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (expected low surrogate after high surrogate)"s};
                 }
                 
                 // Validate value doesn't exceed maximum Unicode code point
@@ -1036,6 +1049,8 @@ private:
         }
         if(c != '\"')
         {
+            if(m_high_surrogate != 0)
+                throw std::runtime_error{"JSON parse error: invalid Unicode surrogate pair (expected low surrogate after high surrogate)"s};
             if(static_cast<unsigned char>(c) < 0x20)
                 throw std::runtime_error{"JSON parse error: unescaped control character in string"s};
             if(m_string.length() >= max_string_length)
