@@ -197,6 +197,27 @@ auto register_tests()
         const auto noon = xson::to_time_point("2020-01-01T12:00:00.000Z");
         require_eq(1577880000000ll, duration_cast<milliseconds>(noon.time_since_epoch()).count());
         require_eq("2020-01-01T12:00:00.000Z", xson::to_iso8601(noon));
+
+        // Date-only is midnight UTC.
+        const auto date_only = xson::to_time_point("2020-01-01");
+        require_eq(duration_cast<milliseconds>(
+                       xson::to_time_point("2020-01-01T00:00:00.000Z").time_since_epoch()).count(),
+                   duration_cast<milliseconds>(date_only.time_since_epoch()).count());
+    };
+
+    test_case("ToTimePointRejectsTruncatedOrCorrupt, [xson]") = [] {
+        // Regression: lengths other than 10/24 used to parse the date only and
+        // silently drop a present time (e.g. "…T12:00:00Z" → midnight).
+        require_throws([&]{ (void)xson::to_time_point("2020-01-01T12:00:00Z"); });
+        require_throws([&]{ (void)xson::to_time_point("2020-01-01T12:00:00.000"); });
+        require_throws([&]{ (void)xson::to_time_point("2020-01-01T12:00:00.000z"); });
+
+        // Failed/partial numeric fields used to leave zeros and build unspecified dates.
+        require_throws([&]{ (void)xson::to_time_point("2020-1X-01T00:00:00.000Z"); });
+        require_throws([&]{ (void)xson::to_time_point("2020-13-01T00:00:00.000Z"); });
+        require_throws([&]{ (void)xson::to_time_point("2020-01-32T00:00:00.000Z"); });
+        require_throws([&]{ (void)xson::to_time_point("2020-01-01T24:00:00.000Z"); });
+        require_throws([&]{ (void)xson::to_time_point("1970/01/01T00:00:00.000Z"); });
     };
 
     test_case("ToStringObjectValueAllTypes, [xson]") = [] {
