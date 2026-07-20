@@ -641,7 +641,11 @@ public:
 
     bool match(const object& subset) const
     {
-        if(subset.empty())
+        // Empty object query matches everything (Mongo-style {}). Empty arrays
+        // must not: array matching is same-length equality, and $in/$nin reuse
+        // match() for candidates — treating [] as a wildcard made
+        // {"$in":[[]]} / {"tags":[]} match any value.
+        if(subset.has_objects() and subset.empty())
             return true;
 
         if(is_array() and subset.is_array())
