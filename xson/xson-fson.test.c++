@@ -416,6 +416,44 @@ auto register_tests()
         require_throws([&]{ auto ob = xson::fson::parse(ss); });
     };
 
+    test_case("Malformed_TruncatedRootPrimitives_Throw, [xson]") = [] {
+        // Regression: root primitives leave parent empty, so a type tag with no
+        // payload used to return success with a fabricated value (integer → -1,
+        // boolean → true/0xff, string → "", number → 0.0).
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::integer);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::number);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::string);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::boolean);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::timestamp);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        // Incomplete varint (no stop bit) must not be accepted either.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::integer);
+            ss.put(char{0x01}); // continuation byte, missing 0x80 terminator
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+    };
+
     return 0;
 }
 
