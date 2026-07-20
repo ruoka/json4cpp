@@ -140,6 +140,29 @@ public:
     void decode(std::istream& is)
     {
         auto parent = std::stack<fson::type>{};
+        // Parallel to parent: for objects, true means a name was read and the
+        // next tag must be that member's value. Without this, a value tag with
+        // no preceding name silently wrote under "" (or overwrote the previous
+        // key), and a dangling name before end was dropped.
+        auto expect_value = std::stack<bool>{};
+
+        const auto require_object_member_value = [&]()
+        {
+            if(parent.empty() || parent.top() != type::object)
+                return;
+            if(expect_value.empty() || !expect_value.top())
+                throw std::runtime_error{"Invalid FSON: object value without name"s};
+            expect_value.top() = false;
+        };
+
+        const auto require_no_pending_member_value = [&]()
+        {
+            if(!parent.empty()
+                && parent.top() == type::object
+                && !expect_value.empty()
+                && expect_value.top())
+                throw std::runtime_error{"Invalid FSON: object name without value"s};
+        };
 
         while(is)
         {
@@ -161,7 +184,9 @@ public:
             switch(tag)
             {
                 case type::object:
+                    require_object_member_value();
                     parent.push(type::object);
+                    expect_value.push(false);
                     m_builder.start_object();
                     break;
 
@@ -169,20 +194,26 @@ public:
                     // Names are only valid when the current container is an object.
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name outside object"s};
+                    if(expect_value.top())
+                        throw std::runtime_error{"Invalid FSON: object name without value"s};
                     fast::decode(is,name);
                     // Root/container completion uses parent.empty(); payload reads must
                     // not treat a failed stream as a successful empty name/value.
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated name"s};
+                    expect_value.top() = true;
                     m_builder.name(name);
                     break;
 
                 case type::array:
+                    require_object_member_value();
                     parent.push(type::array);
+                    expect_value.push(false);
                     m_builder.start_array();
                     break;
 
                 case type::number:
+                    require_object_member_value();
                     fast::decode(is,d);
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated number"s};
@@ -190,6 +221,7 @@ public:
                     break;
 
                 case type::string:
+                    require_object_member_value();
                     fast::decode(is,str);
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated string"s};
@@ -197,6 +229,7 @@ public:
                     break;
 
                 case type::boolean:
+                    require_object_member_value();
                     fast::decode(is,b);
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated boolean"s};
@@ -204,10 +237,12 @@ public:
                     break;
 
                 case type::null:
+                    require_object_member_value();
                     m_builder.value(nullptr);
                     break;
 
                 case type::timestamp:
+                    require_object_member_value();
                     fast::decode(is,dt);
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated timestamp"s};
@@ -218,6 +253,7 @@ public:
                     // A lone integer tag with no varint payload used to succeed for
                     // root values: peek(EOF) sign-extended to -1 and parent.empty()
                     // returned before any truncation check.
+                    require_object_member_value();
                     fast::decode(is,i);
                     if(!is)
                         throw std::runtime_error{"Invalid FSON: truncated integer"s};
@@ -227,11 +263,13 @@ public:
                 case type::end:
                     if(parent.empty())
                         return;  // End of document
+                    require_no_pending_member_value();
                     if(parent.top() == type::object)
                         m_builder.end_object();
                     else if(parent.top() == type::array)
                         m_builder.end_array();
                     parent.pop();
+                    expect_value.pop();
                     break;
 
                 default:
