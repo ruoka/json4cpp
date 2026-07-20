@@ -454,6 +454,57 @@ auto register_tests()
         }
     };
 
+    test_case("Malformed_ObjectValueWithoutName_Throws, [xson]") = [] {
+        // Regression: a value tag inside an object with no preceding name used to
+        // succeed as {"": value} because the builder defaults m_current to "".
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::object);
+            xson::fast::encode(ss, xson::fson::type::integer);
+            xson::fast::encode(ss, std::int64_t{1});
+            xson::fast::encode(ss, xson::fson::type::end);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        // A second value after a named member must not silently overwrite that key.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::object);
+            xson::fast::encode(ss, xson::fson::type::name);
+            xson::fast::encode(ss, "a"s);
+            xson::fast::encode(ss, xson::fson::type::integer);
+            xson::fast::encode(ss, std::int64_t{1});
+            xson::fast::encode(ss, xson::fson::type::integer);
+            xson::fast::encode(ss, std::int64_t{2});
+            xson::fast::encode(ss, xson::fson::type::end);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+    };
+
+    test_case("Malformed_ObjectNameWithoutValue_Throws, [xson]") = [] {
+        // Regression: name then end (or another name) used to drop/overwrite silently.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::object);
+            xson::fast::encode(ss, xson::fson::type::name);
+            xson::fast::encode(ss, "a"s);
+            xson::fast::encode(ss, xson::fson::type::end);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::object);
+            xson::fast::encode(ss, xson::fson::type::name);
+            xson::fast::encode(ss, "a"s);
+            xson::fast::encode(ss, xson::fson::type::name);
+            xson::fast::encode(ss, "b"s);
+            xson::fast::encode(ss, xson::fson::type::integer);
+            xson::fast::encode(ss, std::int64_t{1});
+            xson::fast::encode(ss, xson::fson::type::end);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+    };
+
+
     return 0;
 }
 
