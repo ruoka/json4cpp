@@ -41,6 +41,16 @@ auto register_tests()
         require_false(ob["huge_num"s].is_integer());
     };
 
+    // Digit-only magnitudes beyond ~1e308 overflow double to ±inf in integer_overflow.
+    // Scientific notation already rejected non-finite results; the plain digit path must too
+    // (otherwise parse accepts Inf and stringify can emit non-JSON).
+    test_case("DigitOverflowToInfinityRejected, [xson]") = [] {
+        const auto huge = "1"s + std::string(400, '0');
+        require_throws([&]{ (void)json::parse(huge); });
+        require_throws([&]{ (void)json::parse("-"s + huge); });
+        require_throws([&]{ (void)json::parse(huge + ".5"); });
+    };
+
     test_case("SmallIntegerRemainsInt, [xson]") = [] {
         // Test that small integers remain as integers
         auto json_str = R"({"small": 42, "zero": 0, "negative": -123})";

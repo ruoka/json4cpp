@@ -663,6 +663,11 @@ private:
         if(std::isdigit(c))
         {
             m_number = m_number * 10.0 + static_cast<xson::number_type>(c - '0');
+            // ~310+ digits overflow double to ±inf; reject like the scientific-notation path.
+            if(!std::isfinite(m_number))
+            {
+                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
+            }
         }
         else if(c == '.')
         {
@@ -689,6 +694,10 @@ private:
             }
             
             const xson::number_type final_value = Sign * m_number;
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
+            }
             m_builder.value(final_value);
             m_number = 0;
             m_integer = 0;
@@ -722,7 +731,13 @@ private:
     {
         if(c == '\0')
         {
-            m_builder.value(Sign * m_number);
+            const xson::number_type final_value = Sign * m_number;
+            // Integer-overflow → fraction can carry ±inf into this state.
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
+            }
+            m_builder.value(final_value);
             m_number = 0;
             m_place = 1;
             m_state_machine.pop();
@@ -751,7 +766,12 @@ private:
                 throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
             }
             
-            m_builder.value(Sign * m_number);
+            const xson::number_type final_value = Sign * m_number;
+            if(!std::isfinite(final_value))
+            {
+                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
+            }
+            m_builder.value(final_value);
             m_number = 0;
             m_place = 1;
             m_state_machine.pop();
