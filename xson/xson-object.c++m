@@ -665,17 +665,9 @@ public:
         if(has_value() and subset.has_objects())
         {
             // Unknown $-keys must not be treated as universal match. Only
-            // comparison operators, $in/$nin (applied below), and pagination
+            // comparison operators, $in/$nin (applied below), and ignored query
             // keys are recognized here — otherwise {"$date":...} matched any
             // primitive.
-            const auto is_ignored_query_key = [](const string_type& key)
-            {
-                return key == "$top"s
-                    or key == "$skip"s
-                    or key == "$orderby"s
-                    or key == "$desc"s;
-            };
-
             auto test = std::ranges::all_of(subset.get<map>(),
                 [&](const auto& node)
                 {
@@ -721,8 +713,8 @@ public:
             const auto& subset_map = subset.get<map>();
 
             // Scalar operator maps ($eq/$ne/$gt/$in/...) only apply to primitives.
-            // Do not treat query/pagination keys ($top/$skip/$orderby/$desc) as
-            // scalar operators — a selector of only those must still match all docs.
+            // Do not treat ignored query keys ($top/$skip/$orderby/$desc/$head/$tail)
+            // as scalar operators — a selector of only those must still match all docs.
             // Other $-prefixed names (e.g. Extended JSON "$date", "$oid") are
             // ordinary field selectors and must be compared.
             const auto is_scalar_operator = [](const string_type& key)
@@ -737,15 +729,7 @@ public:
                     or key == "$nin"s;
             };
 
-            const auto is_ignored_query_key = [](const string_type& key)
-            {
-                return key == "$top"s
-                    or key == "$skip"s
-                    or key == "$orderby"s
-                    or key == "$desc"s;
-            };
-
-            // After dropping pagination keys, a selector of only scalar operators
+            // After dropping ignored query keys, a selector of only scalar operators
             // cannot match an object (same rule as a pure {$eq:...} selector).
             // Skipping every $-key used to ignore "$date"/"$oid" and also let
             // {$eq:1,$top:2} match any document.
@@ -801,6 +785,18 @@ public:
     }
 
 private:
+
+    // Pagination ($top/$skip/$orderby/$desc) and YarDB index window keys
+    // ($head/$tail) are applied outside match(); ignore them as field selectors.
+    static bool is_ignored_query_key(const string_type& key)
+    {
+        return key == "$top"s
+            or key == "$skip"s
+            or key == "$orderby"s
+            or key == "$desc"s
+            or key == "$head"s
+            or key == "$tail"s;
+    }
 
     static const std::map<string_type, std::function<bool(const primitive&, const primitive&)>> operators;
 

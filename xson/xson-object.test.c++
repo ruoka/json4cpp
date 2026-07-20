@@ -938,13 +938,15 @@ auto register_tests()
         require_false(doc.match(object{{"Customer"s, object{{"$ne"s, "Alice"s}}}}));
         require_true(doc.match(object{{"Customer"s, object{{"Country"s, "USA"s}}}}));
 
-        // Pagination-only selectors must still match every document.
+        // Pagination / index-window selectors must still match every document.
         require_true(doc.match(object{{"$orderby"s, "name"s}, {"$desc"s, true}}));
         require_true(doc.match(object{{"$top"s, 2}, {"$skip"s, 0}}));
+        require_true(doc.match(object{{"$head"s, 1}, {"$tail"s, 1}}));
+        require_true(doc.match(object{{"name"s, "Alice"s}, {"$head"s, 1}}));
 
         // Regression: every $-prefixed key used to be skipped, so Extended JSON
         // field selectors like "$date"/"$oid" matched any value (and {$eq,$top}
-        // matched any object). Only pagination keys are ignorable.
+        // matched any object). Only pagination / index-window keys are ignorable.
         auto created_2020 = object{{"$date"s, "2020-01-01T00:00:00.000Z"s}};
         auto created_1999 = object{{"$date"s, "1999-01-01T00:00:00.000Z"s}};
         auto with_date = object{{"created"s, created_2020}};
