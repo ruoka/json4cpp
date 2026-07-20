@@ -170,6 +170,10 @@ public:
                     if(parent.empty() || parent.top() != type::object)
                         throw std::runtime_error{"Invalid FSON: name outside object"s};
                     fast::decode(is,name);
+                    // Root/container completion uses parent.empty(); payload reads must
+                    // not treat a failed stream as a successful empty name/value.
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated name"s};
                     m_builder.name(name);
                     break;
 
@@ -180,16 +184,22 @@ public:
 
                 case type::number:
                     fast::decode(is,d);
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated number"s};
                     m_builder.value(d);
                     break;
 
                 case type::string:
                     fast::decode(is,str);
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated string"s};
                     m_builder.value(str);
                     break;
 
                 case type::boolean:
                     fast::decode(is,b);
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated boolean"s};
                     m_builder.value(b);
                     break;
 
@@ -199,11 +209,18 @@ public:
 
                 case type::timestamp:
                     fast::decode(is,dt);
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated timestamp"s};
                     m_builder.value(dt);
                     break;
 
                 case type::integer:
+                    // A lone integer tag with no varint payload used to succeed for
+                    // root values: peek(EOF) sign-extended to -1 and parent.empty()
+                    // returned before any truncation check.
                     fast::decode(is,i);
+                    if(!is)
+                        throw std::runtime_error{"Invalid FSON: truncated integer"s};
                     m_builder.value(i);
                     break;
 
