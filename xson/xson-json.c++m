@@ -692,6 +692,7 @@ private:
             m_builder.value(final_value);
             m_number = 0;
             m_integer = 0;
+            m_has_seen_digit = false;
             m_state_machine.pop();
             if(c != '\0' && !m_state_machine.empty())
                 m_state_machine.top()(*this,c);
@@ -725,6 +726,7 @@ private:
             m_builder.value(Sign * m_number);
             m_number = 0;
             m_place = 1;
+            m_has_seen_digit = false;
             m_state_machine.pop();
             return;
         }
@@ -754,6 +756,9 @@ private:
             m_builder.value(Sign * m_number);
             m_number = 0;
             m_place = 1;
+            // Must clear: otherwise the next number reuses this flag and can accept
+            // bare "-" as 0 or skip the leading-zero reject path (e.g. after "1.2").
+            m_has_seen_digit = false;
             m_state_machine.pop();
             if(c != '\0' && !m_state_machine.empty())
                 m_state_machine.top()(*this,c);
@@ -825,6 +830,7 @@ private:
             m_exponent = 0;
             m_exponent_sign = 1;
             m_has_exponent_digit = false;
+            m_has_seen_digit = false;
             m_state_machine.pop();
             return;
         }
@@ -880,6 +886,7 @@ private:
             m_exponent = 0;
             m_exponent_sign = 1;
             m_has_exponent_digit = false;
+            m_has_seen_digit = false;
             m_state_machine.pop();
             if(c != '\0' && !m_state_machine.empty())
                 m_state_machine.top()(*this, c);
@@ -910,6 +917,8 @@ private:
         }
         if(std::isdigit(c))
         {
+            // Each number starts with a fresh digit-seen flag (completion paths also clear it).
+            m_has_seen_digit = false;
             m_state_machine.pop();
             m_state_machine.push(&decoder::positive);
             if(!m_state_machine.empty())
@@ -918,6 +927,7 @@ private:
         }
         if(c == '-')
         {
+            m_has_seen_digit = false;
             m_state_machine.pop();
             m_state_machine.push(&decoder::negative);
             return;

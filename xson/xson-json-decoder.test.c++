@@ -125,6 +125,32 @@ auto register_tests()
         require_true(std::abs(value - (-1e-19)) / 1e-19 < 1e-9);
     };
 
+    // Completing a fraction/exponent used to leave m_has_seen_digit true. The next
+    // number then skipped "must have a digit" / leading-zero checks, so invalid
+    // JSON like {"a":1.2,"b":-} was accepted as b:0, and {"a":1.2,"b":01} as b:1.
+    test_case("BareMinusAfterFractionIsRejected, [xson]") = [] {
+        require_throws([&]{ (void)json::parse(R"({"a":1.2,"b":-})"); });
+        require_throws([&]{ (void)json::parse(R"([1.5,-])"); });
+    };
+
+    test_case("LeadingZeroAfterFractionIsRejected, [xson]") = [] {
+        require_throws([&]{ (void)json::parse(R"({"a":1.2,"b":01})"); });
+        require_throws([&]{ (void)json::parse(R"([0.5,01])"); });
+    };
+
+    test_case("BareMinusAfterExponentIsRejected, [xson]") = [] {
+        require_throws([&]{ (void)json::parse(R"({"a":1e0,"b":-})"); });
+        require_throws([&]{ (void)json::parse(R"([2E3,-.5])"); });
+    };
+
+    test_case("LeadingZeroAfterIntegerOverflowIsRejected, [xson]") = [] {
+        // 9223372036854775808 forces the integer_overflow float path; the next
+        // number must still reject a leading zero.
+        require_throws([&]{
+            (void)json::parse(R"({"a":9223372036854775808,"b":01})");
+        });
+    };
+
     // ===== ERROR HANDLING TESTS =====
 
     test_case("InvalidJSON, [xson]") = [] {
