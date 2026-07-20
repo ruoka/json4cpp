@@ -126,7 +126,9 @@ public:
     static constexpr int max_exponent = 308;  // Maximum safe exponent for double (10^308)
     static constexpr int min_exponent = -308; // Minimum safe exponent for double (10^-308)
     static constexpr int max_exponent_digits = 3; // Maximum digits for safe exponent (308 has 3 digits)
-    
+    // |INT64_MIN| = 2^63 — exact in IEEE-754; int64_t cannot store this magnitude.
+    static constexpr xson::number_type int64_min_magnitude = 9223372036854775808.0;
+
     // Input size limits for DoS protection
     static constexpr std::size_t max_string_length = 100 * 1024 * 1024; // 100 MB
     static constexpr std::size_t max_nesting_depth = 1000;
@@ -439,8 +441,10 @@ private:
         // Check if we had INT64_MIN flag set and we see another digit (overflow case)
         if(m_is_int64_min && std::isdigit(c))
         {
-            // INT64_MIN with more digits - this is overflow, switch to float mode
-            m_number = static_cast<xson::number_type>(std::numeric_limits<xson::integer_type>::min()) * 10.0 + static_cast<xson::number_type>(c - '0');
+            // INT64_MIN with more digits - switch to float mode using the *magnitude*
+            // (2^63). Final value applies Sign, matching the normal overflow path.
+            // Using signed INT64_MIN here would make Sign * m_number flip positive.
+            m_number = int64_min_magnitude * 10.0 + static_cast<xson::number_type>(c - '0');
             m_is_int64_min = false;
             m_integer = 0;
             m_state_machine.pop();
@@ -542,7 +546,11 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before '.', got '.'"s};
             }
-            m_number = static_cast<xson::number_type>(m_integer);
+            // INT64_MIN clears m_integer (cannot store |min| in int64_t); seed magnitude.
+            m_number = m_is_int64_min
+                ? int64_min_magnitude
+                : static_cast<xson::number_type>(m_integer);
+            m_is_int64_min = false;
             m_integer = 0;
             m_state_machine.pop();
             m_state_machine.push(&decoder::fraction_start<Sign>);
@@ -555,7 +563,10 @@ private:
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before 'e'/'E', got '"s + c + "'"s};
             }
             // Scientific notation: convert integer to float and parse exponent
-            m_number = static_cast<xson::number_type>(m_integer);
+            m_number = m_is_int64_min
+                ? int64_min_magnitude
+                : static_cast<xson::number_type>(m_integer);
+            m_is_int64_min = false;
             m_integer = 0;
             m_exponent = 0;
             m_exponent_sign = 1;
