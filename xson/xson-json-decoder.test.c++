@@ -59,6 +59,51 @@ auto register_tests()
         require_eq(-123, negative);
     };
 
+    test_case("Int64MinRemainsInteger, [xson]") = [] {
+        auto ob = json::parse("-9223372036854775808");
+        require_true(ob.is_integer());
+        require_eq(std::numeric_limits<std::int64_t>::min(),
+                   static_cast<xson::integer_type>(ob));
+    };
+
+    // INT64_MIN cannot be stored as a positive int64 magnitude; the decoder uses a
+    // flag and clears m_integer. Fraction / exponent / extra-digit paths must seed
+    // 2^63 (not 0) and keep Sign applied once — otherwise values become -0.5, 0,
+    // or flip positive.
+    test_case("Int64MinWithFractionKeepsMagnitude, [xson]") = [] {
+        auto ob = json::parse("-9223372036854775808.5");
+        require_true(ob.is_number());
+        require_false(ob.is_integer());
+        const auto value = static_cast<xson::number_type>(ob);
+        require_true(std::isfinite(value));
+        require_true(value < 0.0);
+        // Exact -2^63 is representable; half ulp at that scale is 1024, so .5
+        // cannot change the double — still exactly INT64_MIN as float.
+        require_eq(static_cast<xson::number_type>(std::numeric_limits<std::int64_t>::min()),
+                   value);
+    };
+
+    test_case("Int64MinWithExponentKeepsSign, [xson]") = [] {
+        auto ob = json::parse("-9223372036854775808e1");
+        require_true(ob.is_number());
+        const auto value = static_cast<xson::number_type>(ob);
+        require_true(std::isfinite(value));
+        require_true(value < 0.0);
+        require_eq(static_cast<xson::number_type>(std::numeric_limits<std::int64_t>::min()) * 10.0,
+                   value);
+    };
+
+    test_case("Int64MinWithExtraDigitKeepsSign, [xson]") = [] {
+        // One more digit than INT64_MIN → float overflow path (not integer).
+        auto ob = json::parse("-92233720368547758080");
+        require_true(ob.is_number());
+        require_false(ob.is_integer());
+        const auto value = static_cast<xson::number_type>(ob);
+        require_true(std::isfinite(value));
+        require_true(value < 0.0);
+        require_eq(-92233720368547758080.0, value);
+    };
+
     // ===== ERROR HANDLING TESTS =====
 
     test_case("InvalidJSON, [xson]") = [] {
