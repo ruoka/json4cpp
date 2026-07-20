@@ -805,22 +805,35 @@ auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
 inline auto to_time_point(const std::string_view sv)
 {
     // YYYY-MM-DDTHH:MM:SS.sssZ
+    //
+    // Do not write from_chars(++p, p+N, ...): modifying p and reading p to form
+    // the end pointer are unsequenced argument side-effects (undefined behavior).
+    // On common right-to-left evaluation that silently parsed the wrong digits
+    // (e.g. month from one character), corrupting every timestamp.
     if(sv.size() <= 9)
         throw std::logic_error("Invalid time point string: size must be greater than 9");
     auto YYYY = 0; auto MM = 0u, DD = 0u, hh = 0u, mm = 0u, ss = 0u, fff = 0u;
-    auto res = std::from_chars_result{sv.data(),std::errc()};
-    res = std::from_chars(res.ptr,res.ptr+4,YYYY);
-    res = std::from_chars(++res.ptr,res.ptr+2,MM);
-    res = std::from_chars(++res.ptr,res.ptr+2,DD);
+    const char* p = sv.data();
+    auto res = std::from_chars(p, p + 4, YYYY);
+    p = res.ptr + 1; // skip '-'
+    res = std::from_chars(p, p + 2, MM);
+    p = res.ptr + 1; // skip '-'
+    res = std::from_chars(p, p + 2, DD);
     if(sv.length() == 24)
     {
-        res = std::from_chars(++res.ptr,res.ptr+2,hh);
-        res = std::from_chars(++res.ptr,res.ptr+2,mm);
-        res = std::from_chars(++res.ptr,res.ptr+2,ss);
-        res = std::from_chars(++res.ptr,res.ptr+3,fff);
+        p = res.ptr + 1; // skip 'T'
+        res = std::from_chars(p, p + 2, hh);
+        p = res.ptr + 1; // skip ':'
+        res = std::from_chars(p, p + 2, mm);
+        p = res.ptr + 1; // skip ':'
+        res = std::from_chars(p, p + 2, ss);
+        p = res.ptr + 1; // skip '.'
+        res = std::from_chars(p, p + 3, fff);
     }
     using namespace std::chrono;
-    return sys_days{year{YYYY}/month{MM}/day{DD}} + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+    const auto tp = sys_days{year{YYYY}/month{MM}/day{DD}}
+        + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+    return timestamp_type{duration_cast<timestamp_type::duration>(tp.time_since_epoch())};
 }
 
 using std::to_string;
