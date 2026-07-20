@@ -814,6 +814,34 @@ auto register_tests()
         require_false(ob.match(object{{"$gte"s, 50}}));
     };
 
+    test_case("MatchInNinAcceptArrayOperand, [xson]") = [] {
+        // Regression: $in/$nin used get<map>(), so JSON-style array operands
+        // ({"$in":[1,2,3]}) threw bad_variant_access.
+        auto ob = object{42};
+        auto in_hit = object{array{object{40}, object{42}, object{44}}};
+        auto in_miss = object{array{object{40}, object{41}}};
+        auto nin_hit = object{array{object{40}, object{41}}};
+        auto nin_miss = object{array{object{40}, object{42}}};
+
+        require_true(ob.match(object{{"$in"s, in_hit}}));
+        require_false(ob.match(object{{"$in"s, in_miss}}));
+        require_false(ob.match(object{{"$in"s, object{array{}}}})); // empty includes nothing
+        require_true(ob.match(object{{"$nin"s, nin_hit}}));
+        require_false(ob.match(object{{"$nin"s, nin_miss}}));
+        require_true(ob.match(object{{"$nin"s, object{array{}}}})); // empty excludes nothing
+
+        // Nested field selector with array $in (typical query shape).
+        auto doc = object{{"age"s, 42}};
+        require_true(doc.match(object{{"age"s, object{{"$in"s, in_hit}}}}));
+        require_false(doc.match(object{{"age"s, object{{"$in"s, in_miss}}}}));
+        require_true(doc.match(object{{"age"s, object{{"$nin"s, nin_hit}}}}));
+        require_false(doc.match(object{{"age"s, object{{"$nin"s, nin_miss}}}}));
+
+        // Non-primitive operator RHS must not throw.
+        require_false(ob.match(object{{"$eq"s, object{{"x"s, 1}}}}));
+        require_false(ob.match(object{{"$in"s, object{42}}}));
+    };
+
     test_case("MatchNumericCrossType, [xson]") = [] {
         // JSON doubles (number_type) vs integer literals must compare by value.
         auto as_double = object{};
