@@ -664,29 +664,37 @@ public:
                 [&](const auto& node)
                 {
                     if(operators.count(node.first))
+                    {
+                        // Scalar ops require a primitive RHS; object/array operands
+                        // must not throw bad_variant_access from get<primitive>().
+                        if(not node.second.has_value())
+                            return false;
                         return operators.at(node.first)(get<primitive>(), node.second.template get<primitive>());
+                    }
                     else
                         return node.first[0] == '$';
                 });
 
-            if(subset.has("$in"s))
-                test = test && std::any_of(subset["$in"s].get<map>().cbegin(), subset["$in"s].get<map>().cend(),
-                    [&](const auto& node)
-                    {
-                        return primitive_equal(
-                            get<primitive>(),
-                            node.second.template get<primitive>());
-                    });
+            // $in/$nin accept a JSON array (natural query shape) or a map of
+            // indexed values (legacy/tests). Compare via match() so nested
+            // candidates do not throw bad_variant_access.
+            const auto membership_any = [&](const object& haystack) -> bool
+            {
+                if(haystack.is_array())
+                    return std::ranges::any_of(haystack.get<array>(),
+                        [&](const object& candidate) { return match(candidate); });
+                if(haystack.has_objects())
+                    return std::ranges::any_of(haystack.get<map>(),
+                        [&](const auto& node) { return match(node.second); });
+                return false;
+            };
 
-            // $nin is the complement of $in (empty map excludes nothing).
+            if(subset.has("$in"s))
+                test = test && membership_any(subset["$in"s]);
+
+            // $nin is the complement of $in (empty array/map excludes nothing).
             if(subset.has("$nin"s))
-                test = test && std::none_of(subset["$nin"s].get<map>().cbegin(), subset["$nin"s].get<map>().cend(),
-                    [&](const auto& node)
-                    {
-                        return primitive_equal(
-                            get<primitive>(),
-                            node.second.template get<primitive>());
-                    });
+                test = test && not membership_any(subset["$nin"s]);
 
             return test;
         }
