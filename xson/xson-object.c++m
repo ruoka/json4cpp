@@ -916,7 +916,27 @@ inline void write_json_string(std::ostream& os, std::string_view s)
 inline std::ostream& operator << (std::ostream& os, const primitive& v)
 {
     if(holds_alternative<number_type>(v))
-        os << std::get<number_type>(v);
+    {
+        // Default ostream precision is only 6 significant digits, which silently
+        // corrupts JSON doubles on stringify (e.g. 123456789.123… → 1.23457e+08).
+        // Emit max_digits10 so parse can recover the original value. Prefer an
+        // explicit precision over shortest to_chars: this decoder's decimal
+        // accumulation is not std::from_chars, so shortest form can rewrite
+        // (3.14159 → 3.1415900000000003) on the next stringify.
+        const auto d = std::get<number_type>(v);
+        if(!std::isfinite(d))
+            throw std::runtime_error{"Cannot serialize non-finite number to JSON"s};
+        char buf[64];
+        const auto [ptr, ec] = std::to_chars(
+            buf,
+            buf + sizeof(buf),
+            d,
+            std::chars_format::general,
+            std::numeric_limits<number_type>::max_digits10);
+        if(ec != std::errc{})
+            throw std::runtime_error{"Failed to serialize number to JSON"s};
+        os.write(buf, ptr - buf);
+    }
     else if(holds_alternative<string_type>(v))
         write_json_string(os, std::get<string_type>(v));
     else if(holds_alternative<boolean_type>(v))
