@@ -760,17 +760,65 @@ inline std::string to_string(const primitive& val) noexcept
     return std::visit([](const auto& arg){return xson::to_string(arg);}, val);
 }
 
+// RFC 8259 string encoding: quote/backslash/named controls, other U+0000–U+001F as \u00XX.
+// UTF-8 multi-byte sequences are passed through unchanged.
+inline void write_json_string(std::ostream& os, std::string_view s)
+{
+    constexpr auto hex = "0123456789abcdef";
+    os.put('"');
+    for(const unsigned char c : s)
+    {
+        switch(c)
+        {
+        case '"':
+            os << "\\\"";
+            break;
+        case '\\':
+            os << "\\\\";
+            break;
+        case '\b':
+            os << "\\b";
+            break;
+        case '\f':
+            os << "\\f";
+            break;
+        case '\n':
+            os << "\\n";
+            break;
+        case '\r':
+            os << "\\r";
+            break;
+        case '\t':
+            os << "\\t";
+            break;
+        default:
+            if(c < 0x20)
+            {
+                os << "\\u00";
+                os.put(hex[c >> 4]);
+                os.put(hex[c & 0xf]);
+            }
+            else
+            {
+                os.put(static_cast<char>(c));
+            }
+            break;
+        }
+    }
+    os.put('"');
+}
+
 // Encoder implementation
 inline std::ostream& operator << (std::ostream& os, const primitive& v)
 {
     if(holds_alternative<number_type>(v))
         os << std::get<number_type>(v);
     else if(holds_alternative<string_type>(v))
-        os << '"' << std::get<string_type>(v) << '"';
+        write_json_string(os, std::get<string_type>(v));
     else if(holds_alternative<boolean_type>(v))
         os << std::boolalpha << std::get<boolean_type>(v);
     else if(holds_alternative<timestamp_type>(v))
-        os << '"' << to_string(std::get<timestamp_type>(v)) << '"';
+        write_json_string(os, to_string(std::get<timestamp_type>(v)));
     else if(holds_alternative<monostate>(v))
         os << "null";
     else if(holds_alternative<integer_type>(v))
