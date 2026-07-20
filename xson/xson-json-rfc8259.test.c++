@@ -1,5 +1,7 @@
+// Copyright (c) 2025-2026 Kaius Ruokonen. All rights reserved.
 // SPDX-License-Identifier: MIT
 // See the LICENSE file in the project root for full license text.
+
 //
 // JSONTestSuite (nst/JSONTestSuite) - Comprehensive suite for RFC 8259 compliant JSON parsers
 // This file contains test cases based on the JSONTestSuite structure:
