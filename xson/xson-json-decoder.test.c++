@@ -104,6 +104,27 @@ auto register_tests()
         require_eq(-92233720368547758080.0, value);
     };
 
+    // Fractional place used to be int64_t; after 19 digits after '.' (10^19 >
+    // INT64_MAX) m_place *= 10 overflowed, flipping the digit contribution
+    // negative so values like 0.0000000000000000001 parsed as ~-1.18e-19.
+    test_case("LongFractionalTailKeepsSign, [xson]") = [] {
+        auto ob = json::parse("0.0000000000000000001");
+        require_true(ob.is_number());
+        const auto value = static_cast<xson::number_type>(ob);
+        require_true(std::isfinite(value));
+        require_true(value > 0.0);
+        require_true(std::abs(value - 1e-19) / 1e-19 < 1e-9);
+    };
+
+    test_case("LongFractionalTailNegativeKeepsSign, [xson]") = [] {
+        auto ob = json::parse("-0.0000000000000000001");
+        require_true(ob.is_number());
+        const auto value = static_cast<xson::number_type>(ob);
+        require_true(std::isfinite(value));
+        require_true(value < 0.0);
+        require_true(std::abs(value - (-1e-19)) / 1e-19 < 1e-9);
+    };
+
     // ===== ERROR HANDLING TESTS =====
 
     test_case("InvalidJSON, [xson]") = [] {
