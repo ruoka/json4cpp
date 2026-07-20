@@ -737,6 +737,48 @@ auto register_tests()
         require_true(a1.match(object{array{}}));  // Empty subset matches
     };
 
+    test_case("MatchArrayOfObjects, [xson]") = [] {
+        // Regression: array elements used to be compared only as primitives, so
+        // nested objects/arrays threw bad_variant_access from get<primitive>().
+        auto docs = object{array{
+            object{{"id"s, 1}, {"name"s, "a"s}},
+            object{{"id"s, 2}, {"name"s, "b"s}}
+        }};
+        auto same = object{array{
+            object{{"id"s, 1}, {"name"s, "a"s}},
+            object{{"id"s, 2}, {"name"s, "b"s}}
+        }};
+        auto different = object{array{
+            object{{"id"s, 1}, {"name"s, "a"s}},
+            object{{"id"s, 2}, {"name"s, "x"s}}
+        }};
+        auto nested_field = object{{"items"s, docs.get<array>()}};
+
+        require_true(docs.match(same));
+        require_false(docs.match(different));
+        // Subset field match inside an array element.
+        require_true(docs.match(object{array{
+            object{{"id"s, 1}},
+            object{{"id"s, 2}}
+        }}));
+        require_true(nested_field.match(object{{"items"s, same.get<array>()}}));
+        require_false(nested_field.match(object{{"items"s, different.get<array>()}}));
+
+        // Nested arrays must also recurse instead of throwing.
+        auto matrix = object{array{
+            object{array{object{1}, object{2}}},
+            object{array{object{3}, object{4}}}
+        }};
+        require_true(matrix.match(object{array{
+            object{array{object{1}, object{2}}},
+            object{array{object{3}, object{4}}}
+        }}));
+        require_false(matrix.match(object{array{
+            object{array{object{1}, object{2}}},
+            object{array{object{3}, object{5}}}
+        }}));
+    };
+
     test_case("MatchWithOperators, [xson]") = [] {
         auto ob = object{42};
         

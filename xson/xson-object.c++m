@@ -649,8 +649,10 @@ public:
             if(get<array>().size() != subset.get<array>().size())
                 return false;
 
+            // Elements may be primitives, objects, or nested arrays — compare via
+            // match() so nested documents do not throw bad_variant_access.
             for(auto i = 0ll; const auto &o : subset.get<array>())
-                if(not primitive_equal(get<array>()[i++].get<primitive>(), o.get<primitive>()))
+                if(not get<array>()[i++].match(o))
                     return false;
 
             return true;
