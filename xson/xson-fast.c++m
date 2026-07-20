@@ -244,8 +244,11 @@ inline void encode(std::ostream& os, bool b)
 inline void encode(std::ostream& os, const std::chrono::system_clock::time_point& d)
 {
     using namespace std::chrono;
-    const auto us = duration_cast<milliseconds>(d.time_since_epoch());
-    encode(os,static_cast<std::uint64_t>(us.count()));
+    // Milliseconds since epoch are signed: pre-1970 instants are negative.
+    // Encoding through uint64_t used to wrap those to huge positives, so FSON
+    // round-trips silently corrupted any timestamp before the Unix epoch.
+    const auto ms = duration_cast<milliseconds>(d.time_since_epoch());
+    encode(os, static_cast<std::int64_t>(ms.count()));
 }
 
 // Decoder functions
@@ -354,10 +357,9 @@ inline void decode(std::istream& is, bool& b)
 inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
 {
     using namespace std::chrono;
-    std::uint64_t i64;
-    decode(is,i64);
-    dt = system_clock::time_point{milliseconds{i64}};
-    
+    std::int64_t ms_count;
+    decode(is, ms_count);
+    dt = system_clock::time_point{milliseconds{ms_count}};
 }
 
 } // namespace xson::fast

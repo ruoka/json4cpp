@@ -229,6 +229,26 @@ auto register_tests()
         check_eq(xson::to_string(expected), xson::to_string(actual));
     };
 
+    test_case("Date pre-epoch round-trip, [xson]") = [] {
+        // Regression: FSON timestamps used unsigned varints, so pre-epoch
+        // values (negative ms) wrapped and came back as far-future times.
+        const auto before_epoch = system_clock::time_point{milliseconds{-1}};
+        const auto apollo = sys_days{year{1969}/month{7}/day{20}};
+        auto o1 = object{
+            {"BeforeEpoch"s, before_epoch},
+            {"Apollo"s, apollo}
+        };
+
+        auto ss = std::stringstream{};
+        xson::fson::encoder{}.encode(ss, o1);
+        auto o2 = xson::fson::parse(ss);
+
+        require_true(o2["BeforeEpoch"s].is_timestamp());
+        require_true(o2["Apollo"s].is_timestamp());
+        require_eq(static_cast<system_clock::time_point>(o2["BeforeEpoch"s]), before_epoch);
+        require_eq(static_cast<system_clock::time_point>(o2["Apollo"s]), apollo);
+    };
+
     test_case("Null, [xson]") = [] {
         auto o1 = object{"Test"s, nullptr};
 
