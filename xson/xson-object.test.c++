@@ -942,6 +942,21 @@ auto register_tests()
         // Pagination-only selectors must still match every document.
         require_true(doc.match(object{{"$orderby"s, "name"s}, {"$desc"s, true}}));
         require_true(doc.match(object{{"$top"s, 2}, {"$skip"s, 0}}));
+
+        // Regression: every $-prefixed key used to be skipped, so Extended JSON
+        // field selectors like "$date"/"$oid" matched any value (and {$eq,$top}
+        // matched any object). Only pagination keys are ignorable.
+        auto created_2020 = object{{"$date"s, "2020-01-01T00:00:00.000Z"s}};
+        auto created_1999 = object{{"$date"s, "1999-01-01T00:00:00.000Z"s}};
+        auto with_date = object{{"created"s, created_2020}};
+        require_true(with_date.match(object{{"created"s, created_2020}}));
+        require_false(with_date.match(object{{"created"s, created_1999}}));
+        require_false(object{{"created"s, "nope"s}}.match(object{{"created"s, created_1999}}));
+        require_true(created_2020.match(object{{"$date"s, "2020-01-01T00:00:00.000Z"s}}));
+        require_false(created_2020.match(object{{"$date"s, "1999-01-01T00:00:00.000Z"s}}));
+        require_true(with_date.match(object{{"created"s, created_2020}, {"$top"s, 1}}));
+        require_false(doc.match(object{{"$eq"s, "Alice"s}, {"$top"s, 1}}));
+        require_false(object{42}.match(object{{"$date"s, "2020-01-01T00:00:00.000Z"s}}));
     };
 
     test_case("MatchArrayRejectsScalarOperators, [xson]") = [] {

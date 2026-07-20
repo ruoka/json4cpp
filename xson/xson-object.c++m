@@ -665,6 +665,18 @@ public:
 
         if(has_value() and subset.has_objects())
         {
+            // Unknown $-keys must not be treated as universal match. Only
+            // comparison operators, $in/$nin (applied below), and pagination
+            // keys are recognized here — otherwise {"$date":...} matched any
+            // primitive.
+            const auto is_ignored_query_key = [](const string_type& key)
+            {
+                return key == "$top"s
+                    or key == "$skip"s
+                    or key == "$orderby"s
+                    or key == "$desc"s;
+            };
+
             auto test = std::ranges::all_of(subset.get<map>(),
                 [&](const auto& node)
                 {
@@ -676,8 +688,9 @@ public:
                             return false;
                         return operators.at(node.first)(get<primitive>(), node.second.template get<primitive>());
                     }
-                    else
-                        return node.first[0] == '$';
+                    if(node.first == "$in"s or node.first == "$nin"s or is_ignored_query_key(node.first))
+                        return true;
+                    return false;
                 });
 
             // $in/$nin accept a JSON array (natural query shape) or a map of
@@ -709,9 +722,10 @@ public:
             const auto& subset_map = subset.get<map>();
 
             // Scalar operator maps ($eq/$ne/$gt/$in/...) only apply to primitives.
-            // Skipping $-keys below would otherwise treat any object as a match.
             // Do not treat query/pagination keys ($top/$skip/$orderby/$desc) as
             // scalar operators — a selector of only those must still match all docs.
+            // Other $-prefixed names (e.g. Extended JSON "$date", "$oid") are
+            // ordinary field selectors and must be compared.
             const auto is_scalar_operator = [](const string_type& key)
             {
                 return key == "$eq"s
@@ -724,8 +738,27 @@ public:
                     or key == "$nin"s;
             };
 
+            const auto is_ignored_query_key = [](const string_type& key)
+            {
+                return key == "$top"s
+                    or key == "$skip"s
+                    or key == "$orderby"s
+                    or key == "$desc"s;
+            };
+
+            // After dropping pagination keys, a selector of only scalar operators
+            // cannot match an object (same rule as a pure {$eq:...} selector).
+            // Skipping every $-key used to ignore "$date"/"$oid" and also let
+            // {$eq:1,$top:2} match any document.
             if(not subset_map.empty()
                 and std::ranges::all_of(
+                    subset_map,
+                    [&](const auto& entry)
+                    {
+                        return is_ignored_query_key(entry.first)
+                            or is_scalar_operator(entry.first);
+                    })
+                and std::ranges::any_of(
                     subset_map,
                     [&](const auto& entry) { return is_scalar_operator(entry.first); }))
                 return false;
@@ -733,11 +766,16 @@ public:
             auto lf = get<map>().cbegin(), rf = subset_map.cbegin();
             const auto ll = get<map>().cend(), rl = subset_map.cend();
 
-            while(rf != rl && rf->first[0] == '$')
+            while(rf != rl && is_ignored_query_key(rf->first))
                 ++rf;
 
             while(lf != ll && rf != rl)
             {
+                if(is_ignored_query_key(rf->first))
+                {
+                    ++rf;
+                    continue;
+                }
                 if(lf->first < rf->first)
                     ++lf;
                 else if(lf->first > rf->first)
@@ -750,6 +788,8 @@ public:
                 else
                     return false;
             }
+            while(rf != rl && is_ignored_query_key(rf->first))
+                ++rf;
             return rf == rl;
         }
 
