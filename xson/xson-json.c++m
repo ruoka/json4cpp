@@ -1304,7 +1304,10 @@ private:
 
     xson::number_type m_number = 0;
 
-    xson::integer_type m_place = 1;
+    // Fractional place must be floating-point: as int64_t, m_place *= 10 overflows
+    // after 19 digits after the decimal (10^19 > INT64_MAX), which is UB and can
+    // flip the contribution negative (e.g. 0.0000000000000000001 → wrong sign).
+    xson::number_type m_place = 1;
 
     std::uint32_t m_unicode_value = 0;
     int m_unicode_digits = 0;
