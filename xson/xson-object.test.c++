@@ -798,6 +798,31 @@ auto register_tests()
         require_false(xson::primitive_less(primitive{"1"s}, primitive{1ll}));
     };
 
+    test_case("MatchInt64BeyondDoubleMantissa, [xson]") = [] {
+        // Casting int64 through double collapses 2^53 and 2^53+1. Match/index
+        // equality must keep them distinct or selectors delete the wrong docs.
+        constexpr auto exact = 9007199254740992ll; // 2^53
+        constexpr auto next = exact + 1;
+
+        require_false(xson::primitive_equal(primitive{exact}, primitive{next}));
+        require_true(xson::primitive_less(primitive{exact}, primitive{next}));
+        require_false(xson::primitive_less(primitive{next}, primitive{exact}));
+
+        // Exact integer-valued doubles still match the same int64.
+        require_true(xson::primitive_equal(primitive{exact}, primitive{static_cast<number_type>(exact)}));
+        require_false(xson::primitive_equal(primitive{next}, primitive{static_cast<number_type>(exact)}));
+        require_true(xson::primitive_less(primitive{static_cast<number_type>(exact)}, primitive{next}));
+
+        auto doc_exact = object{{"serial"s, exact}};
+        auto doc_next = object{{"serial"s, next}};
+        require_true(doc_exact.match(object{{"serial"s, exact}}));
+        require_false(doc_exact.match(object{{"serial"s, next}}));
+        require_true(doc_next.match(object{{"serial"s, next}}));
+        require_false(doc_next.match(object{{"serial"s, exact}}));
+        require_false(doc_next.match(object{{"serial"s, object{{"$eq"s, exact}}}}));
+        require_true(doc_next.match(object{{"serial"s, object{{"$gt"s, exact}}}}));
+    };
+
     test_case("MatchValueWithObject, [xson]") = [] {
         auto ob = object{42};
         auto subset = object{{"$eq"s, 42}};

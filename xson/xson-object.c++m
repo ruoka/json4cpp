@@ -47,17 +47,94 @@ inline number_type numeric_primitive_value(const primitive& value)
     return static_cast<number_type>(std::get<integer_type>(value));
 }
 
+// Compare finite integer_type to number_type without collapsing distinct int64
+// values that share a double bit pattern above the 53-bit mantissa
+// (e.g. 2^53 vs 2^53+1). Returns -1 if i < d, 0 if equal, 1 if i > d.
+// Caller must reject NaN before calling (IEEE: NaN is unordered).
+inline int compare_integer_to_number(integer_type i, number_type d) noexcept
+{
+    constexpr auto two_63 = 9223372036854775808.0; // 2^63, exact in IEEE-754
+    if(d == std::numeric_limits<number_type>::infinity() or d >= two_63)
+        return -1;
+    if(d == -std::numeric_limits<number_type>::infinity() or d < -two_63)
+        return 1;
+
+    // INT64_MIN is exactly -2^63. Casting that double to int64_t is undefined.
+    if(d == -two_63)
+    {
+        if(i == std::numeric_limits<integer_type>::min())
+            return 0;
+        return 1;
+    }
+
+    const auto as_double = static_cast<number_type>(i);
+    if(as_double < d)
+        return -1;
+    if(as_double > d)
+        return 1;
+
+    // Same float bucket: recover the exact integer value of d (always integer-valued
+    // when it equals some int64's cast) and compare exactly.
+    const auto as_integer = static_cast<integer_type>(d);
+    if(i < as_integer)
+        return -1;
+    if(i > as_integer)
+        return 1;
+    return 0;
+}
+
 inline bool primitive_equal(const primitive& left, const primitive& right) noexcept
 {
-    if(is_numeric_primitive(left) and is_numeric_primitive(right))
-        return numeric_primitive_value(left) == numeric_primitive_value(right);
+    if(const auto* left_int = std::get_if<integer_type>(&left))
+    {
+        if(const auto* right_int = std::get_if<integer_type>(&right))
+            return *left_int == *right_int;
+        if(const auto* right_number = std::get_if<number_type>(&right))
+        {
+            if(std::isnan(*right_number))
+                return false;
+            return compare_integer_to_number(*left_int, *right_number) == 0;
+        }
+    }
+    else if(const auto* left_number = std::get_if<number_type>(&left))
+    {
+        if(const auto* right_number = std::get_if<number_type>(&right))
+            return *left_number == *right_number;
+        if(const auto* right_int = std::get_if<integer_type>(&right))
+        {
+            if(std::isnan(*left_number))
+                return false;
+            return compare_integer_to_number(*right_int, *left_number) == 0;
+        }
+    }
+
     return left == right;
 }
 
 inline bool primitive_less(const primitive& left, const primitive& right) noexcept
 {
-    if(is_numeric_primitive(left) and is_numeric_primitive(right))
-        return numeric_primitive_value(left) < numeric_primitive_value(right);
+    if(const auto* left_int = std::get_if<integer_type>(&left))
+    {
+        if(const auto* right_int = std::get_if<integer_type>(&right))
+            return *left_int < *right_int;
+        if(const auto* right_number = std::get_if<number_type>(&right))
+        {
+            if(std::isnan(*right_number))
+                return false;
+            return compare_integer_to_number(*left_int, *right_number) < 0;
+        }
+    }
+    else if(const auto* left_number = std::get_if<number_type>(&left))
+    {
+        if(const auto* right_number = std::get_if<number_type>(&right))
+            return *left_number < *right_number;
+        if(const auto* right_int = std::get_if<integer_type>(&right))
+        {
+            if(std::isnan(*left_number))
+                return false;
+            return compare_integer_to_number(*right_int, *left_number) > 0;
+        }
+    }
 
     // integer_type and number_type are equivalent when values match, so they
     // must share one rank against every other alternative. Default variant
