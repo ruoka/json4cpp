@@ -734,7 +734,9 @@ auto register_tests()
         
         require_true(a1.match(a2));
         require_false(a1.match(a3));
-        require_true(a1.match(object{array{}}));  // Empty subset matches
+        // Empty array is equality (same length), not a wildcard like {}.
+        require_false(a1.match(object{array{}}));
+        require_true(object{array{}}.match(object{array{}}));
     };
 
     test_case("MatchArrayOfObjects, [xson]") = [] {
@@ -830,12 +832,26 @@ auto register_tests()
         require_false(ob.match(object{{"$nin"s, nin_miss}}));
         require_true(ob.match(object{{"$nin"s, object{array{}}}})); // empty excludes nothing
 
+        // Regression: empty-array candidates used to hit subset.empty() and
+        // match every value, so {"$in":[[]]} accepted any LHS and
+        // {"$nin":[[]]} accepted none.
+        auto empty_array = object{array{}};
+        auto in_empty_array = object{array{empty_array}};
+        require_false(ob.match(object{{"$in"s, in_empty_array}}));
+        require_true(ob.match(object{{"$nin"s, in_empty_array}}));
+
         // Nested field selector with array $in (typical query shape).
         auto doc = object{{"age"s, 42}};
         require_true(doc.match(object{{"age"s, object{{"$in"s, in_hit}}}}));
         require_false(doc.match(object{{"age"s, object{{"$in"s, in_miss}}}}));
         require_true(doc.match(object{{"age"s, object{{"$nin"s, nin_hit}}}}));
         require_false(doc.match(object{{"age"s, object{{"$nin"s, nin_miss}}}}));
+        require_false(doc.match(object{{"age"s, object{{"$in"s, in_empty_array}}}}));
+        require_true(doc.match(object{{"age"s, object{{"$nin"s, in_empty_array}}}}));
+        // Field equality against [] must require an empty array, not any value.
+        require_false(doc.match(object{{"age"s, empty_array}}));
+        require_true(object{{"tags"s, empty_array}}.match(object{{"tags"s, empty_array}}));
+        require_false(object{{"tags"s, object{array{object{1}}}}}.match(object{{"tags"s, empty_array}}));
 
         // Non-primitive operator RHS must not throw.
         require_false(ob.match(object{{"$eq"s, object{{"x"s, 1}}}}));
