@@ -84,7 +84,8 @@ auto register_tests()
         require_contains(json_str, "\"integer\"");
         require_contains(json_str, "42");
         require_contains(json_str, "\"float\"");
-        require_contains(json_str, "3.14159");
+        // max_digits10 may emit the exact binary (e.g. 3.1415899999999999).
+        require_contains(json_str, "3.1415");
         require_contains(json_str, "\"boolean_true\"");
         require_contains(json_str, "true");
         require_contains(json_str, "\"boolean_false\"");
@@ -204,12 +205,16 @@ auto register_tests()
         require_contains(json_str, "large_float");
         require_contains(json_str, "small_float");
         
-        // Should be parseable back
+        // Should be parseable back with full double precision (not default 6 digits).
         auto parsed = json::parse(json_str);
         require_true(parsed["big_int"s].is_integer());   // INT64_MAX should be integer
         require_true(parsed["small_int"s].is_integer()); // INT64_MIN should be integer
         require_true(parsed["large_float"s].is_number());
         require_true(parsed["small_float"s].is_number());
+        require_eq(123456789.123456789,
+                   static_cast<xson::number_type>(parsed["large_float"s]));
+        require_eq(0.000000123456789,
+                   static_cast<xson::number_type>(parsed["small_float"s]));
     };
 
     test_case("StringifyEscapesQuotesAndControls, [xson]") = [] {
@@ -263,6 +268,36 @@ auto register_tests()
 
         const auto parsed = json::parse(s);
         require_eq("café 😀"s, static_cast<xson::string_type>(parsed));
+    };
+
+
+    test_case("StringifyDoubleRoundTripPrecision, [xson]") = [] {
+        // Regression: operator<< used default ostream precision (6 significant
+        // digits), so stringify silently corrupted doubles
+        // (123456789.123… → 1.23457e+08 → 123457000).
+        auto obj = xson::object{
+            {"large_float", 123456789.123456789},
+            {"pi", 3.141592653589793},
+            {"lat", 37.774929}
+        };
+        const auto json_str = json::stringify(obj, 0);
+        const auto parsed = json::parse(json_str);
+        require_eq(123456789.123456789,
+                   static_cast<xson::number_type>(parsed["large_float"s]));
+        require_eq(3.141592653589793,
+                   static_cast<xson::number_type>(parsed["pi"s]));
+        require_eq(37.774929,
+                   static_cast<xson::number_type>(parsed["lat"s]));
+    };
+
+    test_case("StringifyRejectsNonFinite, [xson]") = [] {
+        auto inf = xson::object{};
+        inf = std::numeric_limits<xson::number_type>::infinity();
+        require_throws([&]{ (void)json::stringify(inf, 0); });
+
+        auto nan = xson::object{};
+        nan = std::numeric_limits<xson::number_type>::quiet_NaN();
+        require_throws([&]{ (void)json::stringify(nan, 0); });
     };
 
     return 0;
