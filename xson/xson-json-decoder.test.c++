@@ -225,6 +225,36 @@ auto register_tests()
         require_throws([&]{ auto v = json::parse(std::string_view{input.data(), input.size()}); });
     };
 
+    test_case("DecodeIstreamTrailingNul, [xson]") = [] {
+        // Parity with string_view: a trailing NUL after a complete value is OK.
+        const auto input = std::string{"true\0", 5};
+        auto ss = std::stringstream{input};
+        const auto v = json::parse(ss);
+        require_true(v.is_boolean());
+        require_true(static_cast<xson::boolean_type>(v));
+    };
+
+    test_case("DecodeIstreamEmbeddedNulRejects, [xson]") = [] {
+        // Regression: istream decode used to treat a real NUL as the synthetic EOF
+        // sentinel, so number/literal completion swallowed it and kept parsing —
+        // e.g. {"a":1<NUL>} and true<NUL>false succeeded. Reject like string_view.
+        require_throws([&]{
+            const auto input = std::string{"true\0false", 9};
+            auto ss = std::stringstream{input};
+            (void)json::parse(ss);
+        });
+        require_throws([&]{
+            const auto input = std::string{"{\"a\":1\0}", 8};
+            auto ss = std::stringstream{input};
+            (void)json::parse(ss);
+        });
+        require_throws([&]{
+            const auto input = std::string{"{\"admin\":true\0,\"role\":\"user\"}", 29};
+            auto ss = std::stringstream{input};
+            (void)json::parse(ss);
+        });
+    };
+
     test_case("DecodeRootPrimitiveTrailingGarbage, [xson]") = [] {
         // After a complete top-level value, only whitespace is allowed.
         require_throws([&]{ auto ob = json::parse("truex"); });
