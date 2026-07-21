@@ -841,6 +841,20 @@ auto register_tests()
         require_false(ob.match(object{{"$in"s, in_empty_array}}));
         require_true(ob.match(object{{"$nin"s, in_empty_array}}));
 
+        // Regression: membership used match(), so empty-object candidates and
+        // operator maps acted as predicates: {"$in":[{}]} / {"$in":[{"$gt":0}]}
+        // matched any primitive; {"$nin":[{}]} matched none.
+        auto empty_object = object{};
+        auto in_empty_object = object{array{empty_object}};
+        require_false(ob.match(object{{"$in"s, in_empty_object}}));
+        require_true(ob.match(object{{"$nin"s, in_empty_object}}));
+        auto in_gt_operator = object{array{object{{"$gt"s, 0}}}};
+        require_false(ob.match(object{{"$in"s, in_gt_operator}}));
+        require_true(ob.match(object{{"$nin"s, in_gt_operator}}));
+        auto in_eq_operator = object{array{object{{"$eq"s, 42}}}};
+        require_false(ob.match(object{{"$in"s, in_eq_operator}}));
+        require_true(ob.match(object{{"$nin"s, in_eq_operator}}));
+
         // Nested field selector with array $in (typical query shape).
         auto doc = object{{"age"s, 42}};
         require_true(doc.match(object{{"age"s, object{{"$in"s, in_hit}}}}));
