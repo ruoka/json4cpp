@@ -805,23 +805,66 @@ auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
 
 inline auto to_time_point(const std::string_view sv)
 {
-    // YYYY-MM-DDTHH:MM:SS.sssZ
-    if(sv.size() <= 9)
-        throw std::logic_error("Invalid time point string: size must be greater than 9");
-    auto YYYY = 0; auto MM = 0u, DD = 0u, hh = 0u, mm = 0u, ss = 0u, fff = 0u;
-    auto res = std::from_chars_result{sv.data(),std::errc()};
-    res = std::from_chars(res.ptr,res.ptr+4,YYYY);
-    res = std::from_chars(++res.ptr,res.ptr+2,MM);
-    res = std::from_chars(++res.ptr,res.ptr+2,DD);
-    if(sv.length() == 24)
+    // Accepted forms:
+    //   YYYY-MM-DD                 (10) → midnight UTC
+    //   YYYY-MM-DDTHH:MM:SS.sssZ   (24)
+    //
+    // Do not write from_chars(++p, p+N, ...): modifying p and reading p to form
+    // the end pointer are unsequenced argument side-effects (undefined behavior).
+    // On common right-to-left evaluation that silently parsed the wrong digits
+    // (e.g. month from one character), corrupting every timestamp.
+    //
+    // Also reject other lengths: "…T12:00:00Z" (20) used to fall through as
+    // midnight, silently dropping the time. Require each field to consume its
+    // full width and separators/date to be valid — failed from_chars used to
+    // leave zeros and build an unspecified sys_days.
+    const bool with_time = sv.size() == 24;
+    if(sv.size() != 10 and not with_time)
+        throw std::logic_error("Invalid time point string: expected YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.sssZ");
+
+    const auto require_sep = [&](std::size_t i, char expected)
     {
-        res = std::from_chars(++res.ptr,res.ptr+2,hh);
-        res = std::from_chars(++res.ptr,res.ptr+2,mm);
-        res = std::from_chars(++res.ptr,res.ptr+2,ss);
-        res = std::from_chars(++res.ptr,res.ptr+3,fff);
+        if(sv[i] != expected)
+            throw std::logic_error("Invalid time point string: bad separator");
+    };
+    require_sep(4, '-');
+    require_sep(7, '-');
+    if(with_time)
+    {
+        require_sep(10, 'T');
+        require_sep(13, ':');
+        require_sep(16, ':');
+        require_sep(19, '.');
+        require_sep(23, 'Z');
     }
+
+    const auto parse_unsigned = [](const char* first, const char* last, auto& out)
+    {
+        const auto res = std::from_chars(first, last, out);
+        if(res.ec != std::errc{} or res.ptr != last)
+            throw std::logic_error("Invalid time point string: bad numeric field");
+    };
+
+    auto YYYY = 0; auto MM = 0u, DD = 0u, hh = 0u, mm = 0u, ss = 0u, fff = 0u;
+    const char* p = sv.data();
+    parse_unsigned(p, p + 4, YYYY);
+    parse_unsigned(p + 5, p + 7, MM);
+    parse_unsigned(p + 8, p + 10, DD);
+    if(with_time)
+    {
+        parse_unsigned(p + 11, p + 13, hh);
+        parse_unsigned(p + 14, p + 16, mm);
+        parse_unsigned(p + 17, p + 19, ss);
+        parse_unsigned(p + 20, p + 23, fff);
+    }
+
     using namespace std::chrono;
-    return sys_days{year{YYYY}/month{MM}/day{DD}} + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+    const year_month_day ymd{year{YYYY}/month{MM}/day{DD}};
+    if(not ymd.ok() or hh > 23u or mm > 59u or ss > 59u or fff > 999u)
+        throw std::logic_error("Invalid time point string: out-of-range date/time");
+
+    const auto tp = sys_days{ymd} + hours{hh} + minutes{mm} + seconds{ss} + milliseconds{fff};
+    return timestamp_type{duration_cast<timestamp_type::duration>(tp.time_since_epoch())};
 }
 
 using std::to_string;
@@ -904,7 +947,27 @@ inline void write_json_string(std::ostream& os, std::string_view s)
 inline std::ostream& operator << (std::ostream& os, const primitive& v)
 {
     if(holds_alternative<number_type>(v))
-        os << std::get<number_type>(v);
+    {
+        // Default ostream precision is only 6 significant digits, which silently
+        // corrupts JSON doubles on stringify (e.g. 123456789.123… → 1.23457e+08).
+        // Emit max_digits10 so parse can recover the original value. Prefer an
+        // explicit precision over shortest to_chars: this decoder's decimal
+        // accumulation is not std::from_chars, so shortest form can rewrite
+        // (3.14159 → 3.1415900000000003) on the next stringify.
+        const auto d = std::get<number_type>(v);
+        if(!std::isfinite(d))
+            throw std::runtime_error{"Cannot serialize non-finite number to JSON"s};
+        char buf[64];
+        const auto [ptr, ec] = std::to_chars(
+            buf,
+            buf + sizeof(buf),
+            d,
+            std::chars_format::general,
+            std::numeric_limits<number_type>::max_digits10);
+        if(ec != std::errc{})
+            throw std::runtime_error{"Failed to serialize number to JSON"s};
+        os.write(buf, ptr - buf);
+    }
     else if(holds_alternative<string_type>(v))
         write_json_string(os, std::get<string_type>(v));
     else if(holds_alternative<boolean_type>(v))
