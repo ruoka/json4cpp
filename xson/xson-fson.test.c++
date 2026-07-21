@@ -525,6 +525,39 @@ auto register_tests()
         }
     };
 
+    test_case("Malformed_EmptyInputAndLoneEnd_Throw, [xson]") = [] {
+        // Regression: empty streams and a lone type::end used to succeed as {}
+        // because the decoder returned without building anything and
+        // builder::get() defaults to an empty map. Valid empty object/array
+        // encodings are object|array + end.
+        {
+            auto ss = std::stringstream{};
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::end);
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
+        // Still accept real empty object / empty array encodings.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::object);
+            xson::fast::encode(ss, xson::fson::type::end);
+            auto ob = xson::fson::parse(ss);
+            require_true(ob.is_object());
+            require_true(ob.empty());
+        }
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::array);
+            xson::fast::encode(ss, xson::fson::type::end);
+            auto ob = xson::fson::parse(ss);
+            require_true(ob.is_array());
+            require_true(ob.empty());
+        }
+    };
+
 
     return 0;
 }

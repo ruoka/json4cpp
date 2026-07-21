@@ -263,8 +263,11 @@ public:
                     break;
 
                 case type::end:
+                    // A root-level end with no open container is never valid.
+                    // Empty objects/arrays are object|array + end; a lone end used
+                    // to return success and builder.get() fabricated {}.
                     if(parent.empty())
-                        return;  // End of document
+                        throw std::runtime_error{"Invalid FSON: unexpected end marker"s};
                     require_no_pending_member_value();
                     if(parent.top() == type::object)
                         m_builder.end_object();
@@ -279,13 +282,17 @@ public:
                     break;
             }
 
+            // Completed a root value (object/array closed, or root primitive).
             if(parent.empty())
                 return;
         }
 
-        // Stream ended before closing all open containers.
+        // Stream ended without a complete document: either truncated open
+        // containers, or no tags at all (empty input). The latter used to
+        // succeed as {} because builder defaults to an empty map.
         if(!parent.empty())
             throw std::runtime_error{"Invalid FSON: truncated input (unexpected end of stream)"s};
+        throw std::runtime_error{"Invalid FSON: empty input"s};
     }
 
 private:
