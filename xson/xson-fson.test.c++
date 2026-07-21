@@ -250,6 +250,14 @@ auto register_tests()
         require_eq(static_cast<system_clock::time_point>(o2["Apollo"s]), apollo);
     };
 
+    test_case("Date rejects out-of-range timestamp payload, [xson]") = [] {
+        // Root timestamp whose millisecond payload overflows system_clock::duration.
+        auto ss = std::stringstream{};
+        ss.put(static_cast<char>(xson::fson::type::timestamp));
+        xson::fast::encode(ss, std::numeric_limits<std::int64_t>::max());
+        require_throws([&]{ (void)xson::fson::parse(ss); });
+    };
+
     test_case("Null, [xson]") = [] {
         auto o1 = object{"Test"s, nullptr};
 

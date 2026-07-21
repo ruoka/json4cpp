@@ -360,7 +360,16 @@ inline void decode(std::istream& is, std::chrono::system_clock::time_point& dt)
     using namespace std::chrono;
     std::int64_t ms_count;
     decode(is, ms_count);
-    dt = system_clock::time_point{milliseconds{ms_count}};
+    // Wire unit is signed milliseconds, but system_clock::duration is finer
+    // (microseconds on libc++, nanoseconds on libstdc++). Extreme counts that
+    // still fit in int64 overflow the converting time_point constructor and
+    // silently wrap (e.g. INT64_MAX ms → a near-epoch garbage instant).
+    const auto ms = milliseconds{ms_count};
+    constexpr auto max_ms = duration_cast<milliseconds>(system_clock::duration::max());
+    constexpr auto min_ms = duration_cast<milliseconds>(system_clock::duration::min());
+    if(ms > max_ms or ms < min_ms)
+        throw std::runtime_error{"Invalid timestamp: milliseconds out of range for system_clock"};
+    dt = system_clock::time_point{duration_cast<system_clock::duration>(ms)};
 }
 
 } // namespace xson::fast

@@ -191,6 +191,29 @@ auto register_tests()
         require_eq(round_trip(after_epoch), after_epoch);
     };
 
+    test_case("Timestamp rejects out-of-range milliseconds, [xson]") = [] {
+        // Regression: decode built time_point{milliseconds{ms}} with no range
+        // check, so int64 extremes overflow system_clock::duration and wrap
+        // (INT64_MAX ms → near-epoch garbage on libc++/libstdc++).
+        using namespace std::chrono;
+        auto decode_ms = [](std::int64_t ms) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, ms);
+            auto tp = system_clock::time_point{};
+            xson::fast::decode(ss, tp);
+            return tp;
+        };
+
+        require_throws([&]{ (void)decode_ms(std::numeric_limits<std::int64_t>::max()); });
+        require_throws([&]{ (void)decode_ms(std::numeric_limits<std::int64_t>::min()); });
+
+        // Boundary still representable as whole milliseconds must round-trip.
+        constexpr auto max_ms = duration_cast<milliseconds>(system_clock::duration::max());
+        constexpr auto min_ms = duration_cast<milliseconds>(system_clock::duration::min());
+        require_eq(decode_ms(max_ms.count()), system_clock::time_point{max_ms});
+        require_eq(decode_ms(min_ms.count()), system_clock::time_point{min_ms});
+    };
+
     return 0;
 }
 
