@@ -150,6 +150,20 @@ public:
                 break;
             if(is.fail())
                 throw std::runtime_error{"Stream error while reading JSON input"};
+
+            // '\0' is the synthetic EOF sentinel for process_eof()/states — never a
+            // legal JSON character. Feeding a real embedded NUL into the machine
+            // used to finalize numbers/literals as if the stream ended, then keep
+            // parsing (e.g. {"a":1\0} and true\0false succeeded). Match the
+            // string_view path: allow only a trailing NUL run at end-of-stream.
+            if(c == '\0')
+            {
+                while(is.peek() == '\0')
+                    is.get();
+                if(is.peek() == std::char_traits<char>::eof())
+                    break;
+                throw std::runtime_error{"Invalid JSON: NUL byte in input"s};
+            }
             
             // If we already completed a full JSON text, only whitespace may follow.
             if(finished)
