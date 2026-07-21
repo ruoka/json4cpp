@@ -253,7 +253,7 @@ auto register_tests()
     test_case("Date rejects out-of-range timestamp payload, [xson]") = [] {
         // Root timestamp whose millisecond payload overflows system_clock::duration.
         auto ss = std::stringstream{};
-        ss.put(static_cast<char>(xson::fson::type::timestamp));
+        xson::fast::encode(ss, xson::fson::type::timestamp);
         xson::fast::encode(ss, std::numeric_limits<std::int64_t>::max());
         require_throws([&]{ (void)xson::fson::parse(ss); });
     };
