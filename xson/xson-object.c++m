@@ -643,9 +643,8 @@ public:
     bool match(const object& subset) const
     {
         // Empty object query matches everything (Mongo-style {}). Empty arrays
-        // must not: array matching is same-length equality, and $in/$nin reuse
-        // match() for candidates — treating [] as a wildcard made
-        // {"$in":[[]]} / {"tags":[]} match any value.
+        // must not: array matching is same-length equality — treating [] as a
+        // wildcard made {"tags":[]} match any value (and used to break $in).
         if(subset.has_objects() and subset.empty())
             return true;
 
@@ -686,16 +685,25 @@ public:
                 });
 
             // $in/$nin accept a JSON array (natural query shape) or a map of
-            // indexed values (legacy/tests). Compare via match() so nested
-            // candidates do not throw bad_variant_access.
+            // indexed values (legacy/tests). Membership is value equality, not
+            // match(): match() treats {} as a universal wildcard and applies
+            // $eq/$gt/... as operators, so {"$in":[{}]} / {"$in":[{"$gt":0}]}
+            // wrongly matched any primitive (same class of bug as {"$in":[[]]}).
+            // This branch only runs for primitive LHS; non-primitive candidates
+            // cannot equal a primitive.
             const auto membership_any = [&](const object& haystack) -> bool
             {
+                const auto equals_candidate = [&](const object& candidate) -> bool
+                {
+                    if(not candidate.has_value())
+                        return false;
+                    return primitive_equal(get<primitive>(), candidate.get<primitive>());
+                };
                 if(haystack.is_array())
-                    return std::ranges::any_of(haystack.get<array>(),
-                        [&](const object& candidate) { return match(candidate); });
+                    return std::ranges::any_of(haystack.get<array>(), equals_candidate);
                 if(haystack.has_objects())
                     return std::ranges::any_of(haystack.get<map>(),
-                        [&](const auto& node) { return match(node.second); });
+                        [&](const auto& node) { return equals_candidate(node.second); });
                 return false;
             };
 
