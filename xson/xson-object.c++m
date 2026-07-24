@@ -691,6 +691,16 @@ public:
             // wrongly matched any primitive (same class of bug as {"$in":[[]]}).
             // This branch only runs for primitive LHS; non-primitive candidates
             // cannot equal a primitive.
+            //
+            // Operand must be array/map. A primitive/null operand is invalid:
+            // membership_any() would return false, and not false made
+            // {"$nin":42} / {"$nin":"x"} match every value (fail-open), while
+            // {"$in":42} matched nothing. Reject both — fail closed.
+            const auto is_membership_operand = [](const object& haystack) -> bool
+            {
+                return haystack.is_array() or haystack.has_objects();
+            };
+
             const auto membership_any = [&](const object& haystack) -> bool
             {
                 const auto equals_candidate = [&](const object& candidate) -> bool
@@ -708,11 +718,17 @@ public:
             };
 
             if(subset.has("$in"s))
-                test = test && membership_any(subset["$in"s]);
+            {
+                const auto& haystack = subset["$in"s];
+                test = test && is_membership_operand(haystack) && membership_any(haystack);
+            }
 
             // $nin is the complement of $in (empty array/map excludes nothing).
             if(subset.has("$nin"s))
-                test = test && not membership_any(subset["$nin"s]);
+            {
+                const auto& haystack = subset["$nin"s];
+                test = test && is_membership_operand(haystack) && not membership_any(haystack);
+            }
 
             return test;
         }
