@@ -538,6 +538,38 @@ auto register_tests()
         require_eq(999, static_cast<xson::integer_type>(ob2["large_array"s][999]));
     };
 
+    test_case("StringLengthLimitAppliesToEscapes, [xson]") = [] {
+        // Escape/unicode appends used to skip max_string_length, so a payload of
+        // only "\n" / "\u0041" could grow without bound. Use a tiny custom limit
+        // so the regression stays fast.
+        constexpr std::size_t limit = 4;
+
+        const auto parse_with_limit = [](std::string_view json) {
+            auto b = xson::builder{};
+            auto d = decoder<xson::builder>{b, limit};
+            d.decode(json);
+            return b.get();
+        };
+
+        // Exactly at the limit via short escapes — allowed.
+        require_eq(limit, static_cast<xson::string_type>(parse_with_limit(R"("\n\n\n\n")")).length());
+
+        // One more escaped byte must reject.
+        require_throws([&]{ (void)parse_with_limit(R"("\n\n\n\n\n")"); });
+
+        // Unicode escapes must share the same cap (BMP, 1 UTF-8 byte each).
+        require_eq(limit, static_cast<xson::string_type>(parse_with_limit(R"("\u0041\u0041\u0041\u0041")")).length());
+        require_throws([&]{ (void)parse_with_limit(R"("\u0041\u0041\u0041\u0041\u0041")"); });
+
+        // Multi-byte UTF-8 must not slip past the cap by appending unchecked bytes.
+        // U+00A2 is two UTF-8 bytes; two of them already exceed limit 4? 2+2=4 ok; third fails.
+        require_eq(4u, static_cast<xson::string_type>(parse_with_limit(R"("\u00A2\u00A2")")).length());
+        require_throws([&]{ (void)parse_with_limit(R"("\u00A2\u00A2\u00A2")"); });
+
+        // Object member names share escape handling and the same limit.
+        require_throws([&]{ (void)parse_with_limit(R"({"\n\n\n\n\n":1})"); });
+    };
+
     test_case("NumberEdgeCases, [xson]") = [] {
         // Test number edge cases (using valid JSON)
         auto json_str = R"({
