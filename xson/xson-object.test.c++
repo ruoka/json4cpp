@@ -871,6 +871,21 @@ auto register_tests()
         // Non-primitive operator RHS must not throw.
         require_false(ob.match(object{{"$eq"s, object{{"x"s, 1}}}}));
         require_false(ob.match(object{{"$in"s, object{42}}}));
+
+        // Regression: invalid $nin/$in operands (not array/map) must fail closed.
+        // membership_any(primitive) is false, so not membership_any made
+        // {"$nin":42} / {"$nin":"x"} / {"$nin":null} match every value.
+        require_false(ob.match(object{{"$nin"s, object{42}}}));
+        require_false(ob.match(object{{"$nin"s, object{"x"s}}}));
+        {
+            auto nin_null = object{};
+            nin_null = nullptr;
+            require_false(ob.match(object{{"$nin"s, nin_null}}));
+            require_false(ob.match(object{{"$in"s, nin_null}}));
+        }
+        require_false(ob.match(object{{"$eq"s, 42}, {"$nin"s, object{0}}}));
+        require_false(doc.match(object{{"age"s, object{{"$nin"s, object{0}}}}}));
+        require_false(doc.match(object{{"age"s, object{{"$in"s, object{42}}}}}));
     };
 
     test_case("MatchNumericCrossType, [xson]") = [] {
