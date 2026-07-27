@@ -528,7 +528,13 @@ public:
 
     operator int32_type () const
     {
-        return std::get<integer_type>(std::get<primitive>(m_value));
+        // int/int32_t extraction prefers this over integer_type(), so out-of-range
+        // int64 values must not silently wrap (e.g. 3000000000 → negative int).
+        const auto value = std::get<integer_type>(std::get<primitive>(m_value));
+        if(value < std::numeric_limits<int32_type>::min()
+           or value > std::numeric_limits<int32_type>::max())
+            throw std::runtime_error{"Cannot convert to int32_type: integer out of range"s};
+        return static_cast<int32_type>(value);
     }
 
     object operator + (const object& obj) const

@@ -89,6 +89,32 @@ auto register_tests()
         require_eq("4"s, s);
     };
 
+    test_case("Int32ConversionRejectsOutOfRange, [xson]") = [] {
+        // Regression: operator int32_type() narrowed int64 without a range check, so
+        // `int x = doc["id"]` / `int32_type x = …` silently wrapped values outside
+        // [INT32_MIN, INT32_MAX] (e.g. 3000000000 → negative). integer_type extraction
+        // and in-range int32 conversion must still succeed.
+        constexpr auto too_big = integer_type{3'000'000'000};
+        constexpr auto too_small = integer_type{-3'000'000'000};
+        auto doc = object{
+            {"big"s, too_big},
+            {"small"s, too_small},
+            {"max32"s, integer_type{std::numeric_limits<int32_type>::max()}},
+            {"min32"s, integer_type{std::numeric_limits<int32_type>::min()}}
+        };
+
+        const integer_type as_i64 = doc["big"s];
+        require_eq(too_big, as_i64);
+
+        require_throws([&]{ int32_type x = doc["big"s]; (void)x; });
+        require_throws([&]{ int x = doc["big"s]; (void)x; });
+        require_throws([&]{ int32_type x = doc["small"s]; (void)x; });
+
+        const int32_type max32 = doc["max32"s];
+        const int32_type min32 = doc["min32"s];
+        require_eq(std::numeric_limits<int32_type>::max(), max32);
+        require_eq(std::numeric_limits<int32_type>::min(), min32);
+    };
 
     test_case("Vector, [xson]") = [] {
         auto vec = std::vector<std::string>{"a","b","c","d","e","f","g","h","i"};
