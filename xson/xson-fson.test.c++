@@ -484,6 +484,17 @@ auto register_tests()
             ss.put(static_cast<char>(0x80));
             require_throws([&]{ auto ob = xson::fson::parse(ss); });
         }
+        // Maximal-length overflow (10 bytes, leading high bits) must not
+        // silently truncate to 0 either — shared with double/timestamp paths.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::integer);
+            ss.put(char{0x02});
+            for(int i = 0; i < 8; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
     };
 
     test_case("Malformed_ObjectValueWithoutName_Throws, [xson]") = [] {

@@ -156,6 +156,89 @@ auto register_tests()
         });
     };
 
+    test_case("Overflow varint within max length rejected, [xson]") = [] {
+        // Length caps alone still allow silent truncation: a maximal-length
+        // encoding whose leading byte carries more high bits than the type can
+        // hold shifts those bits away on <<7. Example: 10-byte
+        // [0x02, eight 0x00, 0x80] used to decode as uint64 0 (2^64 lost).
+        // Doubles (bit_cast of uint64) and FSON integers share this path.
+        auto overflow64 = [] {
+            auto ss = std::stringstream{};
+            ss.put(char{0x02}); // bit that becomes 2^64 after nine <<7 steps
+            for(int i = 0; i < 8; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80)); // 10th byte, stop bit set
+            return ss;
+        };
+
+        require_throws([&]{
+            auto ss = overflow64();
+            auto out = std::uint64_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+        require_throws([&]{
+            auto ss = overflow64();
+            auto out = std::int64_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+
+        // uint32: 5 bytes hold 35 payload bits; leading bits above 2^32 must fail.
+        // [0x10, three 0x00, 0x80] → would be 2^32 after four <<7 steps.
+        auto overflow32 = [] {
+            auto ss = std::stringstream{};
+            ss.put(char{0x10});
+            for(int i = 0; i < 3; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80)); // 5th byte, stop bit set
+            return ss;
+        };
+
+        require_throws([&]{
+            auto ss = overflow32();
+            auto out = std::uint32_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+        require_throws([&]{
+            auto ss = overflow32();
+            auto out = std::int32_t{0x12345678};
+            xson::fast::decode(ss, out);
+        });
+
+        // Legitimate max-width values must still round-trip.
+        {
+            auto ss = std::stringstream{};
+            const auto in = std::numeric_limits<std::uint64_t>::max();
+            xson::fast::encode(ss, in);
+            auto out = std::uint64_t{0};
+            xson::fast::decode(ss, out);
+            require_eq(out, in);
+        }
+        {
+            auto ss = std::stringstream{};
+            const auto in = std::numeric_limits<std::int64_t>::min();
+            xson::fast::encode(ss, in);
+            auto out = std::int64_t{0};
+            xson::fast::decode(ss, out);
+            require_eq(out, in);
+        }
+        {
+            auto ss = std::stringstream{};
+            const auto in = std::numeric_limits<std::int64_t>::max();
+            xson::fast::encode(ss, in);
+            auto out = std::int64_t{0};
+            xson::fast::decode(ss, out);
+            require_eq(out, in);
+        }
+        {
+            auto ss = std::stringstream{};
+            const auto in = std::numeric_limits<std::uint32_t>::max();
+            xson::fast::encode(ss, in);
+            auto out = std::uint32_t{0};
+            xson::fast::decode(ss, out);
+            require_eq(out, in);
+        }
+    };
+
     test_case("String, [xson]") = [] {
         auto ss = std::stringstream{};
 
