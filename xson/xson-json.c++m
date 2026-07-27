@@ -1368,7 +1368,9 @@ private:
     {
         if(bytes == 0)
             return;
-        if(m_string.length() > m_max_string_length - bytes)
+        // Avoid size_t underflow when bytes > remaining room (or > the whole limit).
+        if(m_string.length() > m_max_string_length
+           or bytes > m_max_string_length - m_string.length())
             throw_string_too_long();
     }
 

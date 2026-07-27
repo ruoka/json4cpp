@@ -566,6 +566,19 @@ auto register_tests()
         require_eq(4u, static_cast<xson::string_type>(parse_with_limit(R"("\u00A2\u00A2")")).length());
         require_throws([&]{ (void)parse_with_limit(R"("\u00A2\u00A2\u00A2")"); });
 
+        // A single multi-byte append larger than the whole remaining budget must reject
+        // (guards size_t underflow in the room check when bytes > limit).
+        {
+            constexpr std::size_t tiny = 1;
+            const auto parse_tiny = [](std::string_view json) {
+                auto b = xson::builder{};
+                auto d = decoder<xson::builder>{b, tiny};
+                d.decode(json);
+                return b.get();
+            };
+            require_throws([&]{ (void)parse_tiny(R"("\u00A2")"); });
+        }
+
         // Object member names share escape handling and the same limit.
         require_throws([&]{ (void)parse_with_limit(R"({"\n\n\n\n\n":1})"); });
     };
