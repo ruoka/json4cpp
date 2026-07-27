@@ -136,12 +136,15 @@ public:
     static constexpr std::size_t max_nesting_depth = 1000;
     static constexpr std::size_t max_array_size = 100 * 1024 * 1024; // 100 million elements
 
-    // string_length_limit is overridable for tests; production parse() uses max_string_length.
-    decoder(Builder& b, std::size_t string_length_limit = max_string_length)
+    // Limits are overridable for tests; production parse() uses the max_* defaults.
+    decoder(Builder& b,
+            std::size_t string_length_limit = max_string_length,
+            std::size_t array_size_limit = max_array_size)
         : m_builder{b}
         , m_has_parsed_content{false}
         , m_nesting_depth{0}
         , m_max_string_length{string_length_limit}
+        , m_max_array_size{array_size_limit}
     {}
 
     void decode(std::istream& is)
@@ -1182,6 +1185,8 @@ private:
             return;
         }
 
+        // First element of this array — enforce max_array_size before building it.
+        note_array_element();
         m_state_machine.pop();
         m_state_machine.push(&decoder::array_after_value);
         m_state_machine.push(&decoder::value);
@@ -1198,6 +1203,7 @@ private:
         if(c == ']')
             throw std::runtime_error{"JSON parse error: trailing comma in array is not allowed"s};
 
+        note_array_element();
         m_state_machine.pop();
         m_state_machine.push(&decoder::array_after_value);
         m_state_machine.push(&decoder::value);
@@ -1327,12 +1333,17 @@ private:
                     throw std::runtime_error{"JSON parse error: nesting depth exceeds maximum allowed level"s};
                 }
             }
+            // Per-array element counter for max_array_size (nested arrays each get their own budget).
+            m_array_sizes.push(0);
             m_builder.start_array();
             m_state_machine.push(&decoder::array_first);
         }
         else if(c == ']')
         {
             // Don't decrement here - array already decremented
+            if(m_array_sizes.empty())
+                throw std::runtime_error{"JSON parse error: unexpected ']' (array size stack is empty)"s};
+            m_array_sizes.pop();
             m_builder.end_array();
             m_state_machine.pop();
         }
@@ -1386,6 +1397,20 @@ private:
         m_string.append(bytes.begin(), bytes.end());
     }
 
+    [[noreturn]] void throw_array_too_large() const
+    {
+        throw std::runtime_error{"JSON parse error: array size exceeds maximum allowed size"s};
+    }
+
+    // Count one element toward the current array's max_array_size budget.
+    void note_array_element()
+    {
+        if(m_array_sizes.empty())
+            throw std::runtime_error{"JSON parse error: array element outside array context"s};
+        if(++m_array_sizes.top() > m_max_array_size)
+            throw_array_too_large();
+    }
+
     using state = std::function<void(decoder&,char)>;
 
     std::stack<state> m_state_machine = std::stack<state>{};
@@ -1417,6 +1442,8 @@ private:
     std::size_t m_nesting_depth = 0; // Track nesting depth for DoS protection
     std::size_t m_input_pos = 0; // Current 1-based input character offset (for diagnostics)
     std::size_t m_max_string_length = max_string_length; // Effective cap (overridable in tests)
+    std::size_t m_max_array_size = max_array_size; // Effective cap (overridable in tests)
+    std::stack<std::size_t> m_array_sizes; // Per nested array: elements accepted so far
 
 }; // class decoder
 

@@ -583,6 +583,38 @@ auto register_tests()
         require_throws([&]{ (void)parse_with_limit(R"({"\n\n\n\n\n":1})"); });
     };
 
+    test_case("ArraySizeLimitEnforced, [xson]") = [] {
+        // max_array_size was defined but never checked; escape-style DoS via huge
+        // arrays could allocate without bound. Use a tiny custom limit so the
+        // regression stays fast.
+        constexpr std::size_t limit = 3;
+
+        const auto parse_with_limit = [](std::string_view json) {
+            auto b = xson::builder{};
+            auto d = decoder<xson::builder>{b, decoder<xson::builder>::max_string_length, limit};
+            d.decode(json);
+            return b.get();
+        };
+
+        // Exactly at the limit — allowed.
+        require_eq(limit, parse_with_limit("[1,2,3]").size());
+
+        // One more element must reject before the fourth value is built.
+        require_throws([&]{ (void)parse_with_limit("[1,2,3,4]"); });
+
+        // Nested arrays each get their own budget (outer size 2, inners at limit).
+        require_eq(2u, parse_with_limit("[[1,2,3],[4,5,6]]").size());
+        require_throws([&]{ (void)parse_with_limit("[[1,2,3,4]]"); });
+
+        // Arrays nested under objects share the same per-array cap.
+        require_throws([&]{ (void)parse_with_limit(R"({"a":[1,2,3,4]})"); });
+
+        // Empty / short arrays still parse.
+        require_eq(0u, parse_with_limit("[]").size());
+        require_eq(1u, parse_with_limit("[0]").size());
+    };
+
+
     test_case("NumberEdgeCases, [xson]") = [] {
         // Test number edge cases (using valid JSON)
         auto json_str = R"({
