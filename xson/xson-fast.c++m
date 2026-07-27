@@ -269,11 +269,24 @@ void decode(std::istream& is, T& e)
     
 }
 
+// Varint width caps: ceil(bits/7). Without them, an 11th (or 6th) continuation
+// byte still terminates on 0x80 but shifts the earlier payload out of the
+// destination — e.g. overlong [0x01, nine 0x00, 0x80] decoded as uint64/int64
+// yields 0 instead of 2^70 (silently truncated). FSON integers, doubles
+// (bit_cast of uint64), and timestamps all share these decoders.
+inline constexpr unsigned max_uint32_varint_bytes = 5;
+inline constexpr unsigned max_int32_varint_bytes = 5;
+inline constexpr unsigned max_uint64_varint_bytes = 10;
+inline constexpr unsigned max_int64_varint_bytes = 10;
+
 inline void decode(std::istream& is, std::uint32_t& i)
 {
     i = 0u;
+    unsigned n = 0;
     for(std::uint8_t byte = is.get(); is; byte = is.get())
     {
+        if(++n > max_uint32_varint_bytes)
+            throw std::runtime_error{"xson::fast overlong uint32 varint"};
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -284,8 +297,11 @@ inline void decode(std::istream& is, std::uint32_t& i)
 inline void decode(std::istream& is, std::int32_t& i)
 {
     i = (is.peek() & 0x40) ? -1 : 0;
+    unsigned n = 0;
     for(std::uint8_t byte = is.get(); is; byte = is.get())
     {
+        if(++n > max_int32_varint_bytes)
+            throw std::runtime_error{"xson::fast overlong int32 varint"};
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -296,8 +312,11 @@ inline void decode(std::istream& is, std::int32_t& i)
 inline void decode(std::istream& is, std::uint64_t& i)
 {
     i = 0ull;
+    unsigned n = 0;
     for(std::uint8_t byte = is.get(); is; byte = is.get())
     {
+        if(++n > max_uint64_varint_bytes)
+            throw std::runtime_error{"xson::fast overlong uint64 varint"};
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -308,8 +327,11 @@ inline void decode(std::istream& is, std::uint64_t& i)
 inline void decode(std::istream& is, std::int64_t& i)
 {
     i = (is.peek() & 0x40) ? -1ll : 0ll;
+    unsigned n = 0;
     for(std::uint8_t byte = is.get(); is; byte = is.get())
     {
+        if(++n > max_int64_varint_bytes)
+            throw std::runtime_error{"xson::fast overlong int64 varint"};
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;

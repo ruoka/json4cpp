@@ -473,6 +473,17 @@ auto register_tests()
             ss.put(char{0x01}); // continuation byte, missing 0x80 terminator
             require_throws([&]{ auto ob = xson::fson::parse(ss); });
         }
+        // Overlong int64 varint (11 bytes with stop bit) must not silently
+        // truncate — used to decode as 0 and succeed as a root integer.
+        {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, xson::fson::type::integer);
+            ss.put(char{0x01});
+            for(int i = 0; i < 9; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{ auto ob = xson::fson::parse(ss); });
+        }
     };
 
     test_case("Malformed_ObjectValueWithoutName_Throws, [xson]") = [] {

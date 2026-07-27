@@ -108,6 +108,54 @@ auto register_tests()
                    std::numeric_limits<std::uint64_t>::max());
     };
 
+    test_case("Overlong varint rejected, [xson]") = [] {
+        // Regression: decode shifted every continuation byte into a fixed-width
+        // register with no length cap. An 11-byte uint64/int64 (or 6-byte
+        // uint32/int32) that still ends with the stop bit used to "succeed" with
+        // high payload bits shifted away — e.g. [0x01, nine 0x00, 0x80] → 0
+        // instead of failing. FSON integers/doubles/timestamps all use these
+        // decoders, so overlong wire forms silently corrupted stored values.
+        auto overlong64 = [] {
+            auto ss = std::stringstream{};
+            ss.put(char{0x01});
+            for(int i = 0; i < 9; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80)); // 11th byte, stop bit set
+            return ss;
+        };
+
+        require_throws([&]{
+            auto ss = overlong64();
+            auto out = std::uint64_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+        require_throws([&]{
+            auto ss = overlong64();
+            auto out = std::int64_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+
+        auto overlong32 = [] {
+            auto ss = std::stringstream{};
+            ss.put(char{0x01});
+            for(int i = 0; i < 4; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80)); // 6th byte, stop bit set
+            return ss;
+        };
+
+        require_throws([&]{
+            auto ss = overlong32();
+            auto out = std::uint32_t{0xdeadbeef};
+            xson::fast::decode(ss, out);
+        });
+        require_throws([&]{
+            auto ss = overlong32();
+            auto out = std::int32_t{0x12345678};
+            xson::fast::decode(ss, out);
+        });
+    };
+
     test_case("String, [xson]") = [] {
         auto ss = std::stringstream{};
 
