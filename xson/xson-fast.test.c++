@@ -120,7 +120,7 @@ auto register_tests()
             ss.put(char{0x01});
             for(int i = 0; i < 9; ++i)
                 ss.put(char{0x00});
-            ss.put(char{0x80}); // 11th byte, stop bit set
+            ss.put(static_cast<char>(0x80)); // 11th byte, stop bit set
             return ss;
         };
 
@@ -140,7 +140,7 @@ auto register_tests()
             ss.put(char{0x01});
             for(int i = 0; i < 4; ++i)
                 ss.put(char{0x00});
-            ss.put(char{0x80}); // 6th byte, stop bit set
+            ss.put(static_cast<char>(0x80)); // 6th byte, stop bit set
             return ss;
         };
 

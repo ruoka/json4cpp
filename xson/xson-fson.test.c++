@@ -481,7 +481,7 @@ auto register_tests()
             ss.put(char{0x01});
             for(int i = 0; i < 9; ++i)
                 ss.put(char{0x00});
-            ss.put(char{0x80});
+            ss.put(static_cast<char>(0x80));
             require_throws([&]{ auto ob = xson::fson::parse(ss); });
         }
     };
