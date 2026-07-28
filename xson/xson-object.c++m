@@ -859,24 +859,18 @@ auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
     const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(time.subseconds());
     // YYYY-MM-DDThh:mm:ss.fffZ
     // Do not use ostringstream << int: under a C++ locale with thousands grouping
-    // (e.g. after locale::global(en_US)), year 2020 becomes "2,020", which corrupts
-    // JSON timestamp strings and breaks to_time_point round-trips. snprintf is
-    // independent of C++ locales (only the C locale / setlocale).
-    char buf[32];
-    const int n = std::snprintf(
-        buf,
-        sizeof(buf),
-        "%04d-%02u-%02uT%02lld:%02lld:%02lld.%03lldZ",
+    // (e.g. after locale::global), year 2020 becomes "2,020", which corrupts
+    // JSON timestamp strings and breaks to_time_point round-trips. std::format
+    // without the L specifier is locale-independent for integral arguments.
+    return std::format(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
         static_cast<int>(date.year()),
         static_cast<unsigned>(date.month()),
         static_cast<unsigned>(date.day()),
-        static_cast<long long>(time.hours().count()),
-        static_cast<long long>(time.minutes().count()),
-        static_cast<long long>(time.seconds().count()),
-        static_cast<long long>(milliseconds.count()));
-    if(n <= 0 or static_cast<std::size_t>(n) >= sizeof(buf))
-        return std::string{};
-    return std::string{buf, static_cast<std::size_t>(n)};
+        time.hours().count(),
+        time.minutes().count(),
+        time.seconds().count(),
+        milliseconds.count());
 }
 
 inline auto to_time_point(const std::string_view sv)
