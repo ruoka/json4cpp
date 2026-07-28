@@ -300,6 +300,58 @@ auto register_tests()
         require_throws([&]{ (void)json::stringify(nan, 0); });
     };
 
+    test_case("StringifyIntegersIgnoreLocaleGrouping, [xson]") = [] {
+        // Regression: operator<< for integer_type used ostream insertion, so a
+        // global/stream locale with thousands separators (e.g. en_US) emitted
+        // "1,234,567" into JSON — invalid and unparseable.
+        const auto previous = std::locale::global(std::locale{"en_US.utf8"});
+        try
+        {
+            auto obj = xson::object{
+                {"n", std::int64_t{1234567}},
+                {"min", std::numeric_limits<std::int64_t>::min()},
+                {"max", std::numeric_limits<std::int64_t>::max()},
+                {"flag", true},
+                {"off", false}
+            };
+            const auto s = json::stringify(obj, 0);
+            // Grouping would turn 1234567 into "1,234,567" (comma inside the number).
+            require_contains(s, ":1234567");
+            require_false(s.contains(":1,234,567"));
+            require_contains(s, ":-9223372036854775808");
+            require_contains(s, ":9223372036854775807");
+            require_contains(s, ":true");
+            require_contains(s, ":false");
+
+            const auto parsed = json::parse(s);
+            require_eq(std::int64_t{1234567},
+                       static_cast<xson::integer_type>(parsed["n"s]));
+            require_eq(std::numeric_limits<std::int64_t>::min(),
+                       static_cast<xson::integer_type>(parsed["min"s]));
+            require_eq(std::numeric_limits<std::int64_t>::max(),
+                       static_cast<xson::integer_type>(parsed["max"s]));
+            require_true(static_cast<xson::boolean_type>(parsed["flag"s]));
+            require_false(static_cast<xson::boolean_type>(parsed["off"s]));
+        }
+        catch(...)
+        {
+            std::locale::global(previous);
+            throw;
+        }
+        std::locale::global(previous);
+    };
+
+    test_case("StringifyIntegersIgnoreImbuedStreamLocale, [xson]") = [] {
+        using xson::json::operator<<;
+        auto obj = xson::object{};
+        obj = std::int64_t{1234567};
+
+        std::stringstream ss;
+        ss.imbue(std::locale{"en_US.utf8"});
+        ss << std::setw(0) << obj;
+        require_eq("1234567"s, ss.str());
+    };
+
     return 0;
 }
 
