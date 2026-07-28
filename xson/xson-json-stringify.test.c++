@@ -302,9 +302,18 @@ auto register_tests()
 
     test_case("StringifyIntegersIgnoreLocaleGrouping, [xson]") = [] {
         // Regression: operator<< for integer_type used ostream insertion, so a
-        // global/stream locale with thousands separators (e.g. en_US) emitted
-        // "1,234,567" into JSON — invalid and unparseable.
-        const auto previous = std::locale::global(std::locale{"en_US.utf8"});
+        // locale with thousands separators emitted "1,234,567" into JSON.
+        // Use a synthetic grouping facet — portable across macOS/Linux (unlike
+        // hard-coded "en_US.utf8", which is absent on Darwin).
+        struct grouping_numpunct : std::numpunct<char>
+        {
+        protected:
+            char do_thousands_sep() const override { return ','; }
+            std::string do_grouping() const override { return "\3"; }
+        };
+
+        const auto grouping = std::locale{std::locale::classic(), new grouping_numpunct};
+        const auto previous = std::locale::global(grouping);
         try
         {
             auto obj = xson::object{
@@ -343,11 +352,18 @@ auto register_tests()
 
     test_case("StringifyIntegersIgnoreImbuedStreamLocale, [xson]") = [] {
         using xson::json::operator<<;
+        struct grouping_numpunct : std::numpunct<char>
+        {
+        protected:
+            char do_thousands_sep() const override { return ','; }
+            std::string do_grouping() const override { return "\3"; }
+        };
+
         auto obj = xson::object{};
         obj = std::int64_t{1234567};
 
         std::stringstream ss;
-        ss.imbue(std::locale{"en_US.utf8"});
+        ss.imbue(std::locale{std::locale::classic(), new grouping_numpunct});
         ss << std::setw(0) << obj;
         require_eq("1234567"s, ss.str());
     };
