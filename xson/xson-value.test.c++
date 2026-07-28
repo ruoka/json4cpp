@@ -221,6 +221,35 @@ auto register_tests()
         require_throws([&]{ (void)xson::to_time_point("1970/01/01T00:00:00.000Z"); });
     };
 
+    test_case("ToISO8601IgnoresLocaleGrouping, [xson]") = [] {
+        // Regression: to_iso8601 used ostringstream << int, so a C++ locale with
+        // thousands separators turned year 2020 into "2,020" and broke the fixed
+        // YYYY-MM-DDThh:mm:ss.fffZ form used by JSON timestamp stringify.
+        struct grouping_numpunct : std::numpunct<char>
+        {
+        protected:
+            char do_thousands_sep() const override { return ','; }
+            std::string do_grouping() const override { return "\3"; }
+        };
+
+        const auto grouping = std::locale{std::locale::classic(), new grouping_numpunct};
+        const auto previous = std::locale::global(grouping);
+        try
+        {
+            const auto noon = xson::to_time_point("2020-01-15T12:30:45.123Z");
+            const auto iso = xson::to_iso8601(noon);
+            require_eq("2020-01-15T12:30:45.123Z"s, iso);
+            require_false(iso.contains(','));
+            require_eq(noon, xson::to_time_point(iso));
+        }
+        catch(...)
+        {
+            std::locale::global(previous);
+            throw;
+        }
+        std::locale::global(previous);
+    };
+
     test_case("ToStringObjectValueAllTypes, [xson]") = [] {
         // Test all variant types in primitive
         primitive val_int32{42};

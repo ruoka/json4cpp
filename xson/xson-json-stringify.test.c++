@@ -368,6 +368,34 @@ auto register_tests()
         require_eq("1234567"s, ss.str());
     };
 
+    test_case("StringifyTimestampsIgnoreLocaleGrouping, [xson]") = [] {
+        // Regression: JSON timestamp encoding calls to_iso8601, which used to
+        // emit locale-grouped years ("2,020-…") into the JSON string value.
+        struct grouping_numpunct : std::numpunct<char>
+        {
+        protected:
+            char do_thousands_sep() const override { return ','; }
+            std::string do_grouping() const override { return "\3"; }
+        };
+
+        const auto grouping = std::locale{std::locale::classic(), new grouping_numpunct};
+        const auto previous = std::locale::global(grouping);
+        try
+        {
+            auto obj = xson::object{};
+            obj = xson::to_time_point("2020-01-15T12:30:45.123Z");
+            const auto s = json::stringify(obj, 0);
+            require_eq("\"2020-01-15T12:30:45.123Z\""s, s);
+            require_false(s.contains(','));
+        }
+        catch(...)
+        {
+            std::locale::global(previous);
+            throw;
+        }
+        std::locale::global(previous);
+    };
+
     return 0;
 }
 
