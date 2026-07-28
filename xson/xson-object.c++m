@@ -858,15 +858,25 @@ auto to_iso8601(const std::chrono::time_point<T>& current_time) noexcept
     const auto time = std::chrono::hh_mm_ss{current_time - midnight};
     const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(time.subseconds());
     // YYYY-MM-DDThh:mm:ss.fffZ
-    auto os = std::ostringstream{};
-    os << std::setw(4) << std::setfill('0') << (int)date.year()        << '-'
-       << std::setw(2) << std::setfill('0') << (unsigned)date.month()  << '-'
-       << std::setw(2) << std::setfill('0') << (unsigned)date.day()    << 'T'
-       << std::setw(2) << std::setfill('0') << time.hours().count()    << ':'
-       << std::setw(2) << std::setfill('0') << time.minutes().count()  << ':'
-       << std::setw(2) << std::setfill('0') << time.seconds().count()  << '.'
-       << std::setw(3) << std::setfill('0') << milliseconds.count()    << 'Z';
-    return os.str();
+    // Do not use ostringstream << int: under a C++ locale with thousands grouping
+    // (e.g. after locale::global(en_US)), year 2020 becomes "2,020", which corrupts
+    // JSON timestamp strings and breaks to_time_point round-trips. snprintf is
+    // independent of C++ locales (only the C locale / setlocale).
+    char buf[32];
+    const int n = std::snprintf(
+        buf,
+        sizeof(buf),
+        "%04d-%02u-%02uT%02lld:%02lld:%02lld.%03lldZ",
+        static_cast<int>(date.year()),
+        static_cast<unsigned>(date.month()),
+        static_cast<unsigned>(date.day()),
+        static_cast<long long>(time.hours().count()),
+        static_cast<long long>(time.minutes().count()),
+        static_cast<long long>(time.seconds().count()),
+        static_cast<long long>(milliseconds.count()));
+    if(n <= 0 or static_cast<std::size_t>(n) >= sizeof(buf))
+        return std::string{};
+    return std::string{buf, static_cast<std::size_t>(n)};
 }
 
 inline auto to_time_point(const std::string_view sv)
