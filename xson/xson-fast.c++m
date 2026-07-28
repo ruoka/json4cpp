@@ -54,21 +54,21 @@ inline void encode(std::ostream& os, std::uint64_t i)
     }
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wsign-compare"
-
 inline unsigned size(std::int64_t i)
 {
     if (i < 0)
     {
-        if (i >= 0x00000000ffffffc0ll) return 1; // -64
-        if (i >= 0x00000000ffffe000ll) return 2; // -8192
-        if (i >= 0x00000000fff00000ll) return 3; // -1048576
-        if (i >= 0x00000000f8000000ll) return 4; // -134217728
-        if (i >= 0xfffffffc00000000ll) return 5; // -17179869184
-        if (i >= 0xfffffe0000000000ll) return 6; // -2199023255552
-        if (i >= 0xffff000000000000ll) return 7; // -281474976710656
-        if (i >= 0xff80000000000000ll) return 8; // -36028797018963968
+        // Thresholds must be negative int64 literals. Writing e.g.
+        // 0x00000000ffffffc0ll yields +4294967232, so every i < 0 failed the
+        // 1–4 byte checks and fell through to a 5-byte (or larger) encoding.
+        if (i >= -0x40ll) return 1; // -64
+        if (i >= -0x2000ll) return 2; // -8192
+        if (i >= -0x100000ll) return 3; // -1048576
+        if (i >= -0x8000000ll) return 4; // -134217728
+        if (i >= -0x400000000ll) return 5; // -17179869184
+        if (i >= -0x20000000000ll) return 6; // -2199023255552
+        if (i >= -0x1000000000000ll) return 7; // -281474976710656
+        if (i >= -0x80000000000000ll) return 8; // -36028797018963968
         // Decode treats bit 6 of the first byte as the sign. With 9 bytes that
         // bit is value bit 62, so 9 bytes only cover [-2^62, 2^62).
         if (i >= -0x4000000000000000ll) return 9; // -2^62
@@ -87,8 +87,6 @@ inline unsigned size(std::int64_t i)
     }
     return 10;
 }
-
-#pragma clang diagnostic pop
 
 inline void encode(std::ostream& os, std::int64_t i)
 {
@@ -279,6 +277,28 @@ inline constexpr unsigned max_int32_varint_bytes = 5;
 inline constexpr unsigned max_uint64_varint_bytes = 10;
 inline constexpr unsigned max_int64_varint_bytes = 10;
 
+// N×7 payload bits can still exceed the destination width (5×7=35 > 32,
+// 10×7=70 > 64). Reject a shift that would drop high bits — otherwise e.g.
+// uint64 [0x02, eight 0x00, 0x80] becomes 0, and int64 [0x01, eight 0x00, 0x80]
+// becomes INT64_MIN.
+template<typename U>
+inline void ensure_unsigned_varint_shift(U value)
+{
+    if(value > (std::numeric_limits<U>::max() >> 7))
+        throw std::runtime_error{"xson::fast varint overflows destination"};
+}
+
+template<typename S>
+inline void ensure_signed_varint_shift(S value)
+{
+    // Require the high (digits-6) bits to be pure sign extension so a <<7
+    // cannot flip the sign or drop magnitude bits (e.g. reject logical 2^63
+    // for int64, which would otherwise wrap to INT64_MIN).
+    const S top = value >> (std::numeric_limits<S>::digits - 7);
+    if(top != S{0} && top != S{-1})
+        throw std::runtime_error{"xson::fast varint overflows destination"};
+}
+
 inline void decode(std::istream& is, std::uint32_t& i)
 {
     i = 0u;
@@ -287,6 +307,7 @@ inline void decode(std::istream& is, std::uint32_t& i)
     {
         if(++n > max_uint32_varint_bytes)
             throw std::runtime_error{"xson::fast overlong uint32 varint"};
+        ensure_unsigned_varint_shift(i);
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -302,6 +323,7 @@ inline void decode(std::istream& is, std::int32_t& i)
     {
         if(++n > max_int32_varint_bytes)
             throw std::runtime_error{"xson::fast overlong int32 varint"};
+        ensure_signed_varint_shift(i);
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -317,6 +339,7 @@ inline void decode(std::istream& is, std::uint64_t& i)
     {
         if(++n > max_uint64_varint_bytes)
             throw std::runtime_error{"xson::fast overlong uint64 varint"};
+        ensure_unsigned_varint_shift(i);
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;
@@ -332,6 +355,7 @@ inline void decode(std::istream& is, std::int64_t& i)
     {
         if(++n > max_int64_varint_bytes)
             throw std::runtime_error{"xson::fast overlong int64 varint"};
+        ensure_signed_varint_shift(i);
         i = (i << 7) | (byte & 0x7f);
         if(byte & 0x80)
             break;

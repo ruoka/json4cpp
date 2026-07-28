@@ -156,6 +156,83 @@ auto register_tests()
         });
     };
 
+    test_case("Varint overflow within max bytes rejected, [xson]") = [] {
+        // ceil(bits/7) still admits more payload bits than the destination
+        // holds (5×7=35>32, 10×7=70>64). Without a pre-shift overflow check,
+        // those forms terminate legally but drop high bits — e.g. uint64
+        // [0x02, eight 0x00, 0x80] → 0, int64 [0x01, eight 0x00, 0x80] → INT64_MIN.
+        {
+            auto ss = std::stringstream{};
+            ss.put(char{0x02});
+            for(int i = 0; i < 8; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{
+                auto out = std::uint64_t{0};
+                xson::fast::decode(ss, out);
+            });
+        }
+        {
+            auto ss = std::stringstream{};
+            ss.put(char{0x01});
+            for(int i = 0; i < 8; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{
+                auto out = std::int64_t{0};
+                xson::fast::decode(ss, out);
+            });
+        }
+        {
+            auto ss = std::stringstream{};
+            ss.put(char{0x10});
+            for(int i = 0; i < 3; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{
+                auto out = std::uint32_t{0};
+                xson::fast::decode(ss, out);
+            });
+        }
+        {
+            // 0x08 << 28 = 2^31 — does not fit signed 32-bit; used to wrap to INT32_MIN.
+            auto ss = std::stringstream{};
+            ss.put(char{0x08});
+            for(int i = 0; i < 3; ++i)
+                ss.put(char{0x00});
+            ss.put(static_cast<char>(0x80));
+            require_throws([&]{
+                auto out = std::int32_t{0};
+                xson::fast::decode(ss, out);
+            });
+        }
+    };
+
+    test_case("Signed varint size is canonical for small negatives, [xson]") = [] {
+        // Regression: thresholds were written as 0x00000000ffffffc0ll etc., which
+        // are large positives, so every negative failed the 1–4 byte checks and
+        // encoded as at least 5 bytes (e.g. -1 → 7f 7f 7f 7f ff instead of ff).
+        auto encoded_size = [](std::int64_t v) {
+            auto ss = std::stringstream{};
+            xson::fast::encode(ss, v);
+            return ss.str().size();
+        };
+
+        require_eq(encoded_size(-1), 1uz);
+        require_eq(encoded_size(-64), 1uz);
+        require_eq(encoded_size(-65), 2uz);
+        require_eq(encoded_size(-8192), 2uz);
+        require_eq(encoded_size(-8193), 3uz);
+        require_eq(encoded_size(-1048576), 3uz);
+        require_eq(encoded_size(-1048577), 4uz);
+        require_eq(encoded_size(-134217728), 4uz);
+        require_eq(encoded_size(-134217729), 5uz);
+
+        auto ss = std::stringstream{};
+        xson::fast::encode(ss, std::int64_t{-1});
+        require_eq(static_cast<unsigned char>(ss.str()[0]), 0xffu);
+    };
+
     test_case("String, [xson]") = [] {
         auto ss = std::stringstream{};
 
