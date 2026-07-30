@@ -1035,6 +1035,47 @@ auto register_tests()
         require_true(ob.has("NewKey"s));
     };
 
+    test_case("StringLikeConstructorNotCharArray, [xson]") = [] {
+        // Regression: the forward_range array ctor treated C string literals and
+        // string_view as ranges of char, so object{"Name","Papa"} became
+        // {"Name":[80,97,112,97,0]} (ASCII codes + trailing NUL) instead of a
+        // string. std::string was already excluded; literals/string_view were not.
+        auto from_literal = object{"Name", "Papa"};
+        require_true(from_literal.has("Name"s));
+        require_true(from_literal["Name"s].is_string());
+        require_false(from_literal["Name"s].is_array());
+        require_eq("Papa"s, static_cast<const string_type&>(from_literal["Name"s]));
+
+        auto from_view = object{"Name", std::string_view{"Papa"}};
+        require_true(from_view["Name"s].is_string());
+        require_eq("Papa"s, static_cast<const string_type&>(from_view["Name"s]));
+
+        const char* cstr = "Papa";
+        auto from_ptr = object{"Name", cstr};
+        require_true(from_ptr["Name"s].is_string());
+        require_eq("Papa"s, static_cast<const string_type&>(from_ptr["Name"s]));
+
+        auto assigned = object{};
+        assigned = "Papa";
+        require_true(assigned.is_string());
+        require_eq("Papa"s, static_cast<const string_type&>(assigned));
+
+        auto b = builder{};
+        b.start_object();
+        b.name("Name");
+        b.value("Papa");
+        b.end_object();
+        auto built = b.get();
+        require_true(built["Name"s].is_string());
+        require_eq("Papa"s, static_cast<const string_type&>(built["Name"s]));
+
+        // Intentional byte arrays still use the range constructor.
+        auto bytes = object{"Bytes", std::vector<char>{'A', 'B'}};
+        require_true(bytes["Bytes"s].is_array());
+        require_eq(2u, bytes["Bytes"s].size());
+        require_eq(static_cast<integer_type>('A'), static_cast<integer_type>(bytes["Bytes"s][0]));
+    };
+
     test_case("OperatorPlusMove, [xson]") = [] {
         auto o1 = object{{"A"s, 1}};
         auto o2 = object{{"B"s, 2}};
