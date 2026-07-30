@@ -1046,10 +1046,9 @@ inline std::ostream& operator << (std::ostream& os, const primitive& v)
     {
         // Default ostream precision is only 6 significant digits, which silently
         // corrupts JSON doubles on stringify (e.g. 123456789.123… → 1.23457e+08).
-        // Emit max_digits10 so parse can recover the original value. Prefer an
-        // explicit precision over shortest to_chars: this decoder's decimal
-        // accumulation is not std::from_chars, so shortest form can rewrite
-        // (3.14159 → 3.1415900000000003) on the next stringify.
+        // Emit max_digits10 so parse (std::from_chars) can recover the original
+        // value. Prefer an explicit precision over shortest to_chars so the
+        // round-trip form stays stable across stringify → parse → stringify.
         const auto d = std::get<number_type>(v);
         if(!std::isfinite(d))
             throw std::runtime_error{"Cannot serialize non-finite number to JSON"s};
