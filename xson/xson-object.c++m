@@ -702,14 +702,14 @@ public:
             // membership_any() would return false, and not false made
             // {"$nin":42} / {"$nin":"x"} match every value (fail-open), while
             // {"$in":42} matched nothing. Reject both — fail closed.
-            const auto is_membership_operand = [](const object& haystack) -> bool
+            const auto is_membership_operand = [](const object& haystack)
             {
                 return haystack.is_array() or haystack.has_objects();
             };
 
-            const auto membership_any = [&](const object& haystack) -> bool
+            const auto membership_any = [&](const object& haystack)
             {
-                const auto equals_candidate = [&](const object& candidate) -> bool
+                const auto equals_candidate = [&](const object& candidate)
                 {
                     if(not candidate.has_value())
                         return false;
