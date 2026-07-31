@@ -233,7 +233,7 @@ auto register_tests()
         require_eq(static_cast<unsigned char>(ss.str()[0]), 0xffu);
     };
 
-    test_case("String, [xson]") = [] {
+    test_case("Fast String, [xson]") = [] {
         auto ss = std::stringstream{};
 
         const auto s1 = "1234567 Kaius Ruokonen \n\t x"s;

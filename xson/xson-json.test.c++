@@ -34,7 +34,7 @@ auto register_tests()
         require_eq("1234567890"s, s);
     };
 
-    test_case("Double, [xson]") = [] {
+    test_case("JSON Double, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{"Double", 21.12};
         auto ss = std::stringstream{};
@@ -52,7 +52,7 @@ auto register_tests()
         require_eq(21.12, d);
     };
 
-    test_case("Boolean, [xson]") = [] {
+    test_case("JSON Boolean, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{{"True", true},{"False", false}};
         auto ss = std::stringstream{};
@@ -93,7 +93,7 @@ auto register_tests()
         require_eq(xson::to_string(now), d);
     };
 
-    test_case("Null, [xson]") = [] {
+    test_case("JSON Null, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{"Null", nullptr};
         auto ss = std::stringstream{};
@@ -109,7 +109,7 @@ auto register_tests()
         require_true(ob["Null"s].is_null());
     };
 
-    test_case("Int32, [xson]") = [] {
+    test_case("JSON Int32, [xson]") = [] {
         using xson::json::operator <<;
         auto obj = object{
             {"Zero", std::int32_t{0}},
@@ -169,7 +169,7 @@ auto register_tests()
         require_eq(std::numeric_limits<std::int64_t>::max(), max);
     };
 
-    test_case("Array, [xson]") = [] {
+    test_case("JSON Array, [xson]") = [] {
         auto ob1 = xson::object
         {
             {"Array"s, std::array<std::int64_t,3>{1, 2, 3}}
@@ -207,7 +207,7 @@ auto register_tests()
         check_eq(static_cast<xson::number_type>(ob["array"s][2][2]), 0.3);
     };
 
-    test_case("Vector, [xson]") = [] {
+    test_case("JSON Vector, [xson]") = [] {
         auto ob1 = xson::object
         {
             {"Vector"s, std::vector<std::string>{"a", "b", "c", "d", "e", "f"}}
@@ -224,7 +224,7 @@ auto register_tests()
         check_eq(str1, str2);
     };
 
-    test_case("Complex, [xson]") = [] {
+    test_case("JSON Complex, [xson]") = [] {
         using xson::json::operator <<;
         auto mix = xson::object
             {

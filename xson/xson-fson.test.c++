@@ -21,7 +21,7 @@ auto register_tests()
     using tester::basic::test_case;
     using namespace tester::assertions;
 
-    test_case("Array, [xson]") = [] {
+    test_case("FSON Array, [xson]") = [] {
         auto o1 = object{"Test"s, {"A"s, "B"s, "C"s}};
         succeed(xson::json::stringify(o1, 2));
 
@@ -66,7 +66,7 @@ auto register_tests()
         check_eq(o1["Test"s]["C"s].get<primitive>(), o2["Test"s]["C"s].get<primitive>());
     };
 
-    test_case("Int32, [xson]") = [] {
+    test_case("FSON Int32, [xson]") = [] {
         auto o1 = object{"Test"s, 57};
 
         succeed(xson::json::stringify(o1, 2));
@@ -98,7 +98,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
-    test_case("Double, [xson]") = [] {
+    test_case("FSON Double, [xson]") = [] {
         auto o1 = object{"Test"s, 57.99999 };
 
         check_true(o1["Test"s].is_number());
@@ -112,7 +112,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
-    test_case("String, [xson]") = [] {
+    test_case("FSON String, [xson]") = [] {
         auto o1 = object{"Test"s, "Tulppu"s};
 
         succeed(xson::json::stringify(o1, 2));
@@ -183,7 +183,7 @@ auto register_tests()
         require_eq(static_cast<xson::integer_type>(o2["plain"s]), 1ll);
     };
 
-    test_case("Boolean, [xson]") = [] {
+    test_case("FSON Boolean, [xson]") = [] {
         auto o1 = object{"Test"s, true};
 
         succeed(xson::json::stringify(o1, 2));
@@ -201,7 +201,7 @@ auto register_tests()
         check_eq(o1["Test"s].get<primitive>(), o2["Test"s].get<primitive>());
     };
 
-    test_case("Date, [xson]") = [] {
+    test_case("FSON Date, [xson]") = [] {
         auto o1 = object
         {
             {"Test"s, floor<milliseconds>(system_clock::now()) },
@@ -250,7 +250,7 @@ auto register_tests()
         require_eq(static_cast<system_clock::time_point>(o2["Apollo"s]), apollo);
     };
 
-    test_case("Null, [xson]") = [] {
+    test_case("FSON Null, [xson]") = [] {
         auto o1 = object{"Test"s, nullptr};
 
         check_true(o1["Test"s].is_null());
