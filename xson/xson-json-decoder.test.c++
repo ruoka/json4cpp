@@ -278,6 +278,31 @@ auto register_tests()
         require_eq(100.0, value);  // 1 * 10^2 = 100
     };
 
+    // Regression: finish used base * std::pow(10, exp). libm pow(10,23) is not
+    // correctly rounded — 1*pow(10,23) is 1 ULP above the IEEE value of 1e23 —
+    // so parse("1e23") silently returned the wrong double.
+    test_case("ScientificNotationMatchesFromChars, [xson]") = [] {
+        const auto expect_from_chars = [](const char* text) {
+            xson::number_type expected = 0;
+            const auto [ptr, ec] = std::from_chars(text, text + std::strlen(text), expected);
+            require_true(ec == std::errc{});
+            require_true(ptr == text + std::strlen(text));
+            const auto ob = json::parse(text);
+            require_true(ob.is_number());
+            require_eq(expected, static_cast<xson::number_type>(ob));
+        };
+
+        expect_from_chars("1e23");
+        expect_from_chars("2e23");
+        expect_from_chars("1.22e23");
+        expect_from_chars("6.02214076e23");
+        expect_from_chars("1e308");
+        expect_from_chars("-1.5e23");
+        expect_from_chars("1.2e-2");
+        expect_from_chars("7e-309");
+    };
+
+
     test_case("ScientificNotationEdgeCases, [xson]") = [] {
         // Test various scientific notation formats
         auto json_str = R"({

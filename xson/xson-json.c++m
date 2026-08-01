@@ -475,6 +475,72 @@ private:
         }
     }
 
+
+    void clear_number_state()
+    {
+        m_number_token.clear();
+        m_number = 0;
+        m_integer = 0;
+        m_place = 1;
+        m_exponent = 0;
+        m_exponent_sign = 1;
+        m_has_exponent_digit = false;
+        m_has_seen_digit = false;
+        m_is_int64_min = false;
+    }
+
+    // Emit the number lexeme with std::from_chars. Manual accumulation + std::pow
+    // is not correctly rounded (e.g. 1*pow(10,23) is 1 ULP above 1e23), which
+    // silently corrupted scientific-notation values on decode.
+    void emit_parsed_number()
+    {
+        const char* first = m_number_token.data();
+        const char* last = first + m_number_token.size();
+        if(first == last)
+            throw std::runtime_error{"JSON parse error: number must have at least one digit"s};
+
+        const bool as_float = m_number_token.find('.') != std::string::npos
+            || m_number_token.find('e') != std::string::npos
+            || m_number_token.find('E') != std::string::npos;
+
+        if(!as_float)
+        {
+            xson::integer_type i = 0;
+            const auto res = std::from_chars(first, last, i);
+            if(res.ec == std::errc{} && res.ptr == last)
+            {
+                m_builder.value(i);
+                clear_number_state();
+                return;
+            }
+            // out_of_range (or other failure): fall through to double.
+        }
+
+        xson::number_type d = 0;
+        const auto res = std::from_chars(first, last, d);
+        // from_chars reports result_out_of_range for both overflow (±inf) and
+        // underflow (±0). Accept underflow; reject non-finite overflow.
+        if(res.ptr != last
+           || res.ec == std::errc::invalid_argument
+           || (res.ec != std::errc{} && res.ec != std::errc::result_out_of_range)
+           || !std::isfinite(d))
+            throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
+
+        m_builder.value(d);
+        clear_number_state();
+    }
+
+    void finish_number(char c)
+    {
+        if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
+            throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
+
+        emit_parsed_number();
+        m_state_machine.pop();
+        if(c != '\0' && !m_state_machine.empty())
+            m_state_machine.top()(*this, c);
+    }
+
     template<int Sign>
     void number(char c)
     {
@@ -484,6 +550,7 @@ private:
             // INT64_MIN with more digits - switch to float mode using the *magnitude*
             // (2^63). Final value applies Sign, matching the normal overflow path.
             // Using signed INT64_MIN here would make Sign * m_number flip positive.
+            m_number_token.push_back(c);
             m_number = int64_min_magnitude * 10.0 + static_cast<xson::number_type>(c - '0');
             m_is_int64_min = false;
             m_integer = 0;
@@ -503,12 +570,14 @@ private:
             // If this is the first digit and it is 0, switch to a state that rejects further digits.
             if(!m_has_seen_digit && digit == 0)
             {
+                m_number_token.push_back(c);
                 m_has_seen_digit = true;
                 m_integer = 0;
                 m_state_machine.pop();
                 m_state_machine.push(&decoder::zero<Sign>);
                 return;
             }
+            m_number_token.push_back(c);
             m_has_seen_digit = true;
             
             // Check for overflow before performing the operation
@@ -555,7 +624,8 @@ private:
                 if(m_integer == max_int_div_10 && digit == max_int_mod_10 + 1)
                 {
                     // This is exactly INT64_MIN. Set flag and clear m_integer.
-                    // Don't accumulate the digit (it would overflow).
+                    // Don't accumulate the digit (it would overflow). Lexeme still
+                    // records it for from_chars.
                     m_is_int64_min = true;
                     m_integer = 0;
                     // Continue to process next character (which will be handled in else branch if non-digit,
@@ -586,6 +656,7 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before '.', got '.'"s};
             }
+            m_number_token.push_back(c);
             // INT64_MIN clears m_integer (cannot store |min| in int64_t); seed magnitude.
             m_number = m_is_int64_min
                 ? int64_min_magnitude
@@ -602,6 +673,7 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before 'e'/'E', got '"s + c + "'"s};
             }
+            m_number_token.push_back(c);
             // Scientific notation: convert integer to float and parse exponent
             m_number = m_is_int64_min
                 ? int64_min_magnitude
@@ -627,32 +699,7 @@ private:
                 throw std::runtime_error{msg};
             }
             
-            // Check if we're handling INT64_MIN (flag was set when we saw the last digit)
-            if(m_is_int64_min)
-            {
-                // This is INT64_MIN - the next character is non-digit, so we're done
-                m_builder.value(std::numeric_limits<xson::integer_type>::min());
-                m_is_int64_min = false;
-                m_integer = 0;
-            }
-            else
-            {
-                m_builder.value(Sign * m_integer);
-                m_integer = 0;
-            }
-            m_has_seen_digit = false;
-            
-            // Valid continuation characters: whitespace, comma, closing braces/brackets
-            // Anything else is an error
-            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
-            {
-                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
-            }
-            
-            m_state_machine.pop();
-            if(c != '\0' && !m_state_machine.empty())
-                m_state_machine.top()(*this,c);
-            // If state machine is empty, this is a standalone number value - that's valid
+            finish_number(c);
         }
     }
 
@@ -664,6 +711,7 @@ private:
             throw std::runtime_error{"JSON parse error: leading zeros are not allowed in numbers"s};
         if(c == '.')
         {
+            m_number_token.push_back(c);
             m_number = 0;
             m_integer = 0;
             m_state_machine.pop();
@@ -672,6 +720,7 @@ private:
         }
         if(c == 'e' || c == 'E')
         {
+            m_number_token.push_back(c);
             m_number = 0;
             m_integer = 0;
             m_exponent = 0;
@@ -686,14 +735,7 @@ private:
         if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
             throw std::runtime_error{"JSON parse error: unexpected character after '0' in number: '"s + c + "'"s};
 
-        m_builder.value(Sign * static_cast<xson::integer_type>(0));
-        m_has_seen_digit = false;
-        m_integer = 0;
-        m_number = 0;
-        m_place = 1;
-        m_state_machine.pop();
-        if(c != '\0' && !m_state_machine.empty())
-            m_state_machine.top()(*this, c);
+        finish_number(c);
     }
 
     template<int Sign>
@@ -702,6 +744,7 @@ private:
         // Continue accumulating integer digits in float mode (multiply by 10 for each digit)
         if(std::isdigit(c))
         {
+            m_number_token.push_back(c);
             m_number = m_number * 10.0 + static_cast<xson::number_type>(c - '0');
             // ~310+ digits overflow double to ±inf; reject like the scientific-notation path.
             if(!std::isfinite(m_number))
@@ -711,12 +754,14 @@ private:
         }
         else if(c == '.')
         {
+            m_number_token.push_back(c);
             // Switch to fractional mode
             m_state_machine.pop();
             m_state_machine.push(&decoder::fraction_start<Sign>);
         }
         else if(c == 'e' || c == 'E')
         {
+            m_number_token.push_back(c);
             // Scientific notation: parse exponent
             m_exponent = 0;
             m_exponent_sign = 1;
@@ -726,26 +771,7 @@ private:
         }
         else
         {
-            // Valid continuation characters: whitespace, comma, closing braces/brackets
-            // Anything else is an error
-            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
-            {
-                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
-            }
-            
-            const xson::number_type final_value = Sign * m_number;
-            if(!std::isfinite(final_value))
-            {
-                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
-            }
-            m_builder.value(final_value);
-            m_number = 0;
-            m_integer = 0;
-            m_has_seen_digit = false;
-            m_state_machine.pop();
-            if(c != '\0' && !m_state_machine.empty())
-                m_state_machine.top()(*this,c);
-            // If state machine is empty, this is a standalone number value - that's valid
+            finish_number(c);
         }
     }
 
@@ -761,6 +787,7 @@ private:
         {
             throw std::runtime_error{"JSON parse error: number must have at least one digit after '.'"s};
         }
+        m_number_token.push_back(c);
         m_place = 10;
         m_number += static_cast<xson::number_type>(c - '0') / m_place;
         m_state_machine.pop();
@@ -772,26 +799,18 @@ private:
     {
         if(c == '\0')
         {
-            const xson::number_type final_value = Sign * m_number;
-            // Integer-overflow → fraction can carry ±inf into this state.
-            if(!std::isfinite(final_value))
-            {
-                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
-            }
-            m_builder.value(final_value);
-            m_number = 0;
-            m_place = 1;
-            m_has_seen_digit = false;
-            m_state_machine.pop();
+            finish_number(c);
             return;
         }
         if(std::isdigit(c))
         {
+            m_number_token.push_back(c);
             m_place *= 10;
             m_number += (static_cast<xson::number_type>(c-'0')/m_place);
         }
         else if(c == 'e' || c == 'E')
         {
+            m_number_token.push_back(c);
             // Scientific notation: parse exponent
             m_exponent = 0;
             m_exponent_sign = 1;
@@ -801,28 +820,7 @@ private:
         }
         else
         {
-            // Valid continuation characters: whitespace, comma, closing braces/brackets
-            // Anything else is an error
-            if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
-            {
-                throw std::runtime_error{"JSON parse error: unexpected character in number: '"s + c + "'"s};
-            }
-            
-            const xson::number_type final_value = Sign * m_number;
-            if(!std::isfinite(final_value))
-            {
-                throw std::runtime_error{"JSON parse error: number is not finite (infinity or NaN)"s};
-            }
-            m_builder.value(final_value);
-            m_number = 0;
-            m_place = 1;
-            // Must clear: otherwise the next number reuses this flag and can accept
-            // bare "-" as 0 or skip the leading-zero reject path (e.g. after "1.2").
-            m_has_seen_digit = false;
-            m_state_machine.pop();
-            if(c != '\0' && !m_state_machine.empty())
-                m_state_machine.top()(*this,c);
-            // If state machine is empty, this is a standalone number value - that's valid
+            finish_number(c);
         }
     }
 
@@ -835,6 +833,7 @@ private:
         }
         if(c == '+')
         {
+            m_number_token.push_back(c);
             m_exponent_sign = 1;
             m_has_exponent_digit = false;
             m_state_machine.pop();
@@ -842,6 +841,7 @@ private:
         }
         else if(c == '-')
         {
+            m_number_token.push_back(c);
             m_exponent_sign = -1;
             m_has_exponent_digit = false;
             m_state_machine.pop();
@@ -873,29 +873,12 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: exponent must have at least one digit"s};
             }
-
-            const xson::number_type base = Sign * m_number;
-            const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
-            const xson::number_type final_value = base * std::pow(10.0, exponent_value);
-
-            if(!std::isfinite(final_value))
-            {
-                throw std::runtime_error{"JSON parse error: scientific notation result is not finite (infinity or NaN)"s};
-            }
-
-            m_builder.value(final_value);
-            m_number = 0;
-            m_integer = 0;
-            m_place = 1;
-            m_exponent = 0;
-            m_exponent_sign = 1;
-            m_has_exponent_digit = false;
-            m_has_seen_digit = false;
-            m_state_machine.pop();
+            finish_number(c);
             return;
         }
         if(std::isdigit(c))
         {
+            m_number_token.push_back(c);
             const int digit = static_cast<int>(c - '0');
             // Check for exponent overflow before multiplication
             // Prevent integer overflow in m_exponent calculation
@@ -906,9 +889,9 @@ private:
             m_exponent = m_exponent * 10 + digit;
             m_has_exponent_digit = true;
             
-            // Check if exponent exceeds safe range for double precision
-            const int abs_exponent = m_exponent_sign > 0 ? m_exponent : -m_exponent;
-            if(abs_exponent > max_exponent)
+            // Only positive exponents are capped here: large negative exponents
+            // underflow to 0 (subnormals / zero), which from_chars also yields.
+            if(m_exponent_sign > 0 && m_exponent > max_exponent)
             {
                 throw std::runtime_error{"JSON parse error: exponent exceeds maximum safe value (308)"s};
             }
@@ -920,37 +903,13 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: exponent must have at least one digit"s};
             }
-            
-            // Valid continuation characters: whitespace, comma, closing braces/brackets
-            // Anything else is an error
+
             if(c != '\0' && !isws(c) && c != ',' && c != '}' && c != ']')
             {
                 throw std::runtime_error{"JSON parse error: unexpected character in number exponent: '"s + c + "'"s};
             }
-            
-            // Calculate final value
-            const xson::number_type base = Sign * m_number;
-            const xson::number_type exponent_value = m_exponent_sign * static_cast<xson::number_type>(m_exponent);
-            const xson::number_type final_value = base * std::pow(10.0, exponent_value);
-            
-            // Validate pow result - check for infinity and NaN
-            if(!std::isfinite(final_value))
-            {
-                throw std::runtime_error{"JSON parse error: scientific notation result is not finite (infinity or NaN)"s};
-            }
-            
-            m_builder.value(final_value);
-            m_number = 0;
-            m_integer = 0;
-            m_place = 1;
-            m_exponent = 0;
-            m_exponent_sign = 1;
-            m_has_exponent_digit = false;
-            m_has_seen_digit = false;
-            m_state_machine.pop();
-            if(c != '\0' && !m_state_machine.empty())
-                m_state_machine.top()(*this, c);
-            // If state machine is empty, this is a standalone number value - that's valid
+
+            finish_number(c);
         }
     }
 
@@ -977,8 +936,9 @@ private:
         }
         if(std::isdigit(c))
         {
-            // Each number starts with a fresh digit-seen flag (completion paths also clear it).
-            m_has_seen_digit = false;
+            // Each number starts with a fresh digit-seen flag and lexeme buffer
+            // (completion paths also clear them via clear_number_state()).
+            clear_number_state();
             m_state_machine.pop();
             m_state_machine.push(&decoder::positive);
             if(!m_state_machine.empty())
@@ -987,7 +947,8 @@ private:
         }
         if(c == '-')
         {
-            m_has_seen_digit = false;
+            clear_number_state();
+            m_number_token.push_back('-');
             m_state_machine.pop();
             m_state_machine.push(&decoder::negative);
             return;
@@ -1418,6 +1379,9 @@ private:
     Builder& m_builder;
 
     xson::string_type m_string = ""s;
+
+    // Raw number lexeme for correctly-rounded std::from_chars conversion.
+    std::string m_number_token;
 
     xson::integer_type m_integer = 0;
 

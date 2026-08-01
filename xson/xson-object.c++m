@@ -180,6 +180,18 @@ concept Null = std::same_as<std::remove_cvref_t<T>, null_type>;
 template <typename T>
 concept String = std::same_as<std::remove_cvref_t<T>, string_type>;
 
+// C string literals / string_view must not match the forward_range array
+// constructor (they are ranges of char). Without this, object{"k","v"} and
+// object{"k", string_view{"v"}} silently built arrays of character codes
+// (and literals included the trailing NUL), corrupting string data.
+template <typename T>
+concept StringLike = (
+    String<T> or
+    std::same_as<std::remove_cvref_t<T>, std::string_view> or
+    std::same_as<std::decay_t<T>, const char*> or
+    std::same_as<std::decay_t<T>, char*>
+);
+
 template <typename T>
 concept Array = std::same_as<std::remove_cvref_t<T>,std::vector<object>>;
 
@@ -217,6 +229,13 @@ public:
     object{}
     {
         m_value = map{{name, object{v}}};
+    }
+
+    template <StringLike T> requires (not String<T>)
+    object(const string_type& name, const T& v) :
+    object{}
+    {
+        m_value = map{{name, object{string_type{v}}}};
     }
 
     template <Null T>
@@ -273,7 +292,7 @@ public:
     }
 
     // Generic constructor for forward ranges
-    template <typename T> requires (not std::same_as<std::remove_cvref_t<T>, primitive> and not Object<T> and not String<T> and std::ranges::forward_range<T>)
+    template <typename T> requires (not std::same_as<std::remove_cvref_t<T>, primitive> and not Object<T> and not StringLike<T> and std::ranges::forward_range<T>)
     object(const string_type& name, T&& data) :
     object{}
     {
@@ -326,6 +345,13 @@ public:
     {
         
         m_value = primitive{val};
+        return *this;
+    }
+
+    template <StringLike T> requires (not String<T>)
+    object& operator = (const T& val)
+    {
+        m_value = primitive{string_type{val}};
         return *this;
     }
 
@@ -1020,10 +1046,9 @@ inline std::ostream& operator << (std::ostream& os, const primitive& v)
     {
         // Default ostream precision is only 6 significant digits, which silently
         // corrupts JSON doubles on stringify (e.g. 123456789.123… → 1.23457e+08).
-        // Emit max_digits10 so parse can recover the original value. Prefer an
-        // explicit precision over shortest to_chars: this decoder's decimal
-        // accumulation is not std::from_chars, so shortest form can rewrite
-        // (3.14159 → 3.1415900000000003) on the next stringify.
+        // Emit max_digits10 so parse (std::from_chars) can recover the original
+        // value. Prefer an explicit precision over shortest to_chars so the
+        // round-trip form stays stable across stringify → parse → stringify.
         const auto d = std::get<number_type>(v);
         if(!std::isfinite(d))
             throw std::runtime_error{"Cannot serialize non-finite number to JSON"s};
@@ -1187,6 +1212,12 @@ public:
         {
             m_stack.top().get().get<object::array>().emplace_back(val);
         }
+    }
+
+    template<StringLike T> requires (not String<T>)
+    void value(const T& val)
+    {
+        value(string_type{val});
     }
 
     template<Null T>
