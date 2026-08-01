@@ -489,6 +489,17 @@ private:
         m_is_int64_min = false;
     }
 
+    // Number lexemes share the string DoS budget. Fractional digit runs used to
+    // append to m_number_token with no cap (integer overflow self-limits near
+    // ~310 digits via non-finite rejection), so "0." + huge digit payloads could
+    // grow without bound after the from_chars lexeme buffer was introduced.
+    void append_number_char(char c)
+    {
+        if(m_number_token.size() >= m_max_string_length)
+            throw std::runtime_error{"JSON parse error: number length exceeds maximum allowed size"s};
+        m_number_token.push_back(c);
+    }
+
     // Emit the number lexeme with std::from_chars. Manual accumulation + std::pow
     // is not correctly rounded (e.g. 1*pow(10,23) is 1 ULP above 1e23), which
     // silently corrupted scientific-notation values on decode.
@@ -550,7 +561,7 @@ private:
             // INT64_MIN with more digits - switch to float mode using the *magnitude*
             // (2^63). Final value applies Sign, matching the normal overflow path.
             // Using signed INT64_MIN here would make Sign * m_number flip positive.
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_number = int64_min_magnitude * 10.0 + static_cast<xson::number_type>(c - '0');
             m_is_int64_min = false;
             m_integer = 0;
@@ -570,14 +581,14 @@ private:
             // If this is the first digit and it is 0, switch to a state that rejects further digits.
             if(!m_has_seen_digit && digit == 0)
             {
-                m_number_token.push_back(c);
+                append_number_char(c);
                 m_has_seen_digit = true;
                 m_integer = 0;
                 m_state_machine.pop();
                 m_state_machine.push(&decoder::zero<Sign>);
                 return;
             }
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_has_seen_digit = true;
             
             // Check for overflow before performing the operation
@@ -656,7 +667,7 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before '.', got '.'"s};
             }
-            m_number_token.push_back(c);
+            append_number_char(c);
             // INT64_MIN clears m_integer (cannot store |min| in int64_t); seed magnitude.
             m_number = m_is_int64_min
                 ? int64_min_magnitude
@@ -673,7 +684,7 @@ private:
             {
                 throw std::runtime_error{"JSON parse error: number must have at least one digit before 'e'/'E', got '"s + c + "'"s};
             }
-            m_number_token.push_back(c);
+            append_number_char(c);
             // Scientific notation: convert integer to float and parse exponent
             m_number = m_is_int64_min
                 ? int64_min_magnitude
@@ -711,7 +722,7 @@ private:
             throw std::runtime_error{"JSON parse error: leading zeros are not allowed in numbers"s};
         if(c == '.')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_number = 0;
             m_integer = 0;
             m_state_machine.pop();
@@ -720,7 +731,7 @@ private:
         }
         if(c == 'e' || c == 'E')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_number = 0;
             m_integer = 0;
             m_exponent = 0;
@@ -744,7 +755,7 @@ private:
         // Continue accumulating integer digits in float mode (multiply by 10 for each digit)
         if(std::isdigit(c))
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_number = m_number * 10.0 + static_cast<xson::number_type>(c - '0');
             // ~310+ digits overflow double to ±inf; reject like the scientific-notation path.
             if(!std::isfinite(m_number))
@@ -754,14 +765,14 @@ private:
         }
         else if(c == '.')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             // Switch to fractional mode
             m_state_machine.pop();
             m_state_machine.push(&decoder::fraction_start<Sign>);
         }
         else if(c == 'e' || c == 'E')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             // Scientific notation: parse exponent
             m_exponent = 0;
             m_exponent_sign = 1;
@@ -787,7 +798,7 @@ private:
         {
             throw std::runtime_error{"JSON parse error: number must have at least one digit after '.'"s};
         }
-        m_number_token.push_back(c);
+        append_number_char(c);
         m_place = 10;
         m_number += static_cast<xson::number_type>(c - '0') / m_place;
         m_state_machine.pop();
@@ -804,13 +815,13 @@ private:
         }
         if(std::isdigit(c))
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_place *= 10;
             m_number += (static_cast<xson::number_type>(c-'0')/m_place);
         }
         else if(c == 'e' || c == 'E')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             // Scientific notation: parse exponent
             m_exponent = 0;
             m_exponent_sign = 1;
@@ -833,7 +844,7 @@ private:
         }
         if(c == '+')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_exponent_sign = 1;
             m_has_exponent_digit = false;
             m_state_machine.pop();
@@ -841,7 +852,7 @@ private:
         }
         else if(c == '-')
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             m_exponent_sign = -1;
             m_has_exponent_digit = false;
             m_state_machine.pop();
@@ -878,7 +889,7 @@ private:
         }
         if(std::isdigit(c))
         {
-            m_number_token.push_back(c);
+            append_number_char(c);
             const int digit = static_cast<int>(c - '0');
             // Check for exponent overflow before multiplication
             // Prevent integer overflow in m_exponent calculation
@@ -948,7 +959,7 @@ private:
         if(c == '-')
         {
             clear_number_state();
-            m_number_token.push_back('-');
+            append_number_char('-');
             m_state_machine.pop();
             m_state_machine.push(&decoder::negative);
             return;
