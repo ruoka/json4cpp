@@ -593,25 +593,25 @@ auto register_tests()
         
         // Const version
         require_nothrow([&]{ auto val = ob[2]; });
-        require_throws_as([&]{ auto val = ob[3]; }, std::runtime_error{""});
+        require_throws_as<std::runtime_error>([&]{ auto val = ob[3]; });
         
         // Non-const version
         require_nothrow([&]{ ob[2] = 99; });
-        require_throws_as([&]{ ob[3] = 99; }, std::runtime_error{""});
+        require_throws_as<std::runtime_error>([&]{ ob[3] = 99; });
     };
 
     test_case("ArrayIndexOnNonArray, [xson]") = [] {
         auto ob = object{{"A"s, 1}};
         
-        require_throws_as([&]{ auto val = ob[0]; }, std::runtime_error{""});
-        require_throws_as([&]{ ob[0] = 99; }, std::runtime_error{""});
+        require_throws_as<std::runtime_error>([&]{ auto val = ob[0]; });
+        require_throws_as<std::runtime_error>([&]{ ob[0] = 99; });
     };
 
     test_case("ObjectAccessOnNonObject, [xson]") = [] {
         auto ob = object{array{object{1}, object{2}, object{3}}};
         
-        require_throws_as([&]{ auto val = ob["key"s]; }, std::runtime_error{""});
-        require_throws_as([&]{ ob["key"s] = 99; }, std::runtime_error{""});
+        require_throws_as<std::runtime_error>([&]{ auto val = ob["key"s]; });
+        require_throws_as<std::runtime_error>([&]{ ob["key"s] = 99; });
     };
 
     test_case("MapWithPrimitiveValues, [xson]") = [] {
