@@ -8,6 +8,12 @@ A modern C++23 module-based library for JSON and FSON (Fast JSON) serialization.
 - C++23 compiler with modules support (**Clang 21+ required**; build scripts default to `clang++-21`)
 - LLVM 21 with libc++ `std.cppm` module support (for the `std` module)
 
+## Versioning & Releases
+
+**Current release: [`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0)** — SemVer tag for the Clang 21 + libc++ modules consume surface (`import xson;`). Prior `v1.0` / `v2.0` tags are historical.
+
+See [`docs/release-policy.md`](docs/release-policy.md) for the public surface, SemVer rules, and release criteria. Nested `deps/tester` must match sibling libraries and YarDB — [ecosystem versioning](https://github.com/ruoka/YarDB/blob/master/docs/versioning.md).
+
 ## Building
 
 The project uses the C++ Builder (CB) build system. From the project root:
@@ -142,5 +148,6 @@ The library is organized as C++23 modules:
 
 ## Documentation
 
+- **[docs/release-policy.md](docs/release-policy.md)** — SemVer surface, versioning rules, release criteria
 - **[docs/assessment.md](docs/assessment.md)** — current library assessment (gaps, limits, suggested work)
 - **[docs/archive/peer_review_2024.md](docs/archive/peer_review_2024.md)** — historical 2024 peer review
