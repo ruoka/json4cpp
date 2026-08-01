@@ -608,6 +608,33 @@ auto register_tests()
         require_throws([&]{ (void)parse_with_limit(R"({"\n\n\n\n\n":1})"); });
     };
 
+    test_case("NumberLengthLimitAppliesToLexeme, [xson]") = [] {
+        // After from_chars lexeme buffering, fractional digit runs appended to
+        // m_number_token with no cap (integer overflow self-limits near ~310
+        // digits). Reuse the string-length budget so "0." + huge digit payloads
+        // cannot grow without bound. Tiny custom limit keeps the test fast.
+        constexpr std::size_t limit = 8;
+
+        const auto parse_with_limit = [](std::string_view json) {
+            auto b = xson::builder{};
+            auto d = decoder<xson::builder>{b, limit};
+            d.decode(json);
+            return b.get();
+        };
+
+        // Exactly at the limit — allowed ("0." + 6 digits = 8).
+        require_true(parse_with_limit("0.123456").is_number());
+
+        // One more fractional digit must reject.
+        require_throws([&]{ (void)parse_with_limit("0.1234567"); });
+
+        // Integer/scientific forms share the same lexeme budget.
+        require_true(parse_with_limit("12345678").is_integer());
+        require_throws([&]{ (void)parse_with_limit("123456789"); });
+        require_true(parse_with_limit("1.2e+10").is_number()); // 7 chars
+        require_throws([&]{ (void)parse_with_limit("1.2345678"); }); // 9 chars
+    };
+
     test_case("ArraySizeLimitEnforced, [xson]") = [] {
         // max_array_size was defined but never checked; escape-style DoS via huge
         // arrays could allocate without bound. Use a tiny custom limit so the
