@@ -661,6 +661,43 @@ public:
             return false;
     }
 
+    // Typed field read: missing → nullopt; wrong type → throw (same as operator[] / casts).
+    // Distinct from get<T>() which extracts this node's map/array/primitive payload.
+    template<typename T>
+        requires (
+            std::same_as<T, string_type> or
+            std::same_as<T, number_type> or
+            std::same_as<T, boolean_type> or
+            std::same_as<T, integer_type> or
+            std::same_as<T, int32_type> or
+            std::same_as<T, timestamp_type>
+        )
+    std::optional<T> try_get(std::string_view name) const
+    {
+        if(not has(name))
+            return std::nullopt;
+        if constexpr(std::same_as<T, string_type>)
+            return string_type{static_cast<const string_type&>((*this)[name])};
+        else
+            return static_cast<T>((*this)[name]);
+    }
+
+    // Missing → default_value; wrong type → throw (never coerces wrong→default).
+    template<typename T>
+        requires (
+            std::same_as<T, string_type> or
+            std::same_as<T, number_type> or
+            std::same_as<T, boolean_type> or
+            std::same_as<T, integer_type> or
+            std::same_as<T, int32_type> or
+            std::same_as<T, timestamp_type>
+        )
+    T value_or(std::string_view name, T default_value) const
+    {
+        if(auto value = try_get<T>(name))
+            return *std::move(value);
+        return default_value;
+    }
 
     std::size_t size() const noexcept
     {

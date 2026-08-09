@@ -8,6 +8,7 @@ import tester;
 
 using namespace std::chrono;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 using namespace xson;
 using namespace xson::json;
 
@@ -1296,6 +1297,30 @@ auto register_tests()
             require_true(o1.has(std::to_string(i)));
             require_eq(i, static_cast<int>(o1[std::to_string(i)]));
         }
+    };
+
+    test_case("try_get and value_or, [xson][try_get]") = [] {
+        auto ob = object{
+            {"name"s, "NDA"s},
+            {"qty"s, 100.0},
+            {"flag"s, true},
+        };
+
+        require_true(ob.try_get<string_type>("name"sv).has_value());
+        require_eq(*ob.try_get<string_type>("name"sv), "NDA"s);
+        require_false(ob.try_get<string_type>("missing"sv).has_value());
+        require_eq(ob.value_or("missing"sv, ""s), ""s);
+        require_eq(ob.value_or("name"sv, ""s), "NDA"s);
+        require_eq(ob.value_or("qty"sv, 0.0), 100.0);
+        require_eq(ob.value_or("absentQty"sv, -1.0), -1.0);
+        require_eq(ob.value_or("flag"sv, false), true);
+
+        require_throws([&] {
+            (void)ob.try_get<number_type>("name"sv);
+        });
+        require_throws([&] {
+            (void)ob.value_or("qty"sv, ""s);
+        });
     };
 
     return 0;
