@@ -1,12 +1,16 @@
 # Release Policy
 
-## Current status: v3.0.0
+## Current status: v3.1.0
 
-**[`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0)** (1 August 2026) is the
-first SemVer tag for the Clang 21 + libc++ modules consume surface (`import xson;`). Prior
-tags `v1.0` / `v2.0` are historical (header / earlier C++23 lines).
+**[`v3.1.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.1.0)** (23 October 2026)
+adds `object::try_get` and `object::value_or` typed field accessors on the Clang 21 +
+libc++ modules consume surface (`import xson;`). A missing field returns `nullopt` or
+the caller-supplied default; a present field of the wrong type still throws.
+[`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0) (1 August 2026) is the
+first SemVer tag for that surface. Prior tags `v1.0` / `v2.0` are historical (header /
+earlier C++23 lines).
 
-Pin `v3.0.0` (or a later tag / deliberate commit). Nested `deps/tester` must match the
+Pin `v3.1.0` (or a later tag / deliberate commit). Nested `deps/tester` must match the
 parent tree’s tester pin — see
 [YarDB versioning](https://github.com/ruoka/YarDB/blob/master/docs/versioning.md).
 
