@@ -316,7 +316,7 @@ public:
     {
     }
 
-    object(object&& obj) :
+    object(object&& obj) noexcept :
     m_value{std::move(obj.m_value)}
     {
     }
@@ -327,7 +327,7 @@ public:
         return *this;
     }
 
-    object& operator = (object&& obj)
+    object& operator = (object&& obj) noexcept
     {
         m_value = std::move(obj.m_value);
         return *this;
