@@ -1,16 +1,21 @@
 # Release Policy
 
-## Current status: v3.1.0
+## Current status: v3.2.0
 
-**[`v3.1.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.1.0)** (23 October 2026)
-adds `object::try_get` and `object::value_or` typed field accessors on the Clang 21 +
-libc++ modules consume surface (`import xson;`). A missing field returns `nullopt` or
-the caller-supplied default; a present field of the wrong type still throws.
+**[`v3.2.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.2.0)** (15 November 2026)
+adds nested `try_get`, `try_string_view` and `try_object`, and `operator string_view`
+for a string value, on the Clang 21 + libc++ modules consume surface (`import xson;`).
+A missing field returns `nullopt`. A present field of the wrong type still throws.
+`operator string_view` reads a string value without copying it. Object move construction
+and move assignment are `noexcept`.
+[`v3.1.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.1.0) (23 October 2026)
+added `object::try_get` and `object::value_or`. A missing field returns `nullopt` or
+the caller-supplied default.
 [`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0) (1 August 2026) is the
 first SemVer tag for that surface. Prior tags `v1.0` / `v2.0` are historical (header /
 earlier C++23 lines).
 
-Pin `v3.1.0` (or a later tag / deliberate commit). Nested `deps/tester` must match the
+Pin `v3.2.0` (or a later tag / deliberate commit). Nested `deps/tester` must match the
 parent tree’s tester pin — see
 [YarDB versioning](https://github.com/ruoka/YarDB/blob/master/docs/versioning.md).
 

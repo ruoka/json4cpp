@@ -10,7 +10,7 @@ A modern C++23 module-based library for JSON and FSON (Fast JSON) serialization.
 
 ## Versioning & Releases
 
-**Current release: [`v3.1.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.1.0)** — adds `object::try_get` and `object::value_or` typed field accessors. [`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0) is the modules-era SemVer cut for the Clang 21 + libc++ modules consume surface (`import xson;`). Prior `v1.0` / `v2.0` tags are historical.
+**Current release: [`v3.2.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.2.0)** — adds nested `try_get`, `try_string_view` and `try_object`, and `operator string_view` for a string value. [`v3.1.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.1.0) added `object::try_get` and `object::value_or`. [`v3.0.0`](https://github.com/ruoka/json4cpp/releases/tag/v3.0.0) is the modules-era SemVer cut for the Clang 21 + libc++ modules consume surface (`import xson;`). Prior `v1.0` / `v2.0` tags are historical.
 
 See [`docs/release-policy.md`](docs/release-policy.md) for the public surface, SemVer rules, and release criteria. Nested `deps/tester` must match sibling libraries and YarDB — [ecosystem versioning](https://github.com/ruoka/YarDB/blob/master/docs/versioning.md).
 
