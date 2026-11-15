@@ -661,11 +661,14 @@ public:
             return false;
     }
 
-    // Typed field read: missing → nullopt; wrong type → throw (same as operator[] / casts).
+    // Typed field read: missing or JSON null → nullopt; wrong type → throw (same as operator[] / casts).
+    // string_type: an empty string is also absent (optional form fields and WUI clears).
+    // string_view: non-owning; valid only while this object is unchanged.
     // Distinct from get<T>() which extracts this node's map/array/primitive payload.
     template<typename T>
         requires (
             std::same_as<T, string_type> or
+            std::same_as<T, std::string_view> or
             std::same_as<T, number_type> or
             std::same_as<T, boolean_type> or
             std::same_as<T, integer_type> or
@@ -676,10 +679,71 @@ public:
     {
         if(not has(name))
             return std::nullopt;
+        const auto& field = (*this)[name];
+        if(field.is_null())
+            return std::nullopt;
         if constexpr(std::same_as<T, string_type>)
-            return string_type{static_cast<const string_type&>((*this)[name])};
+        {
+            const auto text = string_type{static_cast<const string_type&>(field)};
+            if(text.empty())
+                return std::nullopt;
+            return text;
+        }
+        else if constexpr(std::same_as<T, std::string_view>)
+        {
+            const auto& text = static_cast<const string_type&>(field);
+            if(text.empty())
+                return std::nullopt;
+            return std::string_view{text};
+        }
         else
-            return static_cast<T>((*this)[name]);
+            return static_cast<T>(field);
+    }
+
+    // Leaf under a child object; missing/null/non-object parent → nullopt.
+    template<typename T>
+        requires (
+            std::same_as<T, string_type> or
+            std::same_as<T, std::string_view> or
+            std::same_as<T, number_type> or
+            std::same_as<T, boolean_type> or
+            std::same_as<T, integer_type> or
+            std::same_as<T, int32_type> or
+            std::same_as<T, timestamp_type>
+        )
+    std::optional<T> try_get(std::string_view object_key, std::string_view key) const
+    {
+        if(not has(object_key))
+            return std::nullopt;
+        const auto& parent = (*this)[object_key];
+        if(parent.is_null() or not parent.is_object())
+            return std::nullopt;
+        if constexpr(std::same_as<T, std::string_view>)
+            return parent.try_string_view(key);
+        return parent.try_get<T>(key);
+    }
+
+    // Leaf under outer.object_key; missing/null/non-object nodes → nullopt.
+    template<typename T>
+        requires (
+            std::same_as<T, string_type> or
+            std::same_as<T, std::string_view> or
+            std::same_as<T, number_type> or
+            std::same_as<T, boolean_type> or
+            std::same_as<T, integer_type> or
+            std::same_as<T, int32_type> or
+            std::same_as<T, timestamp_type>
+        )
+    std::optional<T> try_get(std::string_view outer, std::string_view object_key, std::string_view key) const
+    {
+        if(not has(outer))
+            return std::nullopt;
+        const auto& parent = (*this)[outer];
+        if(parent.is_null() or not parent.is_object())
+            return std::nullopt;
+        if constexpr(std::same_as<T, std::string_view>)
+            return parent.try_string_view(object_key, key);
+        return parent.try_get<T>(object_key, key);
     }
 
     // Missing → default_value; wrong type → throw (never coerces wrong→default).
@@ -697,6 +761,31 @@ public:
         if(auto value = try_get<T>(name))
             return *std::move(value);
         return default_value;
+    }
+
+    // Non-owning text; missing, null, or empty → nullopt. Wrong type → throw. Valid only while this object is unchanged.
+    std::optional<std::string_view> try_string_view(std::string_view name) const
+    {
+        return try_get<std::string_view>(name);
+    }
+
+    // Leaf text under a child object without copying the child. Missing/null/non-object parent → nullopt.
+    std::optional<std::string_view> try_string_view(std::string_view object_key, std::string_view key) const
+    {
+        return try_get<std::string_view>(object_key, key);
+    }
+
+    // Child object by name; missing or null → nullopt. Wrong type → throw. Returned value is a copy of the field.
+    std::optional<object> try_object(std::string_view name) const
+    {
+        if(not has(name))
+            return std::nullopt;
+        const auto& field = (*this)[name];
+        if(field.is_null())
+            return std::nullopt;
+        if(not field.is_object())
+            throw std::invalid_argument{std::format("{} must be an object", name)};
+        return object{field};
     }
 
     std::size_t size() const noexcept

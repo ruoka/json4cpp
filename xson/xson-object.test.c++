@@ -1323,6 +1323,56 @@ auto register_tests()
         });
     };
 
+    test_case("try_get treats null and empty text as absent, [xson][try_get]") = [] {
+        auto doc = object{
+            {"n"s, nullptr},
+            {"b"s, ""s},
+            {"zero"s, integer_type{0}},
+        };
+
+        require_false(doc.try_get<string_type>("n"sv).has_value());
+        require_false(doc.try_get<string_type>("b"sv).has_value());
+        require_false(doc.try_get<string_type>("missing"sv).has_value());
+        require_eq(doc.value_or("n"sv, "def"s), "def"s);
+        require_eq(doc.value_or("b"sv, "def"s), "def"s);
+        require_eq(doc.try_get<integer_type>("zero"sv).value_or(-1), 0);
+    };
+
+    test_case("try_string_view and try_object, [xson][try_get]") = [] {
+        auto doc = object{
+            {"a"s, "x"s},
+            {"b"s, ""s},
+            {"n"s, nullptr},
+            {"child"s, object{{"k"s, "y"s}}},
+            {"num"s, 1},
+        };
+
+        const auto view = doc.try_get<std::string_view>("a"sv);
+        require_true(view.has_value());
+        require_eq(*view, "x"sv);
+        require_eq(doc.try_string_view("a"sv).value_or(""sv), "x"sv);
+        require_false(doc.try_string_view("b"sv).has_value());
+        require_false(doc.try_string_view("n"sv).has_value());
+        require_false(doc.try_string_view("missing"sv).has_value());
+
+        const auto child = doc.try_object("child"sv);
+        require_true(child.has_value());
+        require_eq(child->try_get<string_type>("k"sv).value_or(""s), "y"s);
+        require_false(doc.try_object("missing"sv).has_value());
+        require_false(doc.try_object("n"sv).has_value());
+
+        require_throws([&] { (void)doc.try_object("num"sv); });
+        require_throws([&] { (void)doc.try_string_view("num"sv); });
+
+        const auto nested = doc.try_string_view("child"sv, "k"sv);
+        require_true(nested.has_value());
+        require_eq(*nested, "y"sv);
+        require_false(doc.try_string_view("missing"sv, "k"sv).has_value());
+
+        require_eq(doc.try_get<string_type>("child"sv, "k"sv).value_or(""s), "y"s);
+        require_false(doc.try_get<string_type>("child"sv, "missing"sv).has_value());
+    };
+
     return 0;
 }
 
