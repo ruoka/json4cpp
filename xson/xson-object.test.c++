@@ -1373,6 +1373,13 @@ auto register_tests()
         require_false(doc.try_get<string_type>("child"sv, "missing"sv).has_value());
     };
 
+    test_case("string field converts to string_view without copying, [xson][try_get]") = [] {
+        const auto doc = object{{"UID"s, "TX-DVP"s}};
+        const std::string_view uid = doc["UID"s];
+        require_eq(uid, "TX-DVP"sv);
+        require_throws([&] { const auto other = object{{"num"s, 1}}; (void)static_cast<std::string_view>(other["num"s]); });
+    };
+
     return 0;
 }
 

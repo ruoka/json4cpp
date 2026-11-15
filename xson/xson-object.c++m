@@ -537,6 +537,11 @@ public:
         return std::get<string_type>(std::get<primitive>(m_value));
     }
 
+    operator std::string_view() const
+    {
+        return std::string_view{std::get<string_type>(std::get<primitive>(m_value))};
+    }
+
     operator boolean_type () const
     {
         return std::get<boolean_type>(std::get<primitive>(m_value));
