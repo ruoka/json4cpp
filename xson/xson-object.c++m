@@ -165,6 +165,16 @@ struct primitive_less_t
 };
 
 template <typename T>
+concept Field = (
+    std::same_as<std::remove_cvref_t<T>, number_type> or
+    std::same_as<std::remove_cvref_t<T>, string_type> or
+    std::same_as<std::remove_cvref_t<T>, boolean_type> or
+    std::same_as<std::remove_cvref_t<T>, integer_type> or
+    std::same_as<std::remove_cvref_t<T>, int32_type> or
+    std::same_as<std::remove_cvref_t<T>, timestamp_type>
+);
+
+template <typename T>
 concept Primitive = (
     std::same_as<std::remove_cvref_t<T>, number_type> or
     std::same_as<std::remove_cvref_t<T>, string_type> or
@@ -772,6 +782,100 @@ public:
     std::optional<std::string_view> try_string_view(std::string_view name) const
     {
         return try_get<std::string_view>(name);
+    }
+
+    // Required text. Missing, null, empty, or a non-string throws. Valid only while this object is unchanged.
+    std::string_view get_string_view(std::string_view name) const
+    {
+        if(not has(name) or not (*this)[name].is_string())
+            throw std::invalid_argument{std::format("{} is required", name)};
+        const auto text = static_cast<std::string_view>((*this)[name]);
+        if(text.empty())
+            throw std::invalid_argument{std::format("{} is required", name)};
+        return text;
+    }
+
+    // Required leaf under a child object. A missing or non-object parent throws.
+    std::string_view get_string_view(std::string_view object_key, std::string_view key) const
+    {
+        if(not has(object_key) or not (*this)[object_key].is_object())
+            throw std::invalid_argument{std::format("{} is required", object_key)};
+        return (*this)[object_key].get_string_view(key);
+    }
+
+    // Required leaf under outer.object_key.
+    std::string_view get_string_view(std::string_view outer, std::string_view object_key, std::string_view key) const
+    {
+        if(not has(outer) or not (*this)[outer].is_object())
+            throw std::invalid_argument{std::format("{} is required", outer)};
+        return (*this)[outer].get_string_view(object_key, key);
+    }
+
+    // Required field. Missing, null, empty text, or the wrong type throws.
+    template<Field T>
+    T get(std::string_view name) const
+    {
+        if(not has(name) or (*this)[name].is_null())
+            throw std::invalid_argument{std::format("{} is required", name)};
+        const auto& field = (*this)[name];
+        if constexpr(std::same_as<T, string_type>)
+        {
+            if(not field.is_string())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            auto text = string_type{static_cast<const string_type&>(field)};
+            if(text.empty())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return text;
+        }
+        else if constexpr(std::same_as<T, integer_type>)
+        {
+            if(not field.is_integer())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return static_cast<integer_type>(field);
+        }
+        else if constexpr(std::same_as<T, int32_type>)
+        {
+            if(not field.is_integer())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            const auto value = static_cast<integer_type>(field);
+            if(value < std::numeric_limits<int32_type>::min() or value > std::numeric_limits<int32_type>::max())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return static_cast<int32_type>(value);
+        }
+        else if constexpr(std::same_as<T, number_type>)
+        {
+            if(not field.is_number())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return static_cast<number_type>(field);
+        }
+        else if constexpr(std::same_as<T, boolean_type>)
+        {
+            if(not field.is_boolean())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return static_cast<boolean_type>(field);
+        }
+        else
+        {
+            if(not field.is_timestamp())
+                throw std::invalid_argument{std::format("{} is required", name)};
+            return static_cast<timestamp_type>(field);
+        }
+    }
+
+    template<Field T>
+    T get(std::string_view object_key, std::string_view key) const
+    {
+        if(not has(object_key) or not (*this)[object_key].is_object())
+            throw std::invalid_argument{std::format("{} is required", object_key)};
+        return (*this)[object_key].template get<T>(key);
+    }
+
+    template<Field T>
+    T get(std::string_view outer, std::string_view object_key, std::string_view key) const
+    {
+        if(not has(outer) or not (*this)[outer].is_object())
+            throw std::invalid_argument{std::format("{} is required", outer)};
+        return (*this)[outer].template get<T>(object_key, key);
     }
 
     // Leaf text under a child object without copying the child. Missing/null/non-object parent → nullopt.

@@ -1338,6 +1338,44 @@ auto register_tests()
         require_eq(doc.try_get<integer_type>("zero"sv).value_or(-1), 0);
     };
 
+    test_case("get requires the field, [xson][try_get]") = [] {
+        auto doc = object{
+            {"q"s, integer_type{15}},
+            {"name"s, "NDA"s},
+            {"empty"s, ""s},
+            {"n"s, nullptr},
+            {"dust"s, 0.01},
+            {"child"s, object{{"q"s, integer_type{4}}}},
+        };
+        require_eq(doc.get<integer_type>("q"sv), integer_type{15});
+        require_eq(doc.get<string_type>("name"sv), "NDA"s);
+        require_eq(doc.get<integer_type>("child"sv, "q"sv), integer_type{4});
+        require_throws([&] { (void)doc.get<integer_type>("missing"sv); });
+        require_throws([&] { (void)doc.get<integer_type>("n"sv); });
+        require_throws([&] { (void)doc.get<integer_type>("dust"sv); });
+        require_throws([&] { (void)doc.get<string_type>("empty"sv); });
+        require_throws([&] { (void)doc.get<integer_type>("missing"sv, "q"sv); });
+    };
+
+    test_case("get_string_view requires text, [xson][try_get]") = [] {
+        auto doc = object{
+            {"a"s, "x"s},
+            {"b"s, ""s},
+            {"n"s, nullptr},
+            {"child"s, object{{"k"s, "y"s}, {"empty"s, ""s}}},
+            {"num"s, 1},
+        };
+
+        require_eq(doc.get_string_view("a"sv), "x"sv);
+        require_eq(doc.get_string_view("child"sv, "k"sv), "y"sv);
+        require_throws([&] { (void)doc.get_string_view("b"sv); });
+        require_throws([&] { (void)doc.get_string_view("n"sv); });
+        require_throws([&] { (void)doc.get_string_view("missing"sv); });
+        require_throws([&] { (void)doc.get_string_view("num"sv); });
+        require_throws([&] { (void)doc.get_string_view("child"sv, "empty"sv); });
+        require_throws([&] { (void)doc.get_string_view("missing"sv, "k"sv); });
+    };
+
     test_case("try_string_view and try_object, [xson][try_get]") = [] {
         auto doc = object{
             {"a"s, "x"s},
