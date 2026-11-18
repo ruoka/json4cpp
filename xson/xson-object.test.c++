@@ -564,6 +564,8 @@ auto register_tests()
         
         require_true(o1 == o2);
         require_false(o1 == o3);
+        require_true(o1 != o3);
+        require_false(o1 != o2);
         
         auto a1 = object{array{object{1}, object{2}, object{3}}};
         auto a2 = object{array{object{1}, object{2}, object{3}}};
