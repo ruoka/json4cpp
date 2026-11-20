@@ -22,7 +22,8 @@ using integer_type   = std::int64_t;
 using int64_type     = std::int64_t;
 using int32_type     = std::int32_t;
 
-using map            = std::flat_map<std::string, object>;
+// std::less<> is transparent: a string_view key finds the stored string without allocating.
+using map            = std::flat_map<std::string, object, std::less<>>;
 using array          = std::vector<object>;
 using primitive      = std::variant<std::monostate,     // \x0A
                                    number_type,    // \x01
@@ -206,7 +207,7 @@ template <typename T>
 concept Array = std::same_as<std::remove_cvref_t<T>,std::vector<object>>;
 
 template <typename T>
-concept Map = std::same_as<std::remove_cvref_t<T>,std::flat_map<std::string,object>>;
+concept Map = std::same_as<std::remove_cvref_t<T>,std::flat_map<std::string,object,std::less<>>>;
 
 template <typename T>
 concept Object = std::same_as<std::remove_cvref_t<T>,object>;
@@ -224,9 +225,8 @@ class object
 {
 public:
 
-    // Use ordered map to preserve key order for consistent JSON output
-    // Consider std::unordered_map for better performance if order doesn't matter
-    using map = std::flat_map<std::string,object>;
+    // Ordered keys keep JSON stable. std::less<> finds a string_view without copying the key.
+    using map = std::flat_map<std::string, object, std::less<>>;
     using array = std::vector<object>;
     using value = std::variant<map,array,primitive>;
 
@@ -480,22 +480,29 @@ public:
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        return std::get<map>(m_value)[name];
+        auto& fields = std::get<map>(m_value);
+        if(const auto found = fields.find(name); found != fields.end())
+            return found->second;
+        return fields.try_emplace(name).first->second;
     }
 
     object& operator [] (std::string_view name)
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        return std::get<map>(m_value)[std::string{name}];
+        auto& fields = std::get<map>(m_value);
+        if(const auto found = fields.find(name); found != fields.end())
+            return found->second;
+        // The key is stored only when the field is new.
+        return fields.try_emplace(std::string{name}).first->second;
     }
 
     const object& operator [] (const string_type& name) const
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        if(std::get<map>(m_value).contains(name))
-            return std::get<map>(m_value).find(name)->second;
+        if(const auto* field = lookup(name))
+            return *field;
         throw std::runtime_error{"object has no field with name "s + name};
     }
 
@@ -503,10 +510,9 @@ public:
     {
         if(!is_object())
             throw std::runtime_error{"Cannot access object field: object is not an object type"s};
-        auto key = std::string{name};
-        if(std::get<map>(m_value).contains(key))
-            return std::get<map>(m_value).find(key)->second;
-        throw std::runtime_error{"object has no field with name "s + key};
+        if(const auto* field = lookup(name))
+            return *field;
+        throw std::runtime_error{"object has no field with name "s + std::string{name}};
     }
 
     object& operator [] (std::size_t idx)
@@ -662,18 +668,12 @@ public:
 
     bool has(const std::string& name) const noexcept
     {
-        if(holds_alternative<map>(m_value))
-            return std::get<map>(m_value).contains(name);
-        else
-            return false;
+        return lookup(name) != nullptr;
     }
 
     bool has(std::string_view name) const noexcept
     {
-        if(holds_alternative<map>(m_value))
-            return std::get<map>(m_value).contains(std::string{name});
-        else
-            return false;
+        return lookup(name) != nullptr;
     }
 
     // Typed field read: missing or JSON null → nullopt; wrong type → throw (same as operator[] / casts).
@@ -692,11 +692,10 @@ public:
         )
     std::optional<T> try_get(std::string_view name) const
     {
-        if(not has(name))
+        const auto* found = lookup(name);
+        if(found == nullptr or found->is_null())
             return std::nullopt;
-        const auto& field = (*this)[name];
-        if(field.is_null())
-            return std::nullopt;
+        const auto& field = *found;
         if constexpr(std::same_as<T, string_type>)
         {
             const auto text = string_type{static_cast<const string_type&>(field)};
@@ -728,14 +727,12 @@ public:
         )
     std::optional<T> try_get(std::string_view object_key, std::string_view key) const
     {
-        if(not has(object_key))
-            return std::nullopt;
-        const auto& parent = (*this)[object_key];
-        if(parent.is_null() or not parent.is_object())
+        const auto* parent = lookup(object_key);
+        if(parent == nullptr or parent->is_null() or not parent->is_object())
             return std::nullopt;
         if constexpr(std::same_as<T, std::string_view>)
-            return parent.try_string_view(key);
-        return parent.try_get<T>(key);
+            return parent->try_string_view(key);
+        return parent->try_get<T>(key);
     }
 
     // Leaf under outer.object_key; missing/null/non-object nodes → nullopt.
@@ -751,20 +748,19 @@ public:
         )
     std::optional<T> try_get(std::string_view outer, std::string_view object_key, std::string_view key) const
     {
-        if(not has(outer))
-            return std::nullopt;
-        const auto& parent = (*this)[outer];
-        if(parent.is_null() or not parent.is_object())
+        const auto* parent = lookup(outer);
+        if(parent == nullptr or parent->is_null() or not parent->is_object())
             return std::nullopt;
         if constexpr(std::same_as<T, std::string_view>)
-            return parent.try_string_view(object_key, key);
-        return parent.try_get<T>(object_key, key);
+            return parent->try_string_view(object_key, key);
+        return parent->try_get<T>(object_key, key);
     }
 
     // Missing → default_value; wrong type → throw (never coerces wrong→default).
     template<typename T>
         requires (
             std::same_as<T, string_type> or
+            std::same_as<T, std::string_view> or
             std::same_as<T, number_type> or
             std::same_as<T, boolean_type> or
             std::same_as<T, integer_type> or
@@ -787,9 +783,10 @@ public:
     // Required text. Missing, null, empty, or a non-string throws. Valid only while this object is unchanged.
     std::string_view get_string_view(std::string_view name) const
     {
-        if(not has(name) or not (*this)[name].is_string())
+        const auto* field = lookup(name);
+        if(field == nullptr or not field->is_string())
             throw std::invalid_argument{std::format("{} is required", name)};
-        const auto text = static_cast<std::string_view>((*this)[name]);
+        const std::string_view text = *field;
         if(text.empty())
             throw std::invalid_argument{std::format("{} is required", name)};
         return text;
@@ -798,26 +795,29 @@ public:
     // Required leaf under a child object. A missing or non-object parent throws.
     std::string_view get_string_view(std::string_view object_key, std::string_view key) const
     {
-        if(not has(object_key) or not (*this)[object_key].is_object())
+        const auto* parent = lookup(object_key);
+        if(parent == nullptr or not parent->is_object())
             throw std::invalid_argument{std::format("{} is required", object_key)};
-        return (*this)[object_key].get_string_view(key);
+        return parent->get_string_view(key);
     }
 
     // Required leaf under outer.object_key.
     std::string_view get_string_view(std::string_view outer, std::string_view object_key, std::string_view key) const
     {
-        if(not has(outer) or not (*this)[outer].is_object())
+        const auto* parent = lookup(outer);
+        if(parent == nullptr or not parent->is_object())
             throw std::invalid_argument{std::format("{} is required", outer)};
-        return (*this)[outer].get_string_view(object_key, key);
+        return parent->get_string_view(object_key, key);
     }
 
     // Required field. Missing, null, empty text, or the wrong type throws.
     template<Field T>
     T get(std::string_view name) const
     {
-        if(not has(name) or (*this)[name].is_null())
+        const auto* found = lookup(name);
+        if(found == nullptr or found->is_null())
             throw std::invalid_argument{std::format("{} is required", name)};
-        const auto& field = (*this)[name];
+        const auto& field = *found;
         if constexpr(std::same_as<T, string_type>)
         {
             if(not field.is_string())
@@ -865,17 +865,19 @@ public:
     template<Field T>
     T get(std::string_view object_key, std::string_view key) const
     {
-        if(not has(object_key) or not (*this)[object_key].is_object())
+        const auto* parent = lookup(object_key);
+        if(parent == nullptr or not parent->is_object())
             throw std::invalid_argument{std::format("{} is required", object_key)};
-        return (*this)[object_key].template get<T>(key);
+        return parent->template get<T>(key);
     }
 
     template<Field T>
     T get(std::string_view outer, std::string_view object_key, std::string_view key) const
     {
-        if(not has(outer) or not (*this)[outer].is_object())
+        const auto* parent = lookup(outer);
+        if(parent == nullptr or not parent->is_object())
             throw std::invalid_argument{std::format("{} is required", outer)};
-        return (*this)[outer].template get<T>(object_key, key);
+        return parent->template get<T>(object_key, key);
     }
 
     // Leaf text under a child object without copying the child. Missing/null/non-object parent → nullopt.
@@ -887,14 +889,12 @@ public:
     // Child object by name; missing or null → nullopt. Wrong type → throw. Returned value is a copy of the field.
     std::optional<object> try_object(std::string_view name) const
     {
-        if(not has(name))
+        const auto* field = lookup(name);
+        if(field == nullptr or field->is_null())
             return std::nullopt;
-        const auto& field = (*this)[name];
-        if(field.is_null())
-            return std::nullopt;
-        if(not field.is_object())
+        if(not field->is_object())
             throw std::invalid_argument{std::format("{} must be an object", name)};
-        return object{field};
+        return object{*field};
     }
 
     std::size_t size() const noexcept
@@ -1080,6 +1080,18 @@ private:
 
     // Pagination ($top/$skip/$orderby/$desc) and YarDB index window keys
     // ($head/$tail) are applied outside match(); ignore them as field selectors.
+    // One search. A miss and a non-object are both null. The pointer is valid until this object changes.
+    const object* lookup(std::string_view name) const noexcept
+    {
+        if(not holds_alternative<map>(m_value))
+            return nullptr;
+        const auto& fields = std::get<map>(m_value);
+        const auto found = fields.find(name);
+        if(found == fields.end())
+            return nullptr;
+        return &found->second;
+    }
+
     static bool is_ignored_query_key(const string_type& key)
     {
         return key == "$top"s

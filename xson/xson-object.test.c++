@@ -1414,10 +1414,17 @@ auto register_tests()
     };
 
     test_case("string field converts to string_view without copying, [xson][try_get]") = [] {
-        const auto doc = object{{"UID"s, "TX-DVP"s}};
-        const std::string_view uid = doc["UID"s];
+        auto doc = object{{"UID"s, "TX-DVP"s}};
+        const auto& stored = static_cast<const string_type&>(doc["UID"sv]);
+        const std::string_view uid = doc["UID"sv];
         require_eq(uid, "TX-DVP"sv);
-        require_throws([&] { const auto other = object{{"num"s, 1}}; (void)static_cast<std::string_view>(other["num"s]); });
+        require_eq(uid.data(), stored.data());
+        require_eq(doc.get_string_view("UID"sv).data(), stored.data());
+        require_eq(doc.try_string_view("UID"sv)->data(), stored.data());
+        require_eq(doc.value_or("UID"sv, ""sv).data(), stored.data());
+        require_eq(doc.value_or("missing"sv, ""sv), ""sv);
+        require_true(doc.has("UID"sv));
+        require_throws([&] { const auto other = object{{"num"s, 1}}; const std::string_view ignored = other["num"sv]; (void)ignored; });
     };
 
     return 0;
