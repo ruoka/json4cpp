@@ -1,83 +1,34 @@
 name: "setup-llvm"
-description: "Install LLVM 21 + related tools via apt, caching .deb archives in a user-owned directory."
+description: "Install LLVM 21 libc++ when the runner has clang without the module headers."
 inputs:
   packages:
-    description: "Space-separated apt packages to install (default includes libc++, clang, lld, lldb, jq)"
+    description: "Space-separated apt packages to install when libc++ headers are missing"
     required: false
-    default: "libc++-21-dev libc++abi-21-dev clang-21 lld-21 lldb-21 jq libssl-dev clang-tools-21"
+    default: "libc++-21-dev libc++abi-21-dev clang-21 lld-21 lldb-21 jq clang-tools-21"
 
 runs:
   using: "composite"
   steps:
-    # Apt must remain the source of truth for /usr. We only cache downloaded
-    # .debs in a user-owned directory so actions/cache can restore them (the
-    # runner user cannot extract into root-owned /var/cache/apt/archives).
-    - name: Prepare LLVM apt source and cache fingerprint
-      id: prep
+    # ubuntu-latest (26.04) ships clang-21 and an empty libc++. A cache of
+    # /usr/lib/llvm-21 cannot be extracted over that tree ("File exists"), so
+    # apt stays the source of the headers.
+    - name: Install LLVM 21 libc++ when the headers are missing
       shell: bash
       env:
         LLVM_PACKAGES: ${{ inputs.packages }}
       run: |
         set -euo pipefail
 
-        APT_CACHE="${HOME}/.cache/ruoka-apt-llvm"
-        mkdir -p "${APT_CACHE}/partial"
-        echo "cache_dir=${APT_CACHE}" >> "${GITHUB_OUTPUT}"
-
-        # Hosted runners wipe kept packages via docker-clean; keep .debs so the
-        # archive cache is non-empty after install.
-        sudo rm -f /etc/apt/apt.conf.d/docker-clean
-        echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' \
-          | sudo tee /etc/apt/apt.conf.d/01keep-debs >/dev/null
-
-        sudo apt-get update -y
-        sudo apt-get install -y wget gnupg ca-certificates lsb-release software-properties-common
-
-        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key \
-          | sudo gpg --dearmor -o /usr/share/keyrings/apt-llvm.gpg
-        echo "deb [signed-by=/usr/share/keyrings/apt-llvm.gpg] https://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main" \
-          | sudo tee /etc/apt/sources.list.d/apt-llvm.org.list >/dev/null
-        sudo apt-get update -y
-
-        # Fingerprint candidate versions so a LLVM apt bump invalidates the cache.
-        fingerprint="$(
-          {
-            printf 'packages:%s\n' "${LLVM_PACKAGES}"
-            # shellcheck disable=SC2086
-            for pkg in ${LLVM_PACKAGES}; do
-              apt-cache policy "${pkg}" 2>/dev/null \
-                | awk -v p="${pkg}" '/Candidate:/ { print p ":" $2; exit }'
-            done
-          } | sha256sum | awk '{ print $1 }'
-        )"
-        echo "fingerprint=${fingerprint}" >> "${GITHUB_OUTPUT}"
-        echo "Apt fingerprint: ${fingerprint}"
-
-    - name: Cache apt .deb archives
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.prep.outputs.cache_dir }}
-        key: apt-llvm-21-${{ runner.os }}-${{ runner.arch }}-${{ steps.prep.outputs.fingerprint }}
-        restore-keys: |
-          apt-llvm-21-${{ runner.os }}-${{ runner.arch }}-
-
-    - name: Install LLVM packages from apt
-      shell: bash
-      env:
-        LLVM_PACKAGES: ${{ inputs.packages }}
-        APT_CACHE: ${{ steps.prep.outputs.cache_dir }}
-      run: |
-        set -euo pipefail
-
-        mkdir -p "${APT_CACHE}/partial"
-
-        # shellcheck disable=SC2086
-        sudo apt-get \
-          -o Dir::Cache::archives="${APT_CACHE}" \
-          install -y ${LLVM_PACKAGES}
-
-        # actions/cache packs as the runner user; apt may have written as root.
-        sudo chown -R "$(id -u):$(id -g)" "${APT_CACHE}"
+        header="/usr/lib/llvm-21/include/c++/v1/filesystem"
+        module="/usr/lib/llvm-21/share/libc++/v1/std.cppm"
+        if [[ -f "${header}" && -f "${module}" ]]; then
+          echo "libc++ headers already present."
+        else
+          echo "libc++ headers missing — installing ${LLVM_PACKAGES}"
+          sudo apt-get update -y
+          # shellcheck disable=SC2086
+          sudo apt-get install -y ${LLVM_PACKAGES}
+        fi
 
         if [[ -x /usr/bin/clang-21 ]]; then
           sudo update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100 || true
@@ -89,6 +40,11 @@ runs:
           sudo update-alternatives --install /usr/bin/lld     lld     /usr/bin/lld-21     100 || true
         fi
 
+        if [[ ! -f "${header}" || ! -f "${module}" ]]; then
+          echo "ERROR: libc++ headers still missing after install"
+          find /usr/lib/llvm-21 -name 'std.cppm' -o -name 'filesystem' | head
+          exit 1
+        fi
+
         clang++-21 --version | head -1
-        echo "Apt archive cache: $(du -sh "${APT_CACHE}" | awk '{print $1}') ($(find "${APT_CACHE}" -name '*.deb' | wc -l | tr -d ' ') .deb files)"
         echo "LLVM setup complete."
